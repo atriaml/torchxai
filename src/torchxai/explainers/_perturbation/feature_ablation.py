@@ -663,9 +663,7 @@ class FeatureAblationExplainer(Explainer):
             if self._is_multi_target:
                 attributions = [
                     _weight_attributions(attribution, feature_mask)
-                    for attribution, feature_mask in zip(
-                        attributions, itertools.cycle(feature_mask)
-                    )
+                    for attribution in attributions
                 ]
             else:
                 attributions = _weight_attributions(attributions, feature_mask)
