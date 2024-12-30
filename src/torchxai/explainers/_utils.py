@@ -188,30 +188,33 @@ def _compute_gradients_vmap_autograd(
         outputs = _run_forward_multi_target(
             forward_fn, inputs, target, additional_forward_args
         )
+        output_shape = outputs.shape
         if (
-            len(outputs.shape) > 1
+            len(output_shape) > 1
         ):  # this is the case where the output is of dimension [batch_size, ...]
-            unit_vectors = torch.eye(outputs.shape[-1]).to(outputs.device)
-            multi_target_gradients = None
+            unit_vectors = torch.eye(output_shape[-1], device=outputs.device)
+            batch_size = outputs.shape[0]
+            num_targets = outputs.shape[-1]
+            multi_target_gradients = tuple(
+                torch.zeros((num_targets, *input.shape), device=outputs.device)
+                for input in inputs
+            )
+            outputs = torch.unbind(outputs)
             for start_idx in tqdm.tqdm(
-                range(0, outputs.shape[-1], grad_batch_size), disable=not show_progress
+                range(0, num_targets, grad_batch_size), disable=not show_progress
             ):
-                end_idx = min(start_idx + grad_batch_size, outputs.shape[-1])
+                end_idx = min(start_idx + grad_batch_size, num_targets)
+                unit_vec_batch = unit_vectors[start_idx:end_idx]
                 grads = torch.autograd.grad(
-                    torch.unbind(outputs),
+                    outputs,
                     inputs,
-                    (unit_vectors[start_idx:end_idx],) * outputs.shape[0],
+                    (unit_vec_batch,) * batch_size,
                     is_grads_batched=True,
-                    retain_graph=True if end_idx < outputs.shape[-1] else False,
+                    retain_graph=end_idx < num_targets,
                 )
 
-                if multi_target_gradients is None:
-                    multi_target_gradients = grads
-                else:
-                    multi_target_gradients = tuple(
-                        torch.cat((a, b), dim=0)
-                        for a, b in zip(multi_target_gradients, grads)
-                    )
+                for input_idx, grad in enumerate(grads):
+                    multi_target_gradients[input_idx][start_idx:end_idx] = grad
             multi_target_gradients = [
                 tuple(
                     grad_per_target[idx] for grad_per_target in multi_target_gradients
@@ -226,6 +229,9 @@ def _compute_gradients_vmap_autograd(
                 inputs,
             )
             multi_target_gradients = [grads]
+
+        del outputs
+        torch.cuda.empty_cache()
 
     return multi_target_gradients
 
