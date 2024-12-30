@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import itertools
 from typing import Any, Callable, Generator, List, Optional, Tuple, Union
 
 import torch
@@ -13,8 +12,7 @@ from captum.log import log_usage
 from torch import Tensor
 from torch.distributions.categorical import Categorical
 from torch.nn import Module
-
-from torchxai.explainers._perturbation.lime import MultiTargetLime, Lime
+from torchxai.explainers._perturbation.lime import Lime, MultiTargetLime
 from torchxai.explainers._utils import (
     _expand_feature_mask_to_target,
     _weight_attributions,
@@ -299,9 +297,7 @@ class KernelShapExplainer(Explainer):
             if self._is_multi_target:
                 attributions = [
                     _weight_attributions(attribution, feature_mask)
-                    for attribution, feature_mask in zip(
-                        attributions, itertools.cycle(feature_mask)
-                    )
+                    for attribution in attributions
                 ]
             else:
                 attributions = _weight_attributions(attributions, feature_mask)
