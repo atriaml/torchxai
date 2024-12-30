@@ -383,3 +383,10 @@ def _expand_feature_mask_to_target(
     if return_first_element:
         return feature_mask[0]
     return feature_mask
+
+
+def _convert_to_tuples(nested_list):
+    if isinstance(nested_list, list):
+        return tuple(_convert_to_tuples(x) for x in nested_list)
+    else:
+        return nested_list

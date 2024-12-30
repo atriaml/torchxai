@@ -1,4 +1,3 @@
-import itertools
 import math
 from typing import Any, Callable, Tuple, Union, cast
 
