@@ -1,32 +1,22 @@
-import math
-
 #!/usr/bin/env python3
-from typing import Any, Callable, Tuple, Union, cast
+from typing import Any, Callable, Tuple, Union
 
 import numpy as np
 import torch
-from captum._utils.common import (
-    _format_additional_forward_args,
-    _format_feature_mask,
-    _format_output,
-    _format_tensor_into_tuples,
-    _is_tuple,
-)
-from captum._utils.progress import progress
+from captum._utils.common import _format_tensor_into_tuples
 from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from captum.attr import Attribution, Occlusion
 from captum.attr._utils.common import (
     _format_and_verify_sliding_window_shapes,
     _format_and_verify_strides,
-    _format_input_baseline,
 )
-from torch import Tensor, dtype
+from torch import Tensor
 from torch.nn.modules import Module
-
 from torchxai.explainers._perturbation.feature_ablation import (
     FeatureAblation,
     MultiTargetFeatureAblation,
 )
+from torchxai.explainers._utils import _convert_to_tuples
 from torchxai.explainers.explainer import Explainer
 
 
@@ -282,25 +272,19 @@ class MultiTargetOcclusion(MultiTargetFeatureAblation):
         being 1. This mask contains 1s in locations which have been ablated (and
         thus counted towards ablations for that feature) and 0s otherwise.
         """
-        input_mask = (
-            torch.stack(
-                [
-                    self._occlusion_mask(
-                        expanded_input,
-                        j,
-                        kwargs["sliding_window_tensors"],
-                        kwargs["strides"],
-                        kwargs["shift_counts"],
-                    )
-                    for j in range(start_feature, end_feature)
-                ],
-                dim=0,
-            )
-            .long()
-            .repeat(
-                1, expanded_input.shape[1], 1, 1, 1
-            )  # changes made here for multi-target
-        )
+        input_mask = torch.stack(
+            [
+                self._occlusion_mask(
+                    expanded_input,
+                    j,
+                    kwargs["sliding_window_tensors"],
+                    kwargs["strides"],
+                    kwargs["shift_counts"],
+                )
+                for j in range(start_feature, end_feature)
+            ],
+            dim=0,
+        ).long()
         ablated_tensor = (
             expanded_input
             * (
@@ -308,6 +292,10 @@ class MultiTargetOcclusion(MultiTargetFeatureAblation):
                 - input_mask
             ).to(expanded_input.dtype)
         ) + (baseline * input_mask.to(expanded_input.dtype))
+
+        # we expand the input mask to shape (perturbation steps, batch size, ...)
+        input_mask = input_mask.expand_as(ablated_tensor)
+
         return ablated_tensor, input_mask
 
     def _occlusion_mask(
@@ -397,8 +385,8 @@ class OcclusionExplainer(Explainer):
         internal_batch_size: int = 1,
     ) -> None:
         super().__init__(model, is_multi_target, internal_batch_size)
-        self._sliding_window_shapes = sliding_window_shapes
-        self._strides = strides
+        self._sliding_window_shapes = _convert_to_tuples(sliding_window_shapes)
+        self._strides = _convert_to_tuples(strides)
 
     def _init_explanation_fn(self) -> Attribution:
         """
