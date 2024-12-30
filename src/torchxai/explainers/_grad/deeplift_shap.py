@@ -328,7 +328,17 @@ class MultiTargetDeepLiftShapBatched(MultiTargetDeepLift):
 
         if internal_batch_size is not None:
             num_examples = exp_inp[0].shape[0]
-            multi_target_attributions = None
+            output_sample_indices = [x // base_bsz for x in range(num_examples)]
+            if isinstance(target, list):
+                multi_target_attributions = [
+                    [torch.zeros_like(input, requires_grad=False) for input in inputs]
+                    for _ in range(len(target))
+                ]
+            else:
+                multi_target_attributions = [
+                    [torch.zeros_like(input, requires_grad=False) for input in inputs]
+                ]
+
             multi_target_delta = None
             for batch_idx in range(0, num_examples, internal_batch_size):
                 multi_target_batch_attributions = super().attribute.__wrapped__(  # type: ignore
@@ -385,24 +395,30 @@ class MultiTargetDeepLiftShapBatched(MultiTargetDeepLift):
                         if multi_target_delta is not None
                         else batch_delta
                     )
-                multi_target_attributions = (
-                    [
-                        tuple(
-                            torch.cat(
-                                (agg_attribution, batch_attribution),
-                                dim=0,
-                            )
-                            for agg_attribution, batch_attribution in zip(
-                                agg_attributions, batch_attributions
-                            )
+
+                # get the output attribution indices of this batch
+                output_indices = output_sample_indices[
+                    batch_idx : batch_idx + internal_batch_size
+                ]
+
+                # update attributions sum batch-wise. The sum is taken across the baselines given the output index
+                for target_idx in range(len(multi_target_attributions)):
+                    for idx in range(len(multi_target_attributions[target_idx])):
+                        multi_target_attributions[target_idx][idx].index_add_(
+                            0,
+                            torch.tensor(
+                                output_indices,
+                                device=exp_inp[0].device,
+                                requires_grad=False,
+                            ),
+                            multi_target_batch_attributions[target_idx][idx],
                         )
-                        for agg_attributions, batch_attributions in zip(
-                            multi_target_attributions, multi_target_batch_attributions
-                        )
-                    ]
-                    if multi_target_attributions is not None
-                    else multi_target_batch_attributions
-                )
+
+            # now find the average
+            multi_target_attributions = [
+                tuple([x / base_bsz for x in attrib_single_target])
+                for attrib_single_target in multi_target_attributions
+            ]
         else:
             multi_target_attributions = super().attribute.__wrapped__(  # type: ignore
                 self,
@@ -422,18 +438,19 @@ class MultiTargetDeepLiftShapBatched(MultiTargetDeepLift):
                     multi_target_attributions,
                 )
 
-        def process_per_target_attributions(per_target_attributions):
-            return tuple(
-                self._compute_mean_across_baselines(
-                    inp_bsz, base_bsz, cast(Tensor, attribution)
+            def process_per_target_attributions(per_target_attributions):
+                return tuple(
+                    self._compute_mean_across_baselines(
+                        inp_bsz, base_bsz, cast(Tensor, attribution)
+                    )
+                    for attribution in per_target_attributions
                 )
-                for attribution in per_target_attributions
-            )
 
-        multi_target_attributions = [
-            process_per_target_attributions(per_target_attributions)
-            for per_target_attributions in multi_target_attributions
-        ]
+            multi_target_attributions = [
+                process_per_target_attributions(per_target_attributions)
+                for per_target_attributions in multi_target_attributions
+            ]
+
         if return_convergence_delta:
             return [
                 _format_output(is_inputs_tuple, per_target_attributions)
