@@ -23,7 +23,7 @@ from torchxai.metrics.robustness.utilities import default_perturb_func
 
 
 def _sensitivity_scores(
-    explanation_func: Callable,
+    explainer: Callable,
     inputs: TensorOrTupleOfTensorsGeneric,
     perturb_func: Callable = default_perturb_func,
     perturb_radius: float = 0.02,
@@ -35,7 +35,7 @@ def _sensitivity_scores(
 ) -> Union[Tensor, List[Tensor]]:
     if is_multi_target:
         return _multi_target_sensitivity_scores(
-            explanation_func,
+            explainer,
             inputs,
             perturb_func=perturb_func,
             perturb_radius=perturb_radius,
@@ -68,9 +68,6 @@ def _sensitivity_scores(
             if len(signature(perturb_func).parameters) > 1
             else perturb_func(inputs_expanded)
         )
-
-    def max_values(input_tnsr: Tensor) -> Tensor:
-        return torch.max(input_tnsr, dim=1).values  # type: ignore
 
     kwarg_expanded_for = None
     kwargs_copy: Any = None
@@ -106,7 +103,6 @@ def _sensitivity_scores(
                         current_n_perturb_samples,
                         kwargs_copy,
                     )
-
         expl_perturbed_inputs = explanation_func(inputs_perturbed, **kwargs_copy)
 
         # tuplize `expl_perturbed_inputs` in case it is not
@@ -160,6 +156,9 @@ def _sensitivity_scores(
 
     bsz = inputs[0].size(0)
 
+    explanation_func = (
+        explainer.explain if isinstance(explainer, Explainer) else explainer.attribute
+    )
     with torch.no_grad():
         expl_inputs = explanation_func(inputs, **kwargs)
         scores = _divide_and_aggregate_metrics(
@@ -331,13 +330,11 @@ def sensitivity_max_and_avg(
         "The explainer must be an instance of the Explainer class or "
         "the Atribution class from the captum library."
     )
-    explanation_func = (
-        explainer.explain if isinstance(explainer, Explainer) else explainer.attribute
-    )
     if "explainer_baselines" in kwargs:
         kwargs["baselines"] = kwargs.pop("explainer_baselines")
+        print("using baselines")
     sensitivity_scores = _sensitivity_scores(
-        explanation_func,
+        explainer,
         inputs,
         perturb_func=perturb_func,
         perturb_radius=perturb_radius,
@@ -347,20 +344,19 @@ def sensitivity_max_and_avg(
         is_multi_target=is_multi_target,
         **kwargs,
     )
-
     if is_multi_target:
         if return_dict:
             return {
                 "sensitivity_max": [
-                    torch.max(score, dim=1) for score in sensitivity_scores
+                    torch.max(score, dim=1).values for score in sensitivity_scores
                 ],
                 "sensitivity_avg": [
                     torch.mean(score, dim=1) for score in sensitivity_scores
                 ],
             }
         else:
-            return [torch.max(score) for score in sensitivity_scores], [
-                torch.mean(score) for score in sensitivity_scores
+            return [torch.max(score, dim=1).values for score in sensitivity_scores], [
+                torch.mean(score, dim=1) for score in sensitivity_scores
             ]
     else:
         if return_dict:

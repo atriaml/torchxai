@@ -7,7 +7,6 @@ from captum._utils.common import (
     _expand_and_update_additional_forward_args,
     _expand_and_update_baselines,
     _expand_and_update_feature_mask,
-    _expand_and_update_target,
     _format_baseline,
     _format_tensor_into_tuples,
 )
@@ -76,7 +75,8 @@ def _multi_target_sensitivity_scores(
                 current_n_perturb_samples, kwargs_copy
             )
             _expand_and_update_feature_mask(current_n_perturb_samples, kwargs_copy)
-            _expand_and_update_target(current_n_perturb_samples, kwargs_copy)
+            # multi-target does not require targets to be updated. This is a change from captum's impl
+            # _expand_and_update_target(current_n_perturb_samples, kwargs_copy)
             if "baselines" in kwargs:
                 baselines = kwargs["baselines"]
                 baselines = _format_baseline(
@@ -138,10 +138,12 @@ def _multi_target_sensitivity_scores(
                 torch.norm(sensitivities, p=norm_ord, dim=1, keepdim=True)
                 / expl_inputs_norm_expanded
             )
-            return max_values(sensitivities_norm.view(bsz, -1))
+            return sensitivities_norm.view(bsz, -1)
 
         # this computes the explanation for the original input for all targets in a single call
-        expl_perturbed_inputs_list = explanation_func(inputs_perturbed, **kwargs_copy)
+        expl_perturbed_inputs_list = explanation_func.explain(
+            inputs_perturbed, **kwargs_copy
+        )
 
         return [
             compute_sensitivity_per_target(expl_inputs, expl_perturbed)
@@ -152,7 +154,7 @@ def _multi_target_sensitivity_scores(
 
     assert isinstance(explanation_func, Explainer), (
         "Explanation function must be an instance of "
-        "`torchxai.explainers.Explainer`."
+        f"`torchxai.explainers.Explainer`. Found = {explanation_func}"
     )
     assert (
         explanation_func._is_multi_target
