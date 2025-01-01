@@ -519,8 +519,8 @@ def monotonicity(
 
     monotonicity_batch_list = []
     asc_baseline_perturbed_fwds_batch_list = []
-    for a, t in zip(attributions, target):
-        (monotonicity_batch, asc_baseline_perturbed_fwds_batch) = _monotonicity(
+    for a, t in tqdm.tqdm(zip(attributions, target)):
+        monotonicity_batch, asc_baseline_perturbed_fwds_batch = _monotonicity(
             forward_func=forward_func,
             inputs=inputs,
             attributions=a,
@@ -544,7 +544,7 @@ def monotonicity(
 
     if return_intermediate_results:
         if return_dict:
-            {
+            return {
                 "monotonicity_score": monotonicity_batch_list,
                 "asc_baseline_perturbed_fwds_batch": asc_baseline_perturbed_fwds_batch_list,
             }

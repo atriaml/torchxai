@@ -727,7 +727,7 @@ def effective_complexity(
     effective_complexity_batch_list = []
     perturbed_fwd_diffs_relative_vars_batch_list = []
     n_features_batch_list = []
-    for a, t in zip(attributions, target):
+    for a, t in tqdm.tqdm(zip(attributions, target)):
         (
             effective_complexity_batch,
             perturbed_fwd_diffs_relative_vars_batch,

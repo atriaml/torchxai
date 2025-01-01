@@ -795,7 +795,7 @@ def aopc(
     inputs_perturbed_fwds_agg_batch = []
     baselines_perturbed_fwds_agg_batch = []
     inputs_fwd_batch = []
-    for a, t in zip(attributions, target):
+    for a, t in tqdm.tqdm(zip(attributions, target)):
         (
             inputs_perturbed_aopc_desc,
             inputs_perturbed_aopc_asc,
