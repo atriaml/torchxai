@@ -321,13 +321,21 @@ def _batch_attribution_multi_target(
 
 def _verify_target_for_multi_target_impl(inputs, target):
     bsz = inputs[0].shape[0]
-    if target is not None and isinstance(target, (list, tuple)):
-        for t in target:
-            if isinstance(t, (list, tuple)):
-                assert len(t) == bsz, (
-                    f"Each target in the list must be a tensor of same size as input batch-size={bsz}, got {len(t)}. "
-                    f"For multi-target, you must pass a list of targets or a list of tensors of size {bsz}."
-                )
+    assert isinstance(
+        target, list
+    ), f"Targets must be a list of ints, list of tuples or lists of lists for batch-wise inputs."
+
+    # Each element in the list corresponds to a single target for the whole batch.
+    # If the first element is a integer 0, then the first target is 0 for the whole batch
+    # If the first element is a tuple (0, 4), then the first target is (0,4) for the whole batch
+    # If the first element is a list [0, 1, 2], then the isze of the list must be equal to the batch size
+    # as this means for each element in the input, a different set of targets are taken as first target.
+    for t in target:
+        if isinstance(t, list):
+            assert len(t) == bsz, (
+                f"Each target in the list must be a tensor of same size as input batch-size={bsz}, got {len(t)}. "
+                f"For multi-target, you must pass a list of targets or a list of tensors of size {bsz}."
+            )
 
 
 def _expand_and_update_target_multi_target(n_samples: int, kwargs: dict):
