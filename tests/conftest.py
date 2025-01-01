@@ -310,6 +310,20 @@ def metrics_runtime_test_configuration(request):
 
 
 @pytest.fixture()
+def explainer_metrics_runtime_test_configuration(request):
+    runtime_config: TestRuntimeConfig = request.param
+    base_config: TestBaseConfig = request.getfixturevalue(runtime_config.target_fixture)
+    if runtime_config.override_target is not None:
+        base_config.target = runtime_config.override_target
+    base_config.model.eval()
+    base_config.put_to_device(runtime_config.device)
+    explainer = ExplainerFactory.create(
+        runtime_config.explainer, base_config.model, **runtime_config.explainer_kwargs
+    )
+    yield base_config, runtime_config, explainer
+
+
+@pytest.fixture()
 def explainer_runtime_test_configuration(request):
     runtime_config: TestRuntimeConfig = request.param
     base_config: TestBaseConfig = request.getfixturevalue(runtime_config.target_fixture)
