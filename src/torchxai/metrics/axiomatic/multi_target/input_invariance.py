@@ -4,7 +4,6 @@ import torch
 from captum._utils.common import _format_output, _format_tensor_into_tuples, _is_tuple
 from captum._utils.typing import TensorOrTupleOfTensorsGeneric
 from torch import Tensor
-
 from torchxai.explainers.explainer import Explainer
 from torchxai.metrics.axiomatic.utilities import (
     _create_shifted_expainer,
@@ -26,7 +25,9 @@ def _multi_target_input_invariance(
 
     target = kwargs.get("target", None)
     assert isinstance(target, list), "targets must be a list of targets"
-    assert all(isinstance(x, int) for x in target), "targets must be a list of ints"
+    assert all(
+        isinstance(x, (tuple, int)) for x in target
+    ), "targets must be a list of ints"
 
     # Keeps track whether original input is a tuple or not before
     # converting it into a tuple.

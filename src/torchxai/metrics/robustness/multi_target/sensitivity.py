@@ -13,7 +13,6 @@ from captum._utils.common import (
 from captum._utils.typing import TensorOrTupleOfTensorsGeneric
 from captum.metrics._utils.batching import _divide_and_aggregate_metrics
 from torch import Tensor
-
 from torchxai.explainers.explainer import Explainer
 from torchxai.metrics.robustness.utilities import default_perturb_func
 
@@ -161,7 +160,9 @@ def _multi_target_sensitivity_scores(
     ), "Explanation function must be a multi-target explainer."
     target = kwargs.get("target", None)
     assert isinstance(target, list), "targets must be a list of targets"
-    assert all(isinstance(x, int) for x in target), "targets must be a list of ints"
+    assert all(
+        isinstance(x, (tuple, int)) for x in target
+    ), "targets must be a list of ints"
 
     inputs = _format_tensor_into_tuples(inputs)  # type: ignore
 

@@ -505,7 +505,9 @@ def monotonicity(
             is_attributions_list
         ), "attributions must be a list of tensors or list of tuples of tensors"
         assert is_targets_list, "targets must be a list of targets"
-        assert all(isinstance(x, int) for x in target), "targets must be a list of ints"
+        assert all(
+            isinstance(x, (tuple, int)) for x in target
+        ), "targets must be a list of ints"
         assert len(target) == len(attributions), (
             """The number of targets in the targets_list and
             attributions_list must match. Found number of targets in the targets_list is: {} and in the

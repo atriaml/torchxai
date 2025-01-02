@@ -212,7 +212,7 @@ def _multi_target_faithfulness_corr(
         ), "attributions must be a list of tensors or list of tuples of tensors"
         assert isinstance(targets_list, list), "targets must be a list of targets"
         assert all(
-            isinstance(x, int) for x in targets_list
+            isinstance(x, (tuple, int)) for x in targets_list
         ), "targets must be a list of ints"
         assert len(targets_list) == len(attributions_list), (
             """The number of targets in the targets_list and

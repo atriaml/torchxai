@@ -8,7 +8,6 @@ from captum._utils.common import (
 )
 from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torch import Tensor
-
 from torchxai.explainers._utils import _run_forward_multi_target
 
 
@@ -25,6 +24,9 @@ def _multi_target_completeness(
             attributions_list, list
         ), "attributions must be a list of tensors or list of tuples of tensors"
         assert isinstance(targets_list, list), "targets must be a list of targets"
+        assert all(
+            isinstance(x, (tuple, int)) for x in targets_list
+        ), "targets must be a list of ints"
         assert len(targets_list) == len(attributions_list), (
             """The number of targets in the targets_list and
             attributions_list must match. Found number of targets in the targets_list is: {} and in the
