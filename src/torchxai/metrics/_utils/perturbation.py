@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 from captum._utils.typing import TensorOrTupleOfTensorsGeneric
-from dacite import Optional
-
 from torchxai.metrics._utils.common import (
     _split_tensors_to_tuple_tensors,
     _tuple_tensors_to_tensors,
