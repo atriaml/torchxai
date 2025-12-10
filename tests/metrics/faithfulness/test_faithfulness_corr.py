@@ -6,9 +6,9 @@ import pytest  # noqa
 import torch
 
 from tests.utils.common import (
-    assert_all_tensors_almost_equal,
-    assert_tensor_almost_equal,
-    set_all_random_seeds,
+    _assert_all_tensors_almost_equal,
+    _assert_tensor_almost_equal,
+    _set_all_random_seeds,
 )
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import faithfulness_corr
@@ -559,7 +559,7 @@ def test_faithfulness_corr(metrics_runtime_test_configuration):
         runtime_config.max_examples_per_batch,
         itertools.cycle(runtime_config.expected),
     ):
-        set_all_random_seeds(1234)
+        _set_all_random_seeds(1234)
         faithfulness_corr_score, attribution_sums, perturbation_fwds = (
             faithfulness_corr(
                 forward_func=base_config.model,
@@ -590,7 +590,7 @@ def test_faithfulness_corr(metrics_runtime_test_configuration):
             f"The size of the attribution sums and perturbation fwds must match {attribution_sums.shape} != {perturbation_fwds.shape}"
         )
 
-        assert_tensor_almost_equal(
+        _assert_tensor_almost_equal(
             faithfulness_corr_score.float(),
             curr_expected.float(),
             delta=runtime_config.delta,
@@ -600,6 +600,6 @@ def test_faithfulness_corr(metrics_runtime_test_configuration):
         attribution_sums_per_run.append(attribution_sums)
         perturbation_fwds_per_run.append(perturbation_fwds)
     if runtime_config.assert_across_runs:
-        assert_all_tensors_almost_equal(faithfulness_per_run)
-        assert_all_tensors_almost_equal(attribution_sums_per_run)
-        assert_all_tensors_almost_equal(perturbation_fwds_per_run)
+        _assert_all_tensors_almost_equal(faithfulness_per_run)
+        _assert_all_tensors_almost_equal(attribution_sums_per_run)
+        _assert_all_tensors_almost_equal(perturbation_fwds_per_run)

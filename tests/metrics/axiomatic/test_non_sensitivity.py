@@ -7,7 +7,7 @@ import pytest  # noqa
 import torch
 
 from tests.conftest import _run_metric_via_ignite
-from tests.utils.common import assert_tensor_almost_equal
+from tests.utils.common import _assert_tensor_almost_equal
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.ignite._axiomatic import MonotonicityCorrAndNonSensMetric
 from torchxai.ignite._utilities import ExplanationStateTransform
@@ -280,7 +280,7 @@ def test_non_sensitivity(metrics_runtime_test_configuration_with_explanation_sta
                 return_ratio=False,
             )
         )
-        assert_tensor_almost_equal(
+        _assert_tensor_almost_equal(
             non_sensitivity_score, curr_expected, delta=runtime_config.delta
         )
         target_n_features = (
@@ -314,6 +314,6 @@ def test_non_sensitivity(metrics_runtime_test_configuration_with_explanation_sta
         non_sensitivity_score = _run_metric_via_ignite(metric, explanation_state)[
             "non_sensitivity_score"
         ]
-        assert_tensor_almost_equal(
+        _assert_tensor_almost_equal(
             non_sensitivity_score, curr_expected, delta=runtime_config.delta
         )

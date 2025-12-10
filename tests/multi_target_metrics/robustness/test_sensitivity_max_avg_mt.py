@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 import pytest
 import torch  # noqa
 
-from tests.utils.common import assert_tensor_almost_equal, set_all_random_seeds
+from tests.utils.common import _assert_tensor_almost_equal, _set_all_random_seeds
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import sensitivity_max_and_avg
 
@@ -60,7 +60,7 @@ def test_sensitivity_max_avg_mt(explainer_metrics_runtime_test_configuration):
     per_target_sensitivity_avg = []
     for target in runtime_config.override_target:
         explainer.is_multi_target = False
-        set_all_random_seeds(1234)
+        _set_all_random_seeds(1234)
         sens_max, sens_avg = sensitivity_max_and_avg(
             explainer=explainer,
             inputs=base_config.inputs,
@@ -72,7 +72,7 @@ def test_sensitivity_max_avg_mt(explainer_metrics_runtime_test_configuration):
         per_target_sensitivity_avg.append(sens_avg)
 
     explainer.is_multi_target = True
-    set_all_random_seeds(1234)
+    _set_all_random_seeds(1234)
     multi_target_sens_max, multi_target_sens_avg = sensitivity_max_and_avg(
         explainer=explainer,
         inputs=base_config.inputs,
@@ -84,10 +84,10 @@ def test_sensitivity_max_avg_mt(explainer_metrics_runtime_test_configuration):
     assert len(per_target_sensitivity_max) == len(multi_target_sens_max)
     assert len(per_target_sensitivity_avg) == len(multi_target_sens_avg)
     for output, expected in zip(multi_target_sens_max, per_target_sensitivity_max):
-        assert_tensor_almost_equal(
+        _assert_tensor_almost_equal(
             output, expected, delta=runtime_config.delta, mode="mean"
         )
     for output, expected in zip(multi_target_sens_avg, per_target_sensitivity_avg):
-        assert_tensor_almost_equal(
+        _assert_tensor_almost_equal(
             output, expected, delta=runtime_config.delta, mode="mean"
         )

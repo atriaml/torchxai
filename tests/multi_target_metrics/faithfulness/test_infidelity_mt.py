@@ -4,9 +4,9 @@ import pytest
 import torch  # noqa
 
 from tests.utils.common import (
-    assert_tensor_almost_equal,
-    grid_segmenter,
-    set_all_random_seeds,
+    _assert_tensor_almost_equal,
+    _grid_segmenter,
+    _set_all_random_seeds,
 )
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import infidelity
@@ -63,7 +63,7 @@ def test_infidelity_multi_target(metrics_runtime_test_configuration):
     )
 
     if runtime_config.set_image_feature_mask:
-        base_config.feature_mask = grid_segmenter(base_config.inputs, cell_size=32)
+        base_config.feature_mask = _grid_segmenter(base_config.inputs, cell_size=32)
         base_config.feature_mask = base_config.feature_mask.expand_as(
             base_config.inputs
         )
@@ -85,7 +85,7 @@ def test_infidelity_multi_target(metrics_runtime_test_configuration):
             return noise[0], inputs[0] - noise[0]
 
     for max_examples_per_batch in runtime_config.max_examples_per_batch:
-        set_all_random_seeds(1234)
+        _set_all_random_seeds(1234)
         infidelity_batch_list_1 = infidelity(
             forward_func=base_config.model,
             perturb_func=perturb_fn,
@@ -102,7 +102,7 @@ def test_infidelity_multi_target(metrics_runtime_test_configuration):
 
         infidelity_batch_list_2 = []
         for explanation, target in zip(explanations, runtime_config.override_target):
-            set_all_random_seeds(1234)
+            _set_all_random_seeds(1234)
             infidelity_batch = infidelity(
                 forward_func=base_config.model,
                 perturb_func=perturb_fn,
@@ -120,6 +120,6 @@ def test_infidelity_multi_target(metrics_runtime_test_configuration):
         assert len(infidelity_batch_list_1) == len(infidelity_batch_list_2)
         for x, y in zip(infidelity_batch_list_1, infidelity_batch_list_2):
             for xx, yy in zip(x, y):
-                assert_tensor_almost_equal(
+                _assert_tensor_almost_equal(
                     xx.float(), yy.float(), delta=runtime_config.delta, mode="mean"
                 )

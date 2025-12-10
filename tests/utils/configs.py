@@ -9,7 +9,12 @@ from torchxai.data_types import ExplanationInputs, MetricInputs
 
 
 class TestBaseConfig(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        frozen=True,
+        extra="forbid",
+        revalidate_instances="always",
+    )
     explanation_inputs: ExplanationInputs
     model: torch.nn.Module
     metric_inputs: MetricInputs = MetricInputs()
@@ -27,7 +32,12 @@ class TestBaseConfig(BaseModel):
 
 
 class TestRuntimeConfig(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        frozen=True,
+        extra="forbid",
+        revalidate_instances="always",
+    )
     test_name: str
     explainer: str
     target_fixture: str | None = None
@@ -61,7 +71,12 @@ class TestRuntimeConfig(BaseModel):
 
 
 class ExplainersTestRuntimeConfig(TestRuntimeConfig):
-    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True, extra="forbid")
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        frozen=True,
+        extra="forbid",
+        revalidate_instances="always",
+    )
     is_multi_target: bool = False
     grad_batch_size: int = 64
     visualize: bool = False

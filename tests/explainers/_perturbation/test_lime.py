@@ -8,7 +8,7 @@ from tests.explainers.utils import (
     make_config_for_explainer_with_internal_batch_size,
     run_explainer_test_with_config,
 )
-from tests.utils.common import grid_segmenter
+from tests.utils.common import _grid_segmenter
 
 
 @dataclasses.dataclass
@@ -16,10 +16,7 @@ class ExplainersTestRuntimeConfig_(ExplainersTestRuntimeConfig):
     set_image_feature_mask: bool = False
 
 
-def _make_config_for_explainer(
-    *args,
-    **kwargs,
-):
+def _make_config_for_explainer(*args, **kwargs):
     return make_config_for_explainer_with_internal_batch_size(
         *args,
         **kwargs,
@@ -36,10 +33,7 @@ test_configurations = [
     ),
     *_make_config_for_explainer(
         target_fixture="basic_model_single_input_config",
-        expected=(
-            torch.tensor([1.3842]),
-            torch.tensor([-0.5370]),
-        ),
+        expected=(torch.tensor([1.3842]), torch.tensor([-0.5370])),
         override_target=0,
         throws_exception=True,
     ),
@@ -119,12 +113,7 @@ test_configurations = [
     ),
     *_make_config_for_explainer(
         target_fixture="classification_softmax_model_multi_tuple_input_single_target_config",
-        expected=[
-            torch.tensor(
-                [[0] * 10] * 3,
-            ),
-            torch.tensor([[0] * 10] * 3),
-        ],
+        expected=[torch.tensor([[0] * 10] * 3), torch.tensor([[0] * 10] * 3)],
         override_target=[torch.tensor([0]), torch.tensor([1])],
     ),
     *_make_config_for_explainer(
@@ -157,7 +146,7 @@ def test_lime(explainer_runtime_test_configuration):
     base_config, runtime_config = explainer_runtime_test_configuration
 
     if runtime_config.set_image_feature_mask:
-        base_config.feature_mask = grid_segmenter(base_config.inputs, cell_size=32)
+        base_config.feature_mask = _grid_segmenter(base_config.inputs, cell_size=32)
 
     run_explainer_test_with_config(
         base_config=base_config, runtime_config=runtime_config

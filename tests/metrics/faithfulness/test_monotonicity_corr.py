@@ -5,7 +5,7 @@ from collections.abc import Callable
 import pytest  # noqa
 import torch
 
-from tests.utils.common import assert_tensor_almost_equal, set_all_random_seeds
+from tests.utils.common import _assert_tensor_almost_equal, _set_all_random_seeds
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import monotonicity_corr_and_non_sens
 from torchxai.metrics._utils.perturbation import default_random_perturb_func
@@ -196,7 +196,7 @@ def test_monotonicity_corr(metrics_runtime_test_configuration):
         runtime_config.max_features_processed_per_batch,
         itertools.cycle(runtime_config.expected),
     ):
-        set_all_random_seeds(1234)
+        _set_all_random_seeds(1234)
         (monotonicity_corr_score, _, n_features_found, _, _) = (
             monotonicity_corr_and_non_sens(
                 forward_func=base_config.model,
@@ -215,7 +215,7 @@ def test_monotonicity_corr(metrics_runtime_test_configuration):
                 return_ratio=False,
             )
         )
-        assert_tensor_almost_equal(
+        _assert_tensor_almost_equal(
             monotonicity_corr_score,
             curr_expected,
             delta=runtime_config.delta,

@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 import pytest
 import torch  # noqa
 
-from tests.utils.common import assert_tensor_almost_equal
+from tests.utils.common import _assert_tensor_almost_equal
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics.axiomatic.completeness import completeness
 
@@ -73,4 +73,4 @@ def test_completeness_multi_target(metrics_runtime_test_configuration):
     for output, expected in zip(
         multi_target_completeness_output, per_target_completeness
     ):
-        assert_tensor_almost_equal(output, expected, delta=runtime_config.delta)
+        _assert_tensor_almost_equal(output, expected, delta=runtime_config.delta)

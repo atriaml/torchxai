@@ -43,6 +43,10 @@ def _to_device(obj, device):
         return None
     if isinstance(obj, torch.Tensor):
         return obj.to(device)
+    if isinstance(obj, OrderedDict):
+        return OrderedDict({k: _to_device(v, device) for k, v in obj.items()})
+    if isinstance(obj, tuple):
+        return tuple(_to_device(v, device) for v in obj)
     if isinstance(obj, dict):
         return {k: _to_device(v, device) for k, v in obj.items()}
     if isinstance(obj, list):
@@ -63,6 +67,7 @@ class ExplanationInputs(BaseModel):
         validate_assignment=True,
         frozen=True,
         extra="forbid",
+        revalidate_instances="always",
     )
     sample_id: list[str]
     explained_features: OrderedDict[str, torch.Tensor] | Any
@@ -70,7 +75,18 @@ class ExplanationInputs(BaseModel):
     baselines: OrderedDict[str, torch.Tensor] | Any | None = None
     train_baselines: OrderedDict[str, torch.Tensor] | Any | None = None
     feature_masks: OrderedDict[str, torch.Tensor] | Any | None = None
-    target: list[torch.Tensor] | torch.Tensor | None = None
+    target: list[torch.Tensor] | torch.Tensor | Any | None = None
+
+    @field_validator("additional_forward_args", mode="before")
+    @classmethod
+    def to_tuple(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, tuple):
+            return v
+        if isinstance(v, list):
+            return tuple(v)
+        return (v,)
 
     @field_validator(
         "baselines",
@@ -80,17 +96,17 @@ class ExplanationInputs(BaseModel):
         mode="before",
     )
     @classmethod
-    def normalize_baselines(cls, v):
+    def normalize_inputs(cls, v):
         return _normalize_dictlike(v)
 
     @model_validator(mode="after")
     def validate_explained_features(self):
-        assert isinstance(self.explained_features, OrderedDict)
+        assert isinstance(self.explained_features, OrderedDict), (
+            "explained_features must be an OrderedDict internally."
+        )
         _match_keys(self.baselines, self.explained_features)
         _match_keys(self.train_baselines, self.explained_features)
         _match_keys(self.feature_masks, self.explained_features)
-        if not isinstance(self.explained_features, dict):
-            raise ValueError("explained_features must be an OrderedDict internally.")
         return self
 
     # ------------------------------
@@ -106,12 +122,15 @@ class ExplanationInputs(BaseModel):
                 "additional_forward_args": _to_device(
                     self.additional_forward_args, device
                 ),
+                "target": _to_device(self.target, device),
             }
         )
 
     @property
     def model_inputs(self) -> tuple[torch.Tensor, ...]:
-        assert isinstance(self.explained_features, OrderedDict)
+        assert isinstance(self.explained_features, OrderedDict), (
+            f"Expected OrderedDict, got {type(self.explained_features)}"
+        )
         return tuple(self.explained_features.values()) + (
             self.additional_forward_args
             if self.additional_forward_args is not None
@@ -135,6 +154,7 @@ class MetricInputs(BaseModel):
         validate_assignment=True,
         frozen=True,
         extra="forbid",
+        revalidate_instances="always",
     )
     baselines: OrderedDict[str, torch.Tensor] | Any | None = None
     shift_baselines: OrderedDict[str, torch.Tensor] | Any | None = None
@@ -147,14 +167,9 @@ class MetricInputs(BaseModel):
     # Validators (normalize all)
     # -------------------------
 
-    @field_validator("baselines", mode="before")
+    @field_validator("baselines", "feature_masks", "constant_shifts", mode="before")
     @classmethod
-    def normalize_baselines(cls, v):
-        return _normalize_dictlike(v)
-
-    @field_validator("feature_masks", "constant_shifts", mode="before")
-    @classmethod
-    def normalize_dictlike(cls, v):
+    def normalize_inputs(cls, v):
         return _normalize_dictlike(v)
 
     @field_validator("frozen_features", mode="before")
@@ -190,6 +205,7 @@ class ExplanationState(BaseModel):
         validate_assignment=True,
         frozen=True,
         extra="forbid",
+        revalidate_instances="always",
     )
     explanation_inputs: ExplanationInputs
     metric_inputs: MetricInputs | None = None
@@ -232,18 +248,19 @@ class ExplanationState(BaseModel):
     @model_validator(mode="after")
     def validate_all(self):
         explained = self.explanation_inputs.explained_features
-        num_feature_types = len(explained)
+        feature_keys = list(explained.keys())
 
         # ----- Validate explanations shape -----
         for name in ["explanations", "reduced_explanations"]:
             exp = getattr(self, name)
             if exp is not None:
-                if not isinstance(exp, dict):
+                if not isinstance(exp, OrderedDict):
                     raise ValueError(f"{name} must be an OrderedDict internally.")
-                if len(exp) != num_feature_types:
+                exp_keys = list(exp.keys())
+                if exp_keys != feature_keys:
                     raise ValueError(
                         f"{name} must have same number of feature types as explained_features "
-                        f"({len(exp)} vs {num_feature_types})"
+                        f"({len(exp_keys)} vs {len(feature_keys)})"
                     )
 
         # ----- Validate sample_id count -----
@@ -275,3 +292,61 @@ class ExplanationState(BaseModel):
                 "explanations": _to_device(self.explanations, device),
             }
         )
+
+
+class MultiTargetExplanationState(ExplanationState):
+    explanations: list[OrderedDict[str, torch.Tensor]]  # type: ignore[override]
+    reduced_explanations: list[OrderedDict[str, torch.Tensor]] | None = None  # type: ignore[override]
+
+    @property
+    def explanations_as_tuple(self) -> list[tuple[torch.Tensor, ...]]:  # type: ignore[override]
+        return [tuple(x.values()) for x in self.explanations]
+
+    # ------------------------------
+    # Normalize explanations to OrderedDict
+    # ------------------------------
+    @field_validator("explanations", mode="before")
+    @classmethod
+    def normalize_explanations(cls, v):  # type: ignore[override]
+        return [_normalize_dictlike(x) for x in v]
+
+    @model_validator(mode="after")
+    def validate_all(self):
+        explained = self.explanation_inputs.explained_features
+        num_feature_types = len(explained)
+
+        # ----- Validate explanations shape -----
+        for name in ["explanations", "reduced_explanations"]:
+            exp_list = getattr(self, name)
+            if exp_list is not None:
+                if not isinstance(exp_list, list) and not all(
+                    isinstance(e, OrderedDict) for e in exp_list
+                ):
+                    raise ValueError(
+                        f"{name} must be a list of OrderedDict internally."
+                    )
+
+                for exp in exp_list:
+                    if len(exp) != num_feature_types:
+                        raise ValueError(
+                            f"{name} must have same number of feature types as explained_features "
+                            f"({len(exp)} vs {num_feature_types})"
+                        )
+
+        # ----- Validate sample_id count -----
+        if len(self.explanation_inputs.sample_id) != self.model_outputs.shape[0]:
+            raise ValueError(
+                f"sample_id count mismatch: got {len(self.explanation_inputs.sample_id)} "
+                f"but model_outputs batch is {self.model_outputs.shape[0]}"
+            )
+
+        # ----- Validate frozen_features count -----
+        if self.metric_inputs is not None:
+            ff = self.metric_inputs.frozen_features
+            if ff is not None and len(ff) != len(self.explanation_inputs.sample_id):
+                raise ValueError(
+                    f"frozen_features must match number of samples "
+                    f"({len(ff)} vs {len(self.explanation_inputs.sample_id)})"
+                )
+
+        return self

@@ -4,7 +4,7 @@ import pytest
 import torch
 
 from tests.conftest import _run_metric_via_ignite
-from tests.utils.common import assert_tensor_almost_equal, grid_segmenter
+from tests.utils.common import _assert_tensor_almost_equal, _grid_segmenter
 from tests.utils.configs import TestBaseConfig, TestRuntimeConfig
 from torchxai.data_types import ExplainerInputs, ExplanationState, ModelInputs
 from torchxai.explainers.factory import ExplainerFactory
@@ -53,7 +53,7 @@ def metrics_runtime_test_configuration_with_explanation_state(request):
     if runtime_config.use_captum_explainer:
         explainer = explainer._explanation_fn
     if runtime_config.generate_feature_mask:
-        base_config.feature_mask = grid_segmenter(base_config.inputs, 4)
+        base_config.feature_mask = _grid_segmenter(base_config.inputs, 4)
     if runtime_config.set_baselines_to_type == "zero":
         base_config.baselines = 0
         runtime_config.shifted_baselines = 0
@@ -250,7 +250,7 @@ def test_non_sensitivity(metrics_runtime_test_configuration_with_explanation_sta
             visualize_attribution(input, expl_input, "Original")
             visualize_attribution(input, expl_shifted_input, "Shifted")
 
-    assert_tensor_almost_equal(
+    _assert_tensor_almost_equal(
         output_invariance.float(),
         runtime_config.expected.float(),
         delta=runtime_config.delta,
@@ -266,7 +266,7 @@ def test_non_sensitivity(metrics_runtime_test_configuration_with_explanation_sta
     input_invarance_score = _run_metric_via_ignite(metric, explanation_state)[
         "input_invarance_score"
     ]
-    assert_tensor_almost_equal(
+    _assert_tensor_almost_equal(
         input_invarance_score,
         runtime_config.expected.float(),
         delta=runtime_config.delta,

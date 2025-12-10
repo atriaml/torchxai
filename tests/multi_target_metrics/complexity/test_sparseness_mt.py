@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 import pytest
 import torch  # noqa
 
-from tests.utils.common import assert_tensor_almost_equal
+from tests.utils.common import _assert_tensor_almost_equal
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import sparseness
 
@@ -58,4 +58,4 @@ def test_sparseness_multi_target(metrics_runtime_test_configuration):
 
     assert len(per_target_sparseness) == len(multi_target_sparseness_output)
     for output, expected in zip(multi_target_sparseness_output, per_target_sparseness):
-        assert_tensor_almost_equal(output, expected, delta=runtime_config.delta)
+        _assert_tensor_almost_equal(output, expected, delta=runtime_config.delta)

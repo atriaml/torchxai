@@ -6,6 +6,8 @@ import torch
 from tests.helpers.basic_models import (
     BasicModel2,
     BasicModel4_MultiArgs,
+    BasicModel7_ReluMultiTensor,
+    BasicModel7_SumMultiTensor,
     BasicModel_ConvNet_One_Conv,
     BasicModel_MultiLayer,
     ParkFunction,
@@ -15,16 +17,16 @@ from tests.helpers.classification_models import (
     SoftmaxModel,
     SoftmaxModelTupleInput,
 )
-from tests.utils.common import set_all_random_seeds
+from tests.utils.common import _set_all_random_seeds
 from tests.utils.configs import TestBaseConfig
-from torchxai.data_types import ExplanationInputs
+from torchxai.data_types import ExplanationInputs, MetricInputs
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 def pytest_runtest_setup():
-    set_all_random_seeds(1234)
+    _set_all_random_seeds(1234)
 
 
 @pytest.fixture()
@@ -81,7 +83,8 @@ def basic_model_batch_input_config():
 
 @pytest.fixture()
 def basic_model_batch_input_with_additional_forward_args_config():
-    yield TestBaseConfig(
+    config = TestBaseConfig(
+        model=BasicModel4_MultiArgs(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
             explained_features=(
@@ -90,22 +93,23 @@ def basic_model_batch_input_with_additional_forward_args_config():
             ),
             additional_forward_args=torch.tensor([[1.0, 3.0, 4.0]]),
         ),
-        model=BasicModel4_MultiArgs(),
         n_features=6,
     )
+    yield config
 
 
 @pytest.fixture()
 def classification_convnet_model_with_multiple_targets_config():
     yield TestBaseConfig(
+        model=BasicModel_ConvNet_One_Conv(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(20)],
             explained_features=torch.stack(
                 [torch.arange(1, 17).float()] * 20, dim=0
             ).view(20, 1, 4, 4),
             additional_forward_args=None,
+            target=torch.tensor([1] * 20),
         ),
-        model=BasicModel_ConvNet_One_Conv(),
         n_features=(1 * 4 * 4),
     )
 
@@ -335,4 +339,123 @@ def classification_alexnet_model_real_images_config():
         ),
         model=model,
         n_features=(3 * 224 * 224),
+    )
+
+
+@pytest.fixture()
+def multi_modal_sequence_sum():
+    def test_sequence_tensor(size=12, embedding_size=3):
+        return (
+            torch.tensor([0] + list(range(3, size + 3)) + [1, 2])
+            .unsqueeze(0)
+            .unsqueeze(0)
+            .expand(1, embedding_size, size + 3)
+            .repeat(1, 1, 1)
+            .permute(0, 2, 1)
+        ).float()
+
+    def test_image(size=9):
+        return (
+            torch.arange(size)
+            .view(1, 1, 3, 3)
+            .repeat_interleave(2, dim=-1)
+            .repeat_interleave(2, dim=-2)
+            .float()
+        )
+
+    size = 6
+    sequence1 = test_sequence_tensor(size)
+    sequence2 = test_sequence_tensor(size) + size + 3
+    sequence3 = test_sequence_tensor(size) + (size + 3) * 2
+    image1 = test_image() + (size + 3) * 3
+    feature_mask = (
+        sequence1.clone().long(),
+        sequence2.clone().long(),
+        sequence3.clone().long(),
+        image1.clone().long(),
+    )
+    frozen_features = torch.tensor([0, 1, 2, 9, 10, 11, 18, 19, 20])
+    n_features = (
+        torch.cat([x.flatten() for x in feature_mask]).unique().numel()
+        - frozen_features.numel()
+    )
+    inputs = (sequence1, sequence2, sequence3, image1)
+    total_sum = sum(x.sum() for x in inputs)
+    inputs = tuple(x / total_sum for x in inputs)
+    target = None
+
+    yield TestBaseConfig(
+        model=BasicModel7_SumMultiTensor(),
+        explanation_inputs=ExplanationInputs(
+            sample_id=[str(i) for i in range(1)],
+            explained_features=inputs,
+            additional_forward_args=None,
+            target=target,
+            feature_masks=feature_mask,
+            baselines=tuple(torch.zeros_like(x) for x in inputs),
+        ),
+        metric_inputs=MetricInputs(
+            frozen_features=[torch.tensor([0, 1, 2, 9, 10, 11, 18, 19, 20])]
+        ),
+        n_features=n_features,
+    )
+
+
+@pytest.fixture()
+def multi_modal_sequence_relu():
+    def test_sequence_tensor(size=12, embedding_size=4):
+        return (
+            torch.tensor([0] + list(range(3, size + 3)) + [1, 2])
+            .unsqueeze(0)
+            .unsqueeze(0)
+            .expand(1, embedding_size, size + 3)
+            .repeat(1, 1, 1)
+            .permute(0, 2, 1)
+        ).float()
+
+    def test_image(size=9):
+        return (
+            torch.arange(size)
+            .view(1, 1, 3, 3)
+            .repeat_interleave(2, dim=-1)
+            .repeat_interleave(2, dim=-2)
+            .float()
+        )
+
+    size = 6
+    sequence1 = test_sequence_tensor(size)
+    sequence2 = test_sequence_tensor(size) + size + 3
+    sequence3 = test_sequence_tensor(size) + (size + 3) * 2
+    image1 = test_image() + (size + 3) * 3
+    feature_mask = (
+        sequence1.clone().long(),
+        sequence2.clone().long(),
+        sequence3.clone().long(),
+        image1.clone().long(),
+    )
+    frozen_features = torch.tensor([0, 1, 2, 9, 10, 11, 18, 19, 20])
+    n_features = (
+        torch.cat([x.flatten() for x in feature_mask]).unique().numel()
+        - frozen_features.numel()
+    )
+    inputs = (sequence1, sequence2, sequence3, image1)
+    mean = torch.cat(tuple(x.flatten() for x in inputs)).mean()
+    std = torch.cat(tuple(x.flatten() for x in inputs)).std()
+    inputs = tuple((x - mean) / std for x in inputs)
+    target = None
+
+    yield TestBaseConfig(
+        model=BasicModel7_ReluMultiTensor(),
+        explanation_inputs=ExplanationInputs(
+            sample_id=[str(i) for i in range(1)],
+            explained_features=inputs,
+            additional_forward_args=None,
+            target=target,
+            feature_masks=feature_mask,
+            baselines=tuple(torch.zeros_like(x) for x in inputs),
+        ),
+        metric_inputs=MetricInputs(
+            frozen_features=[torch.tensor([0, 1, 2, 9, 10, 11, 18, 19, 20])]
+        ),
+        n_features=n_features,
     )

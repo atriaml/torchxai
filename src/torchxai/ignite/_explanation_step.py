@@ -7,8 +7,26 @@ import torch
 import tqdm
 from captum.attr import Attribution
 
-from torchxai.data_types import ExplanationInputs, ExplanationState, MetricInputs
+from torchxai.data_types import (
+    ExplanationInputs,
+    ExplanationState,
+    MetricInputs,
+    MultiTargetExplanationState,
+)
 from torchxai.explainers.explainer import Explainer
+
+# def _wrap_model(self, model: torch.nn.Module) -> torch.nn.Module:
+#     class SoftMaxOutputWrapper(torch.nn.Module):
+#         def __init__(self, model: torch.nn.Module):
+#             super().__init__()
+#             self.model = model
+#             self.softmax = torch.nn.Softmax(dim=1)
+
+#         def forward(self, *args, **kwargs):
+#             logits = self.model(*args, **kwargs)
+#             return self.softmax(logits)
+
+#     return SoftMaxOutputWrapper(model)
 
 
 class ExplanationStep:
@@ -45,19 +63,6 @@ class ExplanationStep:
         else:
             self._explainer.forward_func = self._model
 
-    # def _wrap_model(self, model: torch.nn.Module) -> torch.nn.Module:
-    #     class SoftMaxOutputWrapper(torch.nn.Module):
-    #         def __init__(self, model: torch.nn.Module):
-    #             super().__init__()
-    #             self.model = model
-    #             self.softmax = torch.nn.Softmax(dim=1)
-
-    #         def forward(self, *args, **kwargs):
-    #             logits = self.model(*args, **kwargs)
-    #             return self.softmax(logits)
-
-    #     return SoftMaxOutputWrapper(model)
-
     def _run_model_forward(self, explanation_input: ExplanationInputs) -> torch.Tensor:
         self._model.eval()
         self._model.to(self._device)
@@ -66,7 +71,7 @@ class ExplanationStep:
 
     def _run_explainer_forward(
         self, explainer: Explainer | Attribution, explanation_inputs: ExplanationInputs
-    ) -> dict[str, torch.Tensor] | torch.Tensor:
+    ) -> dict[str, torch.Tensor]:
         if self._use_captum_explainer and isinstance(explainer, Explainer):
             explainer = explainer._explanation_fn
 
@@ -89,7 +94,6 @@ class ExplanationStep:
             for key, value in explainer_kwargs.items()
             if key in self._explainer_possible_kwargs
         }
-
         if isinstance(explainer, Explainer):
             explanations = explainer.explain(**explainer_kwargs)
         elif isinstance(explainer, Attribution):
@@ -98,11 +102,17 @@ class ExplanationStep:
             raise AssertionError(
                 "Explainer must be an instance of Explainer or Attribution."
             )
-        return explanations
+        return OrderedDict(
+            {
+                key: explanations[idx]
+                for idx, key in enumerate(explanation_inputs.explained_features.keys())
+            }
+        )
 
     def __call__(
         self, explanation_inputs: ExplanationInputs, metric_inputs: MetricInputs
     ) -> ExplanationState:
+        explanation_inputs = explanation_inputs.to(self._device)
         model_outputs = self._run_model_forward(explanation_inputs)
         explanation = self._run_explainer_forward(
             explainer=self._explainer, explanation_inputs=explanation_inputs
@@ -119,10 +129,11 @@ class MultiTargetExplanationStep(ExplanationStep):
     def __init__(
         self,
         model: torch.nn.Module,
-        explainer: Explainer | Attribution,
+        explainer: Explainer,
         device: str | torch.device,
         with_amp: bool = False,
         iterative_computation: bool = False,
+        only_allow_tensors_as_targets: bool = False,
     ):
         super().__init__(
             model=model,
@@ -130,13 +141,14 @@ class MultiTargetExplanationStep(ExplanationStep):
             device=device,
             with_amp=with_amp,
             use_captum_explainer=False,
+            only_allow_tensors_as_targets=only_allow_tensors_as_targets,
         )
         self._iterative_computation = iterative_computation
+        self._explainer.is_multi_target = True
 
-    def _run_explainer_forward(
-        self, explainer: Explainer | Attribution, explanation_inputs: ExplanationInputs
-    ) -> dict[str, torch.Tensor] | torch.Tensor:
-        print("explanation_inputs", explanation_inputs)
+    def _run_explainer_forward(  # type: ignore
+        self, explainer: Explainer, explanation_inputs: ExplanationInputs
+    ) -> list[OrderedDict[str, torch.Tensor]]:
         assert isinstance(explainer, Explainer), (
             "Multi-target explainer must be an instance of Explainer."
         )
@@ -155,16 +167,17 @@ class MultiTargetExplanationStep(ExplanationStep):
         # # e.g. target = [[0,1], [0,1], [0,1]] for batch-size 3 with 2 targets each
         # validate this here
         # also just in our case we only support list of lists
-        for t in explanation_inputs.target:
-            assert isinstance(t, torch.Tensor | None), (
-                "Each target must be a torch.Tensor."
-            )
-            if t is None:
-                continue
-            assert t.shape == explanation_inputs.target[0].shape, (
-                "All targets must have the same shape."
-            )
-            assert t.ndim == 1, "Each target tensor must be 1-dimensional."
+        if self._only_allow_tensors_as_targets:
+            for t in explanation_inputs.target:
+                assert isinstance(t, torch.Tensor | None), (
+                    f"Each target must be a torch.Tensor or None. Got: {t}"
+                )
+                if t is None:
+                    continue
+                assert t.shape == explanation_inputs.target[0].shape, (
+                    "All targets must have the same shape."
+                )
+                assert t.ndim <= 1, "Each target tensor must be 1-dimensional."
 
         # inspect explainer signature and save
         explainer_kwargs = explanation_inputs.to_explainer_kwargs()
@@ -200,34 +213,40 @@ class MultiTargetExplanationStep(ExplanationStep):
         # convert the list[tuple[tensors]] -> list[dict[tensors]] to -> tuples -> list of targets
         def _tuples_to_dict(
             exp_tuples: tuple, keys: list[str]
-        ) -> dict[str, torch.Tensor]:
-            return dict(zip(keys, exp_tuples, strict=True))
+        ) -> OrderedDict[str, torch.Tensor]:
+            return OrderedDict(zip(keys, exp_tuples, strict=True))
 
         feature_keys = list(explanation_inputs.explained_features.keys())
         per_target_explanations = [
             _tuples_to_dict(exp, feature_keys) for exp in per_target_explanations
         ]
 
-        # next we aggregate per target explanations into per input explanations
-        aggregated_explanations = OrderedDict()
-        for key in feature_keys:
-            aggregated_explanations[key] = [
-                per_target_explanation[key]
-                for per_target_explanation in per_target_explanations
-            ]
-            aggregated_explanations[key] = torch.stack(
-                aggregated_explanations[key], dim=1
-            )  # shape: (batch_size, num_targets, ...)
-        return aggregated_explanations
+        return per_target_explanations
+
+        # # next we aggregate per target explanations into per input explanations
+        # aggregated_explanations = OrderedDict()
+        # for key in feature_keys:
+        #     aggregated_explanations[key] = [
+        #         per_target_explanation[key]
+        #         for per_target_explanation in per_target_explanations
+        #     ]
+        #     aggregated_explanations[key] = torch.stack(
+        #         aggregated_explanations[key], dim=1
+        #     )  # shape: (batch_size, num_targets, ...)
+        # return aggregated_explanations
 
     def __call__(
         self, explanation_inputs: ExplanationInputs, metric_inputs: MetricInputs
-    ) -> ExplanationState:
+    ) -> MultiTargetExplanationState:
+        assert isinstance(self._explainer, Explainer), (
+            "Multi-target explainer must be an instance of Explainer."
+        )
+        explanation_inputs = explanation_inputs.to(self._device)
         model_outputs = self._run_model_forward(explanation_inputs)
         explanation = self._run_explainer_forward(
             explainer=self._explainer, explanation_inputs=explanation_inputs
         )
-        return ExplanationState(
+        return MultiTargetExplanationState(
             explanation_inputs=explanation_inputs,
             metric_inputs=metric_inputs,
             model_outputs=model_outputs,

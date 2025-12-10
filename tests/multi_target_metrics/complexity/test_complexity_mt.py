@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 import pytest
 import torch  # noqa
 
-from tests.utils.common import assert_tensor_almost_equal
+from tests.utils.common import _assert_tensor_almost_equal
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import complexity_entropy
 
@@ -58,4 +58,4 @@ def test_complexity_multi_target(metrics_runtime_test_configuration):
 
     assert len(per_target_complexity) == len(multi_target_complexity_output)
     for output, expected in zip(multi_target_complexity_output, per_target_complexity):
-        assert_tensor_almost_equal(output, expected, delta=runtime_config.delta)
+        _assert_tensor_almost_equal(output, expected, delta=runtime_config.delta)

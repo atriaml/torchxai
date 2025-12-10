@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import pytest  # noqa
 import torch
 
@@ -36,10 +38,7 @@ test_configurations = [
     *make_config_for_explainer_with_grad_batch_size(
         target_fixture="basic_model_batch_input_with_additional_forward_args_config",
         explainer="gradient_shap",
-        expected=(
-            torch.tensor([[0, 0, 0]]),
-            torch.tensor([[0, 0, 0]]),
-        ),
+        expected=(torch.tensor([[0, 0, 0]]), torch.tensor([[0, 0, 0]])),
     ),
     *make_config_for_explainer_with_grad_batch_size(
         target_fixture="classification_convnet_model_with_multiple_targets_config",
@@ -192,13 +191,20 @@ def test_gradient_shap(explainer_runtime_test_configuration):
     base_config, runtime_config = explainer_runtime_test_configuration
 
     # gradient shap always requires a random baseline
-    if isinstance(base_config.inputs, tuple):
-        base_config.baselines = tuple(
-            torch.randn((20, *x.shape[1:])) for x in base_config.inputs
-        )
-    else:
-        base_config.baselines = torch.randn((20, *(base_config.inputs.shape[1:])))
+    baselines = OrderedDict(
+        {
+            k: torch.randn((20, *v.shape[1:]))
+            for k, v in base_config.explanation_inputs.explained_features.items()
+        }
+    )
 
+    base_config = base_config.model_copy(
+        update={
+            "explanation_inputs": base_config.explanation_inputs.model_copy(
+                update={"baselines": baselines}
+            )
+        }
+    )
     run_explainer_test_with_config(
         base_config=base_config, runtime_config=runtime_config
     )

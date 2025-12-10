@@ -5,9 +5,9 @@ import pytest
 import torch  # noqa
 
 from tests.utils.common import (
-    assert_tensor_almost_equal,
-    grid_segmenter,
-    set_all_random_seeds,
+    _assert_tensor_almost_equal,
+    _grid_segmenter,
+    _set_all_random_seeds,
 )
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import faithfulness_corr
@@ -112,7 +112,7 @@ def test_faithfulness_corr_multi_target(metrics_runtime_test_configuration):
     )
 
     if runtime_config.set_image_feature_mask:
-        base_config.feature_mask = grid_segmenter(base_config.inputs, cell_size=32)
+        base_config.feature_mask = _grid_segmenter(base_config.inputs, cell_size=32)
         base_config.feature_mask = base_config.feature_mask.expand_as(
             base_config.inputs
         )
@@ -151,7 +151,7 @@ def test_faithfulness_corr_multi_target(metrics_runtime_test_configuration):
     for n_perturbs, max_examples in zip(
         runtime_config.n_perturb_samples, runtime_config.max_examples_per_batch
     ):
-        set_all_random_seeds(1234)
+        _set_all_random_seeds(1234)
         (
             faithfulness_corr_score_batch_list_1,
             perturbed_fwd_diffs_relative_vars_batch_list_1,
@@ -176,7 +176,7 @@ def test_faithfulness_corr_multi_target(metrics_runtime_test_configuration):
         perturbed_fwd_diffs_relative_vars_batch_list_2 = []
         feature_group_attribution_scores_batch_list_2 = []
         for explanation, target in zip(explanations, runtime_config.override_target):
-            set_all_random_seeds(1234)
+            _set_all_random_seeds(1234)
             # for this test we take the sum of the explanations over channel dimension to match the feature dimension
             # of the feature mask
             (
@@ -218,20 +218,20 @@ def test_faithfulness_corr_multi_target(metrics_runtime_test_configuration):
         for x, y in zip(
             faithfulness_corr_score_batch_list_1, faithfulness_corr_score_batch_list_2
         ):
-            assert_tensor_almost_equal(
+            _assert_tensor_almost_equal(
                 x.float(), y.float(), delta=runtime_config.delta, mode="mean"
             )
         for x, y in zip(
             perturbed_fwd_diffs_relative_vars_batch_list_1,
             perturbed_fwd_diffs_relative_vars_batch_list_2,
         ):
-            assert_tensor_almost_equal(
+            _assert_tensor_almost_equal(
                 x.float(), y.float(), delta=runtime_config.delta, mode="mean"
             )
         for x, y in zip(
             feature_group_attribution_scores_batch_list_1,
             feature_group_attribution_scores_batch_list_2,
         ):
-            assert_tensor_almost_equal(
+            _assert_tensor_almost_equal(
                 x.float(), y.float(), delta=runtime_config.delta, mode="mean"
             )

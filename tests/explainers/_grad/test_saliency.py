@@ -23,14 +23,14 @@ test_configurations = [
         target_fixture="basic_model_single_input_config",
         explainer="saliency",
         expected=(torch.tensor([1.0]), torch.tensor([-1.0])),
-        override_target=0,
+        override_target=torch.tensor([0]),
         throws_exception=True,
     ),
     *make_config_for_explainer_with_grad_batch_size(
         target_fixture="basic_model_single_batched_input_config",
         explainer="saliency",
         expected=(torch.tensor([[1.0]]), torch.tensor([[-1.0]])),
-        override_target=0,
+        override_target=torch.tensor([0]),
     ),
     *make_config_for_explainer_with_grad_batch_size(
         target_fixture="basic_model_batch_input_config",

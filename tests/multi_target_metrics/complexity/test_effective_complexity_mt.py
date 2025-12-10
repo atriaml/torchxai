@@ -5,9 +5,9 @@ import pytest
 import torch  # noqa
 
 from tests.utils.common import (
-    assert_tensor_almost_equal,
-    grid_segmenter,
-    set_all_random_seeds,
+    _assert_tensor_almost_equal,
+    _grid_segmenter,
+    _set_all_random_seeds,
 )
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import effective_complexity
@@ -71,7 +71,7 @@ def test_effective_complexity_multi_target(metrics_runtime_test_configuration):
     )
 
     if runtime_config.set_image_feature_mask:
-        base_config.feature_mask = grid_segmenter(base_config.inputs, cell_size=32)
+        base_config.feature_mask = _grid_segmenter(base_config.inputs, cell_size=32)
         base_config.feature_mask = base_config.feature_mask.expand_as(
             base_config.inputs
         )
@@ -96,7 +96,7 @@ def test_effective_complexity_multi_target(metrics_runtime_test_configuration):
         runtime_config.n_perturbations_per_feature,
         runtime_config.max_features_processed_per_batch,
     ):
-        set_all_random_seeds(1234)
+        _set_all_random_seeds(1234)
         (
             effective_complexity_score_batch_list_1,
             perturbed_fwd_diffs_rel_vars_batch_list_1,
@@ -116,7 +116,7 @@ def test_effective_complexity_multi_target(metrics_runtime_test_configuration):
             return_intermediate_results=True,
         )
 
-        set_all_random_seeds(1234)
+        _set_all_random_seeds(1234)
         effective_complexity_score_batch_list_2 = []
         perturbed_fwd_diffs_rel_vars_batch_list_2 = []
         for explanation, target in zip(explanations, runtime_config.override_target):
@@ -154,7 +154,7 @@ def test_effective_complexity_multi_target(metrics_runtime_test_configuration):
             effective_complexity_score_batch_list_1,
             effective_complexity_score_batch_list_2,
         ):
-            assert_tensor_almost_equal(
+            _assert_tensor_almost_equal(
                 x.float(), y.float(), delta=runtime_config.delta, mode="mean"
             )
         for (
@@ -168,6 +168,6 @@ def test_effective_complexity_multi_target(metrics_runtime_test_configuration):
                 perturbed_fwd_diffs_rel_vars_batch_1,
                 perturbed_fwd_diffs_rel_vars_batch_2,
             ):
-                assert_tensor_almost_equal(
+                _assert_tensor_almost_equal(
                     x.float(), y.float(), delta=runtime_config.delta, mode="mean"
                 )

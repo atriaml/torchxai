@@ -3,9 +3,9 @@ import dataclasses
 import pytest  # noqa
 
 from tests.utils.common import (
-    assert_tensor_almost_equal,
-    grid_segmenter,
-    set_all_random_seeds,
+    _assert_tensor_almost_equal,
+    _grid_segmenter,
+    _set_all_random_seeds,
 )
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import monotonicity
@@ -60,7 +60,7 @@ def test_monotonicity_multi_target(metrics_runtime_test_configuration):
     )
 
     if runtime_config.set_image_feature_mask:
-        base_config.feature_mask = grid_segmenter(base_config.inputs, cell_size=32)
+        base_config.feature_mask = _grid_segmenter(base_config.inputs, cell_size=32)
         base_config.feature_mask = base_config.feature_mask.expand_as(
             base_config.inputs
         )
@@ -70,7 +70,7 @@ def test_monotonicity_multi_target(metrics_runtime_test_configuration):
     )
 
     for max_features in runtime_config.max_features_processed_per_batch:
-        set_all_random_seeds(1234)
+        _set_all_random_seeds(1234)
         monotonicity_batch_list_1, fwd_features_batch_list_1 = monotonicity(
             forward_func=base_config.model,
             inputs=base_config.inputs,
@@ -84,7 +84,7 @@ def test_monotonicity_multi_target(metrics_runtime_test_configuration):
             return_intermediate_results=True,
         )
 
-        set_all_random_seeds(1234)
+        _set_all_random_seeds(1234)
         monotonicity_batch_list_2 = []
         fwd_features_batch_list_2 = []
         for explanation, target in zip(explanations, runtime_config.override_target):
@@ -107,11 +107,11 @@ def test_monotonicity_multi_target(metrics_runtime_test_configuration):
 
         for x, y in zip(monotonicity_batch_list_1, monotonicity_batch_list_2):
             for xx, yy in zip(x, y):
-                assert_tensor_almost_equal(
+                _assert_tensor_almost_equal(
                     xx.float(), yy.float(), delta=runtime_config.delta, mode="mean"
                 )
         for x, y in zip(fwd_features_batch_list_1, fwd_features_batch_list_2):
             for xx, yy in zip(x, y):
-                assert_tensor_almost_equal(
+                _assert_tensor_almost_equal(
                     xx.float(), yy.float(), delta=runtime_config.delta, mode="mean"
                 )

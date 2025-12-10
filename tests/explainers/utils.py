@@ -1,28 +1,12 @@
 import pytest  # noqa
 
-from tests.utils.common import compare_explanation_per_target, set_all_random_seeds
-from tests.utils.configs import (
-    ExplainersTestRuntimeConfig,
-    TestBaseConfig,
-    TestRuntimeConfig,
-)
+from tests.utils.common import _compare_explanation_per_target, _set_all_random_seeds
+from tests.utils.configs import ExplainersTestRuntimeConfig, TestBaseConfig
 from torchxai.explainers.factory import ExplainerFactory
 from torchxai.ignite._explanation_step import (
     ExplanationStep,
     MultiTargetExplanationStep,
 )
-
-
-@pytest.fixture()
-def explainer_runtime_test_configuration(request):
-    runtime_config: TestRuntimeConfig = request.param
-    base_config: TestBaseConfig = request.getfixturevalue(runtime_config.target_fixture)
-    if runtime_config.override_target is not None:
-        base_config = base_config.model_copy(
-            update={"target": runtime_config.override_target}
-        )
-
-    yield base_config, runtime_config
 
 
 def make_config_for_explainer_with_grad_batch_size(*args, **kwargs):
@@ -76,7 +60,6 @@ def _format_to_list_if_not_list(obj):
 def run_explainer_test_with_config(
     base_config: TestBaseConfig, runtime_config: ExplainersTestRuntimeConfig
 ):
-    print("Running test:", runtime_config.test_name)
     # perform basic validation
     expected = _format_to_list_if_not_list(runtime_config.expected)
     target = _format_to_list_if_not_list(base_config.explanation_inputs.target)
@@ -85,7 +68,6 @@ def run_explainer_test_with_config(
     )
 
     # in the first pass we compute explanations for each target separately using single-target explainer
-    print("First pass: single-target explanations")
     single_target_explanations = []
     for curr_target, curr_expected in zip(target, expected, strict=True):
         explanations = run_single_test(
@@ -114,7 +96,7 @@ def run_explainer_test_with_config(
             if multi_target_explanations_2 is None:
                 assert explanations is None
             else:
-                compare_explanation_per_target(
+                _compare_explanation_per_target(
                     multi_target_explanations_2[0],
                     explanations,
                     delta=runtime_config.delta,
@@ -123,7 +105,6 @@ def run_explainer_test_with_config(
 
         single_target_explanations.append(explanations)
 
-    print("Second pass: single-target explanations")
     if len(single_target_explanations) > 1:
         multi_target_explanations = run_single_test(
             base_config, runtime_config, is_multi_target=True
@@ -133,7 +114,7 @@ def run_explainer_test_with_config(
             multi_target_explanations, single_target_explanations, strict=True
         ):
             # target explanation in the list should match the single target explanations at the same index
-            compare_explanation_per_target(
+            _compare_explanation_per_target(
                 multi_target_explanation,
                 single_target_explanation,
                 delta=runtime_config.delta,
@@ -146,9 +127,7 @@ def run_single_test(
     runtime_config: ExplainersTestRuntimeConfig,
     is_multi_target: bool = False,
 ):
-    print("is_multi_target", is_multi_target)
-    set_all_random_seeds(1234)
-    print("base_config", base_config)
+    _set_all_random_seeds(1234)
 
     explainer = ExplainerFactory.create(
         runtime_config.explainer, base_config.model, **runtime_config.explainer_kwargs
@@ -182,7 +161,6 @@ def run_single_test(
         if not isinstance(runtime_config.expected, list)
         else all(v is not None for v in runtime_config.expected)
     )
-    print("explanations", explanations, runtime_config.expected)
     if has_expected:
         if is_multi_target:
             assert isinstance(explanations, list), (
@@ -199,11 +177,11 @@ def run_single_test(
             for output_per_target, expected_per_target in zip(
                 explanations, runtime_config.expected, strict=True
             ):
-                compare_explanation_per_target(
+                _compare_explanation_per_target(
                     output_per_target, expected_per_target, delta=runtime_config.delta
                 )
         else:
-            compare_explanation_per_target(
+            _compare_explanation_per_target(
                 explanations, runtime_config.expected, delta=runtime_config.delta
             )
     return explanations

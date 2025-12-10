@@ -4,9 +4,9 @@ import pytest
 import torch
 
 from tests.utils.common import (
-    assert_tensor_almost_equal,
-    grid_segmenter,
-    set_all_random_seeds,
+    _assert_tensor_almost_equal,
+    _grid_segmenter,
+    _set_all_random_seeds,
 )
 from tests.utils.configs import TestBaseConfig, TestRuntimeConfig
 from torchxai.explainers.factory import ExplainerFactory
@@ -46,7 +46,7 @@ def metrics_runtime_test_configuration(request):
         explainer = explainer._explanation_fn
 
     if runtime_config.generate_feature_mask:
-        base_config.feature_mask = grid_segmenter(base_config.inputs, 4)
+        base_config.feature_mask = _grid_segmenter(base_config.inputs, 4)
     if runtime_config.set_baselines_to_type == "zero":
         base_config.baselines = 0
         runtime_config.shifted_baselines = 0
@@ -136,7 +136,7 @@ def test_input_invariance_multi_target(metrics_runtime_test_configuration):
             "weight_attributions", None
         )  # this is only available in our implementation
 
-    set_all_random_seeds(1234)
+    _set_all_random_seeds(1234)
     output_invariances_1, expl_inputs_1, expl_shifted_inputs_1 = input_invariance(
         explainer=explainer,
         inputs=base_config.inputs,
@@ -159,7 +159,7 @@ def test_input_invariance_multi_target(metrics_runtime_test_configuration):
 
     explainer.is_multi_target = False
     for target in runtime_config.override_target:
-        set_all_random_seeds(1234)
+        _set_all_random_seeds(1234)
         output_invariance, expl_inputs, expl_shifted_inputs = input_invariance(
             explainer=explainer,
             inputs=base_config.inputs,
@@ -179,16 +179,16 @@ def test_input_invariance_multi_target(metrics_runtime_test_configuration):
         expl_shifted_inputs_2.append(expl_shifted_inputs)
 
     for x, y in zip(output_invariances_1, output_invariances_2):
-        assert_tensor_almost_equal(
+        _assert_tensor_almost_equal(
             x.float(), y.float(), delta=runtime_config.delta, mode="mean"
         )
 
     for x, y in zip(expl_inputs_1, expl_inputs_2):
-        assert_tensor_almost_equal(
+        _assert_tensor_almost_equal(
             x.float(), y.float(), delta=runtime_config.delta, mode="mean"
         )
 
     for x, y in zip(expl_shifted_inputs_1, expl_shifted_inputs_2):
-        assert_tensor_almost_equal(
+        _assert_tensor_almost_equal(
             x.float(), y.float(), delta=runtime_config.delta, mode="mean"
         )

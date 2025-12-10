@@ -3,9 +3,9 @@ import dataclasses
 import pytest  # noqa
 
 from tests.utils.common import (
-    assert_tensor_almost_equal,
-    grid_segmenter,
-    set_all_random_seeds,
+    _assert_tensor_almost_equal,
+    _grid_segmenter,
+    _set_all_random_seeds,
 )
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import aopc
@@ -63,7 +63,7 @@ def test_aopc_multi_target(metrics_runtime_test_configuration):
     )
 
     if runtime_config.set_image_feature_mask:
-        base_config.feature_mask = grid_segmenter(base_config.inputs, cell_size=32)
+        base_config.feature_mask = _grid_segmenter(base_config.inputs, cell_size=32)
         base_config.feature_mask = base_config.feature_mask.expand_as(
             base_config.inputs
         )
@@ -73,7 +73,7 @@ def test_aopc_multi_target(metrics_runtime_test_configuration):
     )
 
     for max_features in runtime_config.max_features_processed_per_batch:
-        set_all_random_seeds(1234)
+        _set_all_random_seeds(1234)
         desc_batch_list_1, asc_batch_list_1, rand_batch_list_1, _, _, _ = aopc(
             forward_func=base_config.model,
             inputs=base_config.inputs,
@@ -88,7 +88,7 @@ def test_aopc_multi_target(metrics_runtime_test_configuration):
             is_multi_target=True,
             return_dict=False,
         )
-        set_all_random_seeds(1234)
+        _set_all_random_seeds(1234)
         desc_batch_list_2 = []
         asc_batch_list_2 = []
         rand_batch_list_2 = []
@@ -116,16 +116,16 @@ def test_aopc_multi_target(metrics_runtime_test_configuration):
 
         for x, y in zip(desc_batch_list_1, desc_batch_list_2):
             for xx, yy in zip(x, y):
-                assert_tensor_almost_equal(
+                _assert_tensor_almost_equal(
                     xx.float(), yy.float(), delta=runtime_config.delta, mode="mean"
                 )
         for x, y in zip(asc_batch_list_1, asc_batch_list_2):
             for xx, yy in zip(x, y):
-                assert_tensor_almost_equal(
+                _assert_tensor_almost_equal(
                     xx.float(), yy.float(), delta=runtime_config.delta, mode="mean"
                 )
         for x, y in zip(rand_batch_list_1, rand_batch_list_2):
             for xx, yy in zip(x, y):
-                assert_tensor_almost_equal(
+                _assert_tensor_almost_equal(
                     xx.float(), yy.float(), delta=runtime_config.delta, mode="mean"
                 )

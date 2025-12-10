@@ -5,9 +5,9 @@ import pytest  # noqa
 import torch
 
 from tests.utils.common import (
-    assert_all_tensors_almost_equal,
-    assert_tensor_almost_equal,
-    set_all_random_seeds,
+    _assert_all_tensors_almost_equal,
+    _assert_tensor_almost_equal,
+    _set_all_random_seeds,
 )
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import monotonicity
@@ -117,7 +117,7 @@ def test_monotonicity(metrics_runtime_test_configuration):
         runtime_config.max_features_processed_per_batch,
         itertools.cycle(runtime_config.expected),
     ):
-        set_all_random_seeds(1234)
+        _set_all_random_seeds(1234)
         (monotonicity_result, fwds) = monotonicity(
             forward_func=base_config.model,
             inputs=base_config.inputs,
@@ -129,7 +129,7 @@ def test_monotonicity(metrics_runtime_test_configuration):
             max_features_processed_per_batch=max_features,
             return_intermediate_results=True,
         )
-        assert_tensor_almost_equal(
+        _assert_tensor_almost_equal(
             monotonicity_result.float(),
             curr_expected.float(),
             delta=runtime_config.delta,
@@ -145,4 +145,4 @@ def test_monotonicity(metrics_runtime_test_configuration):
                 "The number of features should match the number of features in the explanations."
             )  # match number of features
         fwds_per_run.append(torch.cat(fwds))
-    assert_all_tensors_almost_equal(fwds_per_run)
+    _assert_all_tensors_almost_equal(fwds_per_run)

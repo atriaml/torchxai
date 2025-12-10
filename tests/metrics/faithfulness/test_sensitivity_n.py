@@ -5,9 +5,9 @@ import pytest  # noqa
 import torch
 
 from tests.utils.common import (
-    assert_all_tensors_almost_equal,
-    assert_tensor_almost_equal,
-    set_all_random_seeds,
+    _assert_all_tensors_almost_equal,
+    _assert_tensor_almost_equal,
+    _set_all_random_seeds,
 )
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import sensitivity_n
@@ -211,7 +211,7 @@ def test_sensitivity_n(metrics_runtime_test_configuration):
     for max_examples_per_batch, curr_expected in zip(
         runtime_config.max_examples_per_batch, itertools.cycle(runtime_config.expected)
     ):
-        set_all_random_seeds(1234)
+        _set_all_random_seeds(1234)
         sensitivity_n_result = sensitivity_n(
             forward_func=base_config.model,
             inputs=base_config.inputs,
@@ -224,10 +224,10 @@ def test_sensitivity_n(metrics_runtime_test_configuration):
             max_examples_per_batch=max_examples_per_batch,
             normalize=runtime_config.normalize,
         )
-        assert_tensor_almost_equal(
+        _assert_tensor_almost_equal(
             sensitivity_n_result.float(),
             curr_expected.float(),
             delta=runtime_config.delta,
             mode="mean",
         )
-    assert_all_tensors_almost_equal(fwds_per_run)
+    _assert_all_tensors_almost_equal(fwds_per_run)

@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import pytest  # noqa
 import torch
 
@@ -5,6 +7,7 @@ from tests.explainers.utils import (
     make_config_for_explainer_with_internal_and_grad_batch_size,
     run_explainer_test_with_config,
 )
+from tests.utils.configs import ExplainersTestRuntimeConfig, TestBaseConfig
 
 test_configurations = [
     *make_config_for_explainer_with_internal_and_grad_batch_size(
@@ -39,10 +42,7 @@ test_configurations = [
     *make_config_for_explainer_with_internal_and_grad_batch_size(
         target_fixture="basic_model_batch_input_with_additional_forward_args_config",
         explainer="deep_lift_shap",
-        expected=(
-            torch.tensor([[0, 0, 0]]),
-            torch.tensor([[0, 0, 0]]),
-        ),
+        expected=(torch.tensor([[0, 0, 0]]), torch.tensor([[0, 0, 0]])),
         internal_batch_sizes=[None, 1, 4],
     ),
     *make_config_for_explainer_with_internal_and_grad_batch_size(
@@ -62,7 +62,7 @@ test_configurations = [
                         [128.7149, 164.9986, 180.2669],
                         [224.7149, 260.9985, 276.2669],
                         [320.7149, 356.9985, 372.2669],
-                    ],
+                    ]
                 ),
             ),
             (
@@ -192,14 +192,24 @@ test_configurations = [
 )
 def test_deep_lift_shap(explainer_runtime_test_configuration):
     base_config, runtime_config = explainer_runtime_test_configuration
+    base_config: TestBaseConfig
+    runtime_config: ExplainersTestRuntimeConfig
 
-    # gradient shap always requires a random baseline
-    if isinstance(base_config.inputs, tuple):
-        base_config.train_baselines = tuple(
-            torch.randn((20, *x.shape[1:])) for x in base_config.inputs
-        )
-    else:
-        base_config.train_baselines = torch.randn((20, *(base_config.inputs.shape[1:])))
+    # deeplift shap always requires a random train baselines
+    train_baselines = OrderedDict(
+        {
+            k: torch.randn((20, *v.shape[1:]))
+            for k, v in base_config.explanation_inputs.explained_features.items()
+        }
+    )
+
+    base_config = base_config.model_copy(
+        update={
+            "explanation_inputs": base_config.explanation_inputs.model_copy(
+                update={"train_baselines": train_baselines}
+            )
+        }
+    )
 
     run_explainer_test_with_config(
         base_config=base_config, runtime_config=runtime_config

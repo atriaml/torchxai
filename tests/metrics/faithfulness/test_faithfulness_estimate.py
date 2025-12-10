@@ -5,9 +5,9 @@ import pytest  # noqa
 import torch
 
 from tests.utils.common import (
-    assert_all_tensors_almost_equal,
-    assert_tensor_almost_equal,
-    set_all_random_seeds,
+    _assert_all_tensors_almost_equal,
+    _assert_tensor_almost_equal,
+    _set_all_random_seeds,
 )
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import faithfulness_estimate
@@ -96,7 +96,7 @@ def test_faithfulness_estimate(metrics_runtime_test_configuration):
         runtime_config.max_features_processed_per_batch,
         itertools.cycle(runtime_config.expected),
     ):
-        set_all_random_seeds(1234)
+        _set_all_random_seeds(1234)
         (
             faithfulness_estimate_score,
             attributions_sum_perturbed,
@@ -112,7 +112,7 @@ def test_faithfulness_estimate(metrics_runtime_test_configuration):
             max_features_processed_per_batch=max_features,
             return_intermediate_results=True,
         )
-        assert_tensor_almost_equal(
+        _assert_tensor_almost_equal(
             faithfulness_estimate_score,
             curr_expected,
             delta=runtime_config.delta,
@@ -120,5 +120,5 @@ def test_faithfulness_estimate(metrics_runtime_test_configuration):
         )
         attributions_sum_perturbed_list.append(torch.cat(attributions_sum_perturbed))
         inputs_perturbed_fwd_diffs_list.append(torch.cat(inputs_perturbed_fwd_diffs))
-    assert_all_tensors_almost_equal(attributions_sum_perturbed_list)
-    assert_all_tensors_almost_equal(inputs_perturbed_fwd_diffs_list)
+    _assert_all_tensors_almost_equal(attributions_sum_perturbed_list)
+    _assert_all_tensors_almost_equal(inputs_perturbed_fwd_diffs_list)

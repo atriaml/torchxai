@@ -1,5 +1,6 @@
 import typing
-from typing import Any, Callable, List, Optional, Tuple, Union, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import torch
 import tqdm
@@ -22,6 +23,7 @@ from captum.attr import Attribution, DeepLift
 from captum.attr._utils.common import _format_callable_baseline
 from torch import Tensor
 from torch.nn import Module
+
 from torchxai.explainers._grad.deeplift import MultiTargetDeepLift
 from torchxai.explainers._utils import (
     _compute_gradients_sequential_autograd,
@@ -41,51 +43,47 @@ class DeepLiftShapBatched(DeepLift):
     def attribute(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        baselines: Union[
-            TensorOrTupleOfTensorsGeneric, Callable[..., TensorOrTupleOfTensorsGeneric]
-        ],
+        baselines: TensorOrTupleOfTensorsGeneric
+        | Callable[..., TensorOrTupleOfTensorsGeneric],
         target: TargetType = None,
         additional_forward_args: Any = None,
         return_convergence_delta: Literal[False] = False,
-        custom_attribution_func: Union[None, Callable[..., Tuple[Tensor, ...]]] = None,
+        custom_attribution_func: None | Callable[..., tuple[Tensor, ...]] = None,
     ) -> TensorOrTupleOfTensorsGeneric: ...
 
     @typing.overload
     def attribute(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        baselines: Union[
-            TensorOrTupleOfTensorsGeneric, Callable[..., TensorOrTupleOfTensorsGeneric]
-        ],
+        baselines: TensorOrTupleOfTensorsGeneric
+        | Callable[..., TensorOrTupleOfTensorsGeneric],
         target: TargetType = None,
         additional_forward_args: Any = None,
         *,
         return_convergence_delta: Literal[True],
-        custom_attribution_func: Union[None, Callable[..., Tuple[Tensor, ...]]] = None,
-    ) -> Tuple[TensorOrTupleOfTensorsGeneric, Tensor]: ...
+        custom_attribution_func: None | Callable[..., tuple[Tensor, ...]] = None,
+    ) -> tuple[TensorOrTupleOfTensorsGeneric, Tensor]: ...
 
     def attribute(  # type: ignore
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        baselines: Union[
-            TensorOrTupleOfTensorsGeneric, Callable[..., TensorOrTupleOfTensorsGeneric]
-        ],
+        baselines: TensorOrTupleOfTensorsGeneric
+        | Callable[..., TensorOrTupleOfTensorsGeneric],
         target: TargetType = None,
         additional_forward_args: Any = None,
         return_convergence_delta: bool = False,
-        custom_attribution_func: Union[None, Callable[..., Tuple[Tensor, ...]]] = None,
-        internal_batch_size: Optional[int] = None,
-    ) -> Union[
-        TensorOrTupleOfTensorsGeneric, Tuple[TensorOrTupleOfTensorsGeneric, Tensor]
-    ]:
+        custom_attribution_func: None | Callable[..., tuple[Tensor, ...]] = None,
+        internal_batch_size: int | None = None,
+        quiet: bool = True,
+    ) -> TensorOrTupleOfTensorsGeneric | tuple[TensorOrTupleOfTensorsGeneric, Tensor]:
         baselines = _format_callable_baseline(baselines, inputs)
 
         assert isinstance(baselines[0], torch.Tensor) and baselines[0].shape[0] > 1, (
             "Baselines distribution has to be provided in form of a torch.Tensor"
-            " with more than one example but found: {}."
+            f" with more than one example but found: {baselines[0]}."
             " If baselines are provided in shape of scalars or with a single"
             " baseline example, `DeepLift`"
-            " approach can be used instead.".format(baselines[0])
+            " approach can be used instead."
         )
 
         # Keeps track whether original input is a tuple or not before
@@ -101,13 +99,10 @@ class DeepLiftShapBatched(DeepLift):
         inp_bsz = inputs[0].shape[0]
         base_bsz = baselines[0].shape[0]
 
-        (
-            exp_inp,
-            exp_base,
-            exp_tgt,
-            exp_addit_args,
-        ) = self._expand_inputs_baselines_targets(
-            baselines, inputs, target, additional_forward_args
+        (exp_inp, exp_base, exp_tgt, exp_addit_args) = (
+            self._expand_inputs_baselines_targets(
+                baselines, inputs, target, additional_forward_args
+            )
         )
 
         if internal_batch_size is not None:
@@ -117,6 +112,7 @@ class DeepLiftShapBatched(DeepLift):
             for batch_idx in tqdm.tqdm(
                 range(0, num_examples, internal_batch_size),
                 desc="Computing DeepLiftShap attributions...",
+                disable=quiet,
             ):
                 batch_attributions = super().attribute.__wrapped__(  # type: ignore
                     self,
@@ -154,7 +150,7 @@ class DeepLiftShapBatched(DeepLift):
                 )
                 if return_convergence_delta:
                     batch_attributions, batch_delta = cast(
-                        Tuple[Tuple[Tensor, ...], Tensor], batch_attributions
+                        tuple[tuple[Tensor, ...], Tensor], batch_attributions
                     )
                     delta = (
                         torch.cat((delta, batch_delta), dim=0)
@@ -163,10 +159,7 @@ class DeepLiftShapBatched(DeepLift):
                     )
                 agg_attributions = (
                     tuple(
-                        torch.cat(
-                            (agg_attribution, batch_attribution),
-                            dim=0,
-                        )
+                        torch.cat((agg_attribution, batch_attribution), dim=0)
                         for agg_attribution, batch_attribution in zip(
                             agg_attributions, batch_attributions
                         )
@@ -190,7 +183,7 @@ class DeepLiftShapBatched(DeepLift):
 
             if return_convergence_delta:
                 attributions, delta = cast(
-                    Tuple[Tuple[Tensor, ...], Tensor], attributions
+                    tuple[tuple[Tensor, ...], Tensor], attributions
                 )
         attributions = tuple(
             self._compute_mean_across_baselines(
@@ -206,11 +199,11 @@ class DeepLiftShapBatched(DeepLift):
 
     def _expand_inputs_baselines_targets(
         self,
-        baselines: Tuple[Tensor, ...],
-        inputs: Tuple[Tensor, ...],
+        baselines: tuple[Tensor, ...],
+        inputs: tuple[Tensor, ...],
         target: TargetType,
         additional_forward_args: Any,
-    ) -> Tuple[Tuple[Tensor, ...], Tuple[Tensor, ...], TargetType, Any]:
+    ) -> tuple[tuple[Tensor, ...], tuple[Tensor, ...], TargetType, Any]:
         inp_bsz = inputs[0].shape[0]
         base_bsz = baselines[0].shape[0]
 
@@ -251,7 +244,7 @@ class DeepLiftShapBatched(DeepLift):
         self, inp_bsz: int, base_bsz: int, attribution: Tensor
     ) -> Tensor:
         # Average for multiple references
-        attr_shape: Tuple = (inp_bsz, base_bsz)
+        attr_shape: tuple = (inp_bsz, base_bsz)
         if len(attribution.shape) > 1:
             attr_shape += attribution.shape[1:]
         return torch.mean(attribution.view(attr_shape), dim=1, keepdim=False)
@@ -280,25 +273,22 @@ class MultiTargetDeepLiftShapBatched(MultiTargetDeepLift):
     def attribute(  # type: ignore
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        baselines: Union[
-            TensorOrTupleOfTensorsGeneric, Callable[..., TensorOrTupleOfTensorsGeneric]
-        ],
+        baselines: TensorOrTupleOfTensorsGeneric
+        | Callable[..., TensorOrTupleOfTensorsGeneric],
         target: TargetType = None,
         additional_forward_args: Any = None,
         return_convergence_delta: bool = False,
-        custom_attribution_func: Union[None, Callable[..., Tuple[Tensor, ...]]] = None,
-        internal_batch_size: Optional[int] = None,
-    ) -> Union[
-        TensorOrTupleOfTensorsGeneric, Tuple[TensorOrTupleOfTensorsGeneric, Tensor]
-    ]:
+        custom_attribution_func: None | Callable[..., tuple[Tensor, ...]] = None,
+        internal_batch_size: int | None = None,
+    ) -> TensorOrTupleOfTensorsGeneric | tuple[TensorOrTupleOfTensorsGeneric, Tensor]:
         baselines = _format_callable_baseline(baselines, inputs)
 
         assert isinstance(baselines[0], torch.Tensor) and baselines[0].shape[0] > 1, (
             "Baselines distribution has to be provided in form of a torch.Tensor"
-            " with more than one example but found: {}."
+            f" with more than one example but found: {baselines[0]}."
             " If baselines are provided in shape of scalars or with a single"
             " baseline example, `DeepLift`"
-            " approach can be used instead.".format(baselines[0])
+            " approach can be used instead."
         )
 
         # Keeps track whether original input is a tuple or not before
@@ -317,13 +307,10 @@ class MultiTargetDeepLiftShapBatched(MultiTargetDeepLift):
         inp_bsz = inputs[0].shape[0]
         base_bsz = baselines[0].shape[0]
 
-        (
-            exp_inp,
-            exp_base,
-            exp_tgt,
-            exp_addit_args,
-        ) = self._expand_inputs_baselines_targets(
-            baselines, inputs, target, additional_forward_args
+        (exp_inp, exp_base, exp_tgt, exp_addit_args) = (
+            self._expand_inputs_baselines_targets(
+                baselines, inputs, target, additional_forward_args
+            )
         )
 
         if internal_batch_size is not None:
@@ -384,7 +371,7 @@ class MultiTargetDeepLiftShapBatched(MultiTargetDeepLift):
                 )
                 if return_convergence_delta:
                     multi_target_batch_attributions, batch_delta = cast(
-                        Tuple[List[Tuple[Tensor, ...]], List[Tensor]],
+                        tuple[list[tuple[Tensor, ...]], list[Tensor]],
                         multi_target_batch_attributions,
                     )
                     multi_target_delta = (
@@ -434,7 +421,7 @@ class MultiTargetDeepLiftShapBatched(MultiTargetDeepLift):
 
             if return_convergence_delta:
                 multi_target_attributions, delta = cast(
-                    Tuple[List[Tuple[Tensor, ...]], List[Tensor]],
+                    tuple[list[tuple[Tensor, ...]], list[Tensor]],
                     multi_target_attributions,
                 )
 
@@ -464,11 +451,11 @@ class MultiTargetDeepLiftShapBatched(MultiTargetDeepLift):
 
     def _expand_inputs_baselines_targets(
         self,
-        baselines: Tuple[Tensor, ...],
-        inputs: Tuple[Tensor, ...],
+        baselines: tuple[Tensor, ...],
+        inputs: tuple[Tensor, ...],
         target: TargetType,
         additional_forward_args: Any,
-    ) -> Tuple[Tuple[Tensor, ...], Tuple[Tensor, ...], TargetType, Any]:
+    ) -> tuple[tuple[Tensor, ...], tuple[Tensor, ...], TargetType, Any]:
         inp_bsz = inputs[0].shape[0]
         base_bsz = baselines[0].shape[0]
 
@@ -518,7 +505,7 @@ class MultiTargetDeepLiftShapBatched(MultiTargetDeepLift):
         self, inp_bsz: int, base_bsz: int, attribution: Tensor
     ) -> Tensor:
         # Average for multiple references
-        attr_shape: Tuple = (inp_bsz, base_bsz)
+        attr_shape: tuple = (inp_bsz, base_bsz)
         if len(attribution.shape) > 1:
             attr_shape += attribution.shape[1:]
         return torch.mean(attribution.view(attr_shape), dim=1, keepdim=False)

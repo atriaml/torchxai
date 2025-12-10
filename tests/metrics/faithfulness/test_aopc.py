@@ -5,9 +5,9 @@ import pytest  # noqa
 import torch
 
 from tests.utils.common import (
-    assert_all_tensors_almost_equal,
-    assert_tensor_almost_equal,
-    set_all_random_seeds,
+    _assert_all_tensors_almost_equal,
+    _assert_tensor_almost_equal,
+    _set_all_random_seeds,
 )
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import aopc
@@ -245,7 +245,7 @@ def test_aopc(metrics_runtime_test_configuration):
         itertools.cycle(runtime_config.expected_asc),
         itertools.cycle(runtime_config.expected_rand),
     ):
-        set_all_random_seeds(1234)
+        _set_all_random_seeds(1234)
         aopc_output = aopc(
             forward_func=base_config.model,
             inputs=base_config.inputs,
@@ -293,21 +293,21 @@ def test_aopc(metrics_runtime_test_configuration):
             )
 
         for output, expected in zip(aopc_output["desc"], curr_expected_desc):
-            assert_tensor_almost_equal(
+            _assert_tensor_almost_equal(
                 output.float(), expected.float(), delta=runtime_config.delta
             )
         for output, expected in zip(aopc_output["asc"], curr_expected_asc):
-            assert_tensor_almost_equal(
+            _assert_tensor_almost_equal(
                 output.float(), expected.float(), delta=runtime_config.delta
             )
         for output, expected in zip(aopc_output["rand"], curr_expected_rand):
-            assert_tensor_almost_equal(
+            _assert_tensor_almost_equal(
                 output.float(), expected.float(), delta=runtime_config.delta
             )
 
         aopcs_desc_list.append(aopc_output["desc"])
         aopcs_asc_list.append(aopc_output["asc"])
         aopcs_rand_list.append(aopc_output["rand"])
-    assert_all_tensors_almost_equal(aopcs_desc_list)
-    assert_all_tensors_almost_equal(aopcs_asc_list)
-    assert_all_tensors_almost_equal(aopcs_rand_list)
+    _assert_all_tensors_almost_equal(aopcs_desc_list)
+    _assert_all_tensors_almost_equal(aopcs_asc_list)
+    _assert_all_tensors_almost_equal(aopcs_rand_list)

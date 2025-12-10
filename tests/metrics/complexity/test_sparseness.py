@@ -4,7 +4,7 @@ from logging import getLogger
 import pytest  # noqa
 import torch
 
-from tests.utils.common import assert_tensor_almost_equal
+from tests.utils.common import _assert_tensor_almost_equal
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import sparseness
 from torchxai.metrics.complexity.sparseness import sparseness_feature_grouped
@@ -81,7 +81,7 @@ test_configurations = [
 def test_sparseness(metrics_runtime_test_configuration):
     base_config, runtime_config, explanations = metrics_runtime_test_configuration
     output = sparseness(attributions=explanations)
-    assert_tensor_almost_equal(
+    _assert_tensor_almost_equal(
         output, runtime_config.expected, delta=runtime_config.delta, mode="mean"
     )
 
@@ -96,6 +96,6 @@ def test_sparseness(metrics_runtime_test_configuration):
 def test_sparseness_feature_grouped(metrics_runtime_test_configuration):
     base_config, runtime_config, explanations = metrics_runtime_test_configuration
     output = sparseness_feature_grouped(attributions=explanations)
-    assert_tensor_almost_equal(
+    _assert_tensor_almost_equal(
         output, runtime_config.expected, delta=runtime_config.delta, mode="mean"
     )

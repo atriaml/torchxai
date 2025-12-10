@@ -4,9 +4,9 @@ import pytest
 import torch  # noqa
 
 from tests.utils.common import (
-    assert_tensor_almost_equal,
-    grid_segmenter,
-    set_all_random_seeds,
+    _assert_tensor_almost_equal,
+    _grid_segmenter,
+    _set_all_random_seeds,
 )
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import sensitivity_n
@@ -73,7 +73,7 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
     )
 
     if runtime_config.set_image_feature_mask:
-        base_config.feature_mask = grid_segmenter(base_config.inputs, cell_size=32)
+        base_config.feature_mask = _grid_segmenter(base_config.inputs, cell_size=32)
         base_config.feature_mask = base_config.feature_mask.expand_as(
             base_config.inputs
         )
@@ -83,7 +83,7 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
     )
 
     for max_examples_per_batch in runtime_config.max_examples_per_batch:
-        set_all_random_seeds(1234)
+        _set_all_random_seeds(1234)
         sensitivity_n_batch_list_1 = sensitivity_n(
             n_features_perturbed=runtime_config.sensitivity_n,
             forward_func=base_config.model,
@@ -101,7 +101,7 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
 
         sensitivity_n_batch_list_2 = []
         for explanation, target in zip(explanations, runtime_config.override_target):
-            set_all_random_seeds(1234)
+            _set_all_random_seeds(1234)
             sensitivity_n_batch = sensitivity_n(
                 n_features_perturbed=runtime_config.sensitivity_n,
                 forward_func=base_config.model,
@@ -120,6 +120,6 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
         assert len(sensitivity_n_batch_list_1) == len(sensitivity_n_batch_list_2)
         for x, y in zip(sensitivity_n_batch_list_1, sensitivity_n_batch_list_2):
             for xx, yy in zip(x, y):
-                assert_tensor_almost_equal(
+                _assert_tensor_almost_equal(
                     xx.float(), yy.float(), delta=runtime_config.delta, mode="mean"
                 )

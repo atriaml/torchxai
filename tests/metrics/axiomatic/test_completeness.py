@@ -2,7 +2,7 @@ import pytest  # noqa
 import torch
 
 from tests.conftest import _run_metric_via_ignite
-from tests.utils.common import assert_tensor_almost_equal
+from tests.utils.common import _assert_tensor_almost_equal
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.ignite._axiomatic import CompletenessMetric
 from torchxai.ignite._utilities import ExplanationStateTransform
@@ -101,7 +101,7 @@ def test_completeness(metrics_runtime_test_configuration_with_explanation_state)
         additional_forward_args=tf.additional_forward_args,
         target=tf.target,
     )
-    assert_tensor_almost_equal(
+    _assert_tensor_almost_equal(
         output, runtime_config.expected, delta=runtime_config.delta
     )
 
@@ -114,6 +114,6 @@ def test_completeness(metrics_runtime_test_configuration_with_explanation_state)
     metric_output = _run_metric_via_ignite(metric, explanation_state)[
         "completeness_score"
     ]
-    assert_tensor_almost_equal(
+    _assert_tensor_almost_equal(
         metric_output, runtime_config.expected, delta=runtime_config.delta
     )
