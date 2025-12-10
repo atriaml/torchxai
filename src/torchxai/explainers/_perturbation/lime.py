@@ -2,7 +2,8 @@
 import math
 import typing
 import warnings
-from typing import Any, Callable, List, Optional, Tuple, Union
+from collections.abc import Callable
+from typing import Any
 
 import torch
 from captum._utils.common import (
@@ -33,6 +34,7 @@ from captum.attr._utils.common import _format_input_baseline
 from captum.log import log_usage
 from torch import Tensor
 from torch.nn import CosineSimilarity, Module
+
 from torchxai.explainers._perturbation.lime_base import MultiTargetLimeBase
 from torchxai.explainers._utils import (
     _expand_feature_mask_to_target,
@@ -79,9 +81,9 @@ def get_exp_kernel_similarity_function_with_interpretable_inps(
 
 
 def frozen_features_perturb_func(original_inp, **kwargs):
-    assert (
-        "num_interp_features" in kwargs
-    ), "Must provide num_interp_features to use default interpretable sampling function"
+    assert "num_interp_features" in kwargs, (
+        "Must provide num_interp_features to use default interpretable sampling function"
+    )
     if isinstance(original_inp, Tensor):
         device = original_inp.device
     else:
@@ -107,9 +109,9 @@ class Lime(LimeBase):
     def __init__(
         self,
         forward_func: Callable,
-        interpretable_model: Optional[Model] = None,
-        similarity_func: Optional[Callable] = None,
-        perturb_func: Optional[Callable] = None,
+        interpretable_model: Model | None = None,
+        similarity_func: Callable | None = None,
+        perturb_func: Callable | None = None,
     ) -> None:
         if interpretable_model is None:
             interpretable_model = SkLearnLasso(alpha=0.01)
@@ -137,10 +139,10 @@ class Lime(LimeBase):
         baselines: BaselineType = None,
         target: TargetType = None,
         additional_forward_args: Any = None,
-        feature_mask: Union[None, Tensor, Tuple[Tensor, ...]] = None,
+        feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         n_samples: int = 25,
         perturbations_per_eval: int = 1,
-        frozen_features: Optional[List[torch.Tensor]] = None,
+        frozen_features: list[torch.Tensor] | None = None,
         return_input_shape: bool = True,
         show_progress: bool = False,
     ) -> TensorOrTupleOfTensorsGeneric:
@@ -163,10 +165,10 @@ class Lime(LimeBase):
         baselines: BaselineType = None,
         target: TargetType = None,
         additional_forward_args: Any = None,
-        feature_mask: Union[None, Tensor, Tuple[Tensor, ...]] = None,
+        feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         n_samples: int = 25,
         perturbations_per_eval: int = 1,
-        frozen_features: Optional[List[torch.Tensor]] = None,
+        frozen_features: list[torch.Tensor] | None = None,
         return_input_shape: bool = True,
         show_progress: bool = False,
         **kwargs,
@@ -289,18 +291,18 @@ class Lime(LimeBase):
     @typing.overload
     def _convert_output_shape(
         self,
-        formatted_inp: Tuple[Tensor, ...],
-        feature_mask: Tuple[Tensor, ...],
+        formatted_inp: tuple[Tensor, ...],
+        feature_mask: tuple[Tensor, ...],
         coefs: Tensor,
         num_interp_features: int,
         is_inputs_tuple: Literal[True],
-    ) -> Tuple[Tensor, ...]: ...
+    ) -> tuple[Tensor, ...]: ...
 
     @typing.overload
     def _convert_output_shape(
         self,
-        formatted_inp: Tuple[Tensor, ...],
-        feature_mask: Tuple[Tensor, ...],
+        formatted_inp: tuple[Tensor, ...],
+        feature_mask: tuple[Tensor, ...],
         coefs: Tensor,
         num_interp_features: int,
         is_inputs_tuple: Literal[False],
@@ -308,12 +310,12 @@ class Lime(LimeBase):
 
     def _convert_output_shape(
         self,
-        formatted_inp: Tuple[Tensor, ...],
-        feature_mask: Tuple[Tensor, ...],
+        formatted_inp: tuple[Tensor, ...],
+        feature_mask: tuple[Tensor, ...],
         coefs: Tensor,
         num_interp_features: int,
         is_inputs_tuple: bool,
-    ) -> Union[Tensor, Tuple[Tensor, ...]]:
+    ) -> Tensor | tuple[Tensor, ...]:
         coefs = coefs.flatten()
         attr = [
             torch.zeros_like(single_inp, dtype=torch.float)
@@ -332,9 +334,9 @@ class MultiTargetLime(MultiTargetLimeBase):
     def __init__(
         self,
         forward_func: Callable,
-        interpretable_model: Optional[Model] = None,
-        similarity_func: Optional[Callable] = None,
-        perturb_func: Optional[Callable] = None,
+        interpretable_model: Model | None = None,
+        similarity_func: Callable | None = None,
+        perturb_func: Callable | None = None,
     ) -> None:
         if interpretable_model is None:
             interpretable_model = SkLearnLasso(alpha=0.01)
@@ -363,10 +365,10 @@ class MultiTargetLime(MultiTargetLimeBase):
         baselines: BaselineType = None,
         target: TargetType = None,
         additional_forward_args: Any = None,
-        feature_mask: Union[None, Tensor, Tuple[Tensor, ...]] = None,
+        feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         n_samples: int = 25,
         perturbations_per_eval: int = 1,
-        frozen_features: Optional[List[torch.Tensor]] = None,
+        frozen_features: list[torch.Tensor] | None = None,
         return_input_shape: bool = True,
         show_progress: bool = False,
     ) -> TensorOrTupleOfTensorsGeneric:
@@ -389,10 +391,10 @@ class MultiTargetLime(MultiTargetLimeBase):
         baselines: BaselineType = None,
         target: TargetType = None,
         additional_forward_args: Any = None,
-        feature_mask: Union[None, Tensor, Tuple[Tensor, ...]] = None,
+        feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         n_samples: int = 25,
         perturbations_per_eval: int = 1,
-        frozen_features: Optional[List[torch.Tensor]] = None,
+        frozen_features: list[torch.Tensor] | None = None,
         return_input_shape: bool = True,
         show_progress: bool = False,
         **kwargs,
@@ -512,7 +514,9 @@ class MultiTargetLime(MultiTargetLimeBase):
                                 ]
                             )
                         else:
-                            output_list.append([coefs.reshape(1, -1) for coefs in multi_target_coefs])  # type: ignore
+                            output_list.append(
+                                [coefs.reshape(1, -1) for coefs in multi_target_coefs]
+                            )  # type: ignore
 
                     # switch from per sample target output to per target output
                     # each element of this output now contains the batch attributions for a single target
@@ -561,29 +565,29 @@ class MultiTargetLime(MultiTargetLimeBase):
     @typing.overload
     def _convert_output_shape(
         self,
-        formatted_inp: Tuple[Tensor, ...],
-        feature_mask: Tuple[Tensor, ...],
+        formatted_inp: tuple[Tensor, ...],
+        feature_mask: tuple[Tensor, ...],
         coefs: Tensor,
         num_interp_features: int,
-    ) -> Tuple[Tensor, ...]: ...
+    ) -> tuple[Tensor, ...]: ...
 
     @typing.overload
     def _convert_output_shape(
         self,
-        formatted_inp: Tuple[Tensor, ...],
-        feature_mask: Tuple[Tensor, ...],
+        formatted_inp: tuple[Tensor, ...],
+        feature_mask: tuple[Tensor, ...],
         coefs: Tensor,
         num_interp_features: int,
     ) -> Tensor: ...
 
     def _convert_output_shape(
         self,
-        formatted_inp: Tuple[Tensor, ...],
-        feature_mask: Tuple[Tensor, ...],
+        formatted_inp: tuple[Tensor, ...],
+        feature_mask: tuple[Tensor, ...],
         coefs: Tensor,
         num_interp_features: int,
         is_inputs_tuple: bool,
-    ) -> Union[Tensor, Tuple[Tensor, ...]]:
+    ) -> Tensor | tuple[Tensor, ...]:
         coefs = coefs.flatten()
         attr = [
             torch.zeros_like(single_inp, dtype=torch.float)
@@ -654,9 +658,9 @@ class LimeExplainer(Explainer):
         inputs: TensorOrTupleOfTensorsGeneric,
         target: TargetType,
         baselines: BaselineType = None,
-        feature_mask: Union[None, Tensor, Tuple[Tensor, ...]] = None,
+        feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         additional_forward_args: Any = None,
-        frozen_features: Optional[List[torch.Tensor]] = None,
+        frozen_features: list[torch.Tensor] | None = None,
     ) -> TensorOrTupleOfTensorsGeneric:
         """
         Compute the LIME attributions for the given inputs.
@@ -687,7 +691,6 @@ class LimeExplainer(Explainer):
             n_samples=self._n_samples,
             perturbations_per_eval=self._internal_batch_size,
             frozen_features=frozen_features,
-            show_progress=True,
         )
         if self._weight_attributions and feature_mask is not None:
             if self._is_multi_target:

@@ -1,5 +1,6 @@
 import math
-from typing import Any, Callable, Tuple, Union, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import torch
 from captum._utils.common import (
@@ -12,8 +13,7 @@ from captum._utils.common import (
 )
 from captum._utils.progress import progress
 from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
-from captum.attr import Attribution
-from captum.attr import FeatureAblation as CaptumFeatureAblation
+from captum.attr import Attribution, FeatureAblation as CaptumFeatureAblation
 from captum.attr._utils.common import _format_input_baseline
 from torch import Tensor, dtype
 
@@ -37,7 +37,7 @@ class FeatureAblation(CaptumFeatureAblation):
         baselines: BaselineType = None,
         target: TargetType = None,
         additional_forward_args: Any = None,
-        feature_mask: Union[None, Tensor, Tuple[Tensor, ...]] = None,
+        feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         perturbations_per_eval: int = 1,
         show_progress: bool = False,
         **kwargs: Any,
@@ -226,7 +226,7 @@ class MultiTargetFeatureAblation(FeatureAblation):
         baselines: BaselineType = None,
         target: TargetType = None,
         additional_forward_args: Any = None,
-        feature_mask: Union[None, Tensor, Tuple[Tensor, ...]] = None,
+        feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         perturbations_per_eval: int = 1,
         show_progress: bool = False,
         **kwargs: Any,
@@ -584,9 +584,12 @@ class MultiTargetFeatureAblation(FeatureAblation):
             current_features[i] = ablated_features.reshape(
                 (-1,) + ablated_features.shape[2:]
             )
-            yield tuple(
-                current_features
-            ), current_additional_args, current_target, current_mask
+            yield (
+                tuple(current_features),
+                current_additional_args,
+                current_target,
+                current_mask,
+            )
             # Replace existing tensor at index i.
             current_features[i] = original_tensor
             num_features_processed += current_num_ablated_features
@@ -607,7 +610,7 @@ class FeatureAblationExplainer(Explainer):
 
     def __init__(
         self,
-        model: Union[torch.nn.Module, Callable],
+        model: torch.nn.Module | Callable,
         is_multi_target: bool = False,
         internal_batch_size: int = 64,
         weight_attributions: bool = False,
@@ -631,7 +634,7 @@ class FeatureAblationExplainer(Explainer):
         inputs: TensorOrTupleOfTensorsGeneric,
         target: TargetType,
         baselines: BaselineType = None,
-        feature_mask: Union[None, Tensor, Tuple[Tensor, ...]] = None,
+        feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         additional_forward_args: Any = None,
     ) -> TensorOrTupleOfTensorsGeneric:
         """
@@ -655,7 +658,6 @@ class FeatureAblationExplainer(Explainer):
             feature_mask=feature_mask,
             additional_forward_args=additional_forward_args,
             perturbations_per_eval=self._internal_batch_size,
-            show_progress=True,
         )
 
         if self._weight_attributions and feature_mask is not None:

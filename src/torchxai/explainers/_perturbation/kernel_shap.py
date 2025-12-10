@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-from typing import Any, Callable, Generator, List, Optional, Tuple, Union
+from collections.abc import Callable, Generator
+from typing import Any
 
 import torch
 from captum._utils.common import _format_additional_forward_args
@@ -12,6 +13,7 @@ from captum.log import log_usage
 from torch import Tensor
 from torch.distributions.categorical import Categorical
 from torch.nn import Module
+
 from torchxai.explainers._perturbation.lime import Lime, MultiTargetLime
 from torchxai.explainers._utils import (
     _expand_feature_mask_to_target,
@@ -21,7 +23,7 @@ from torchxai.explainers.explainer import Explainer
 
 
 def kernel_shap_frozen_features_perturb_generator(
-    original_inp: Union[Tensor, Tuple[Tensor, ...]], **kwargs
+    original_inp: Tensor | tuple[Tensor, ...], **kwargs
 ) -> Generator[Tensor, None, None]:
     assert "num_select_distribution" in kwargs and "num_interp_features" in kwargs, (
         "num_select_distribution and num_interp_features are necessary"
@@ -87,10 +89,10 @@ class KernelShap(Lime):
         baselines: BaselineType = None,
         target: TargetType = None,
         additional_forward_args: Any = None,
-        feature_mask: Union[None, Tensor, Tuple[Tensor, ...]] = None,
+        feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         n_samples: int = 25,
         perturbations_per_eval: int = 1,
-        frozen_features: Optional[List[torch.Tensor]] = None,
+        frozen_features: list[torch.Tensor] | None = None,
         return_input_shape: bool = True,
         show_progress: bool = False,
     ) -> TensorOrTupleOfTensorsGeneric:
@@ -119,9 +121,9 @@ class KernelShap(Lime):
     def kernel_shap_similarity_kernel(
         self, _, __, interpretable_sample: Tensor, **kwargs
     ) -> Tensor:
-        assert (
-            "num_interp_features" in kwargs
-        ), "Must provide num_interp_features to use default similarity kernel"
+        assert "num_interp_features" in kwargs, (
+            "Must provide num_interp_features to use default similarity kernel"
+        )
         num_selected_features = int(interpretable_sample.sum(dim=1).item())
         num_features = kwargs["num_interp_features"]
         if num_selected_features == 0 or num_selected_features == num_features:
@@ -138,7 +140,6 @@ class KernelShap(Lime):
 
 
 class MultiTargetKernelShap(MultiTargetLime):
-
     def __init__(self, forward_func: Callable) -> None:
         r"""
         Args:
@@ -162,10 +163,10 @@ class MultiTargetKernelShap(MultiTargetLime):
         baselines: BaselineType = None,
         target: TargetType = None,
         additional_forward_args: Any = None,
-        feature_mask: Union[None, Tensor, Tuple[Tensor, ...]] = None,
+        feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         n_samples: int = 25,
         perturbations_per_eval: int = 1,
-        frozen_features: Optional[List[torch.Tensor]] = None,
+        frozen_features: list[torch.Tensor] | None = None,
         return_input_shape: bool = True,
         show_progress: bool = False,
     ) -> TensorOrTupleOfTensorsGeneric:
@@ -194,9 +195,9 @@ class MultiTargetKernelShap(MultiTargetLime):
     def kernel_shap_similarity_kernel(
         self, _, __, interpretable_sample: Tensor, **kwargs
     ) -> Tensor:
-        assert (
-            "num_interp_features" in kwargs
-        ), "Must provide num_interp_features to use default similarity kernel"
+        assert "num_interp_features" in kwargs, (
+            "Must provide num_interp_features to use default similarity kernel"
+        )
         num_selected_features = int(interpretable_sample.sum(dim=1).item())
         num_features = kwargs["num_interp_features"]
         if num_selected_features == 0 or num_selected_features == num_features:
@@ -258,9 +259,9 @@ class KernelShapExplainer(Explainer):
         inputs: TensorOrTupleOfTensorsGeneric,
         target: TargetType,
         baselines: BaselineType = None,
-        feature_mask: Union[None, Tensor, Tuple[Tensor, ...]] = None,
+        feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         additional_forward_args: Any = None,
-        frozen_features: Optional[List[torch.Tensor]] = None,
+        frozen_features: list[torch.Tensor] | None = None,
     ) -> TensorOrTupleOfTensorsGeneric:
         """
         Compute the Kernel SHAP attributions for the given inputs.
@@ -290,7 +291,6 @@ class KernelShapExplainer(Explainer):
             n_samples=self._n_samples,
             perturbations_per_eval=self._internal_batch_size,
             frozen_features=frozen_features,
-            show_progress=True,
         )
 
         if self._weight_attributions and feature_mask is not None:

@@ -15,4 +15,5 @@ def explainer_runtime_test_configuration(request):
                 )
             }
         )
+    print("target", base_config.explanation_inputs.target)
     yield base_config, runtime_config

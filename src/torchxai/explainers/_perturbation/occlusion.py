@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-from typing import Any, Callable, Tuple, Union
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import torch
@@ -12,6 +13,7 @@ from captum.attr._utils.common import (
 )
 from torch import Tensor
 from torch.nn.modules import Module
+
 from torchxai.explainers._perturbation.feature_ablation import (
     FeatureAblation,
     MultiTargetFeatureAblation,
@@ -32,10 +34,11 @@ class Occlusion(FeatureAblation):
     def attribute(  # type: ignore
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        sliding_window_shapes: Union[Tuple[int, ...], Tuple[Tuple[int, ...], ...]],
-        strides: Union[
-            None, int, Tuple[int, ...], Tuple[Union[int, Tuple[int, ...]], ...]
-        ] = None,
+        sliding_window_shapes: tuple[int, ...] | tuple[tuple[int, ...], ...],
+        strides: None
+        | int
+        | tuple[int, ...]
+        | tuple[int | tuple[int, ...], ...] = None,
         baselines: BaselineType = None,
         target: TargetType = None,
         additional_forward_args: Any = None,
@@ -65,18 +68,17 @@ class Occlusion(FeatureAblation):
             current_shape = np.subtract(inp.shape[1:], sliding_window_shapes[i])
             # Verify sliding window doesn't exceed input dimensions.
             assert (np.array(current_shape) >= 0).all(), (
-                "Sliding window dimensions {} cannot exceed input dimensions" "{}."
-            ).format(sliding_window_shapes[i], tuple(inp.shape[1:]))
+                f"Sliding window dimensions {sliding_window_shapes[i]} cannot exceed input dimensions"
+                f"{tuple(inp.shape[1:])}."
+            )
             # Stride cannot be larger than sliding window for any dimension where
             # the sliding window doesn't cover the entire input.
             assert np.logical_or(
                 np.array(current_shape) == 0,
                 np.array(strides[i]) <= sliding_window_shapes[i],
             ).all(), (
-                "Stride dimension {} cannot be larger than sliding window "
-                "shape dimension {}."
-            ).format(
-                strides[i], sliding_window_shapes[i]
+                f"Stride dimension {strides[i]} cannot be larger than sliding window "
+                f"shape dimension {sliding_window_shapes[i]}."
             )
             shift_counts.append(
                 tuple(
@@ -100,12 +102,12 @@ class Occlusion(FeatureAblation):
     def _construct_ablated_input(
         self,
         expanded_input: Tensor,
-        input_mask: Union[None, Tensor],
-        baseline: Union[Tensor, int, float],
+        input_mask: None | Tensor,
+        baseline: Tensor | int | float,
         start_feature: int,
         end_feature: int,
         **kwargs: Any,
-    ) -> Tuple[Tensor, Tensor]:
+    ) -> tuple[Tensor, Tensor]:
         input_mask = torch.stack(
             [
                 self._occlusion_mask(
@@ -133,8 +135,8 @@ class Occlusion(FeatureAblation):
         expanded_input: Tensor,
         ablated_feature_num: int,
         sliding_window_tsr: Tensor,
-        strides: Union[int, Tuple[int, ...]],
-        shift_counts: Tuple[int, ...],
+        strides: int | tuple[int, ...],
+        shift_counts: tuple[int, ...],
     ) -> Tensor:
         remaining_total = ablated_feature_num
         current_index = []
@@ -151,13 +153,14 @@ class Occlusion(FeatureAblation):
         ]
         pad_values.reverse()
         padded_tensor = torch.nn.functional.pad(
-            sliding_window_tsr, tuple(pad_values)  # type: ignore
+            sliding_window_tsr,
+            tuple(pad_values),  # type: ignore
         )
         return padded_tensor.reshape((1,) + padded_tensor.shape)
 
     def _get_feature_range_and_mask(
         self, input: Tensor, input_mask: Tensor, **kwargs: Any
-    ) -> Tuple[int, int, None]:
+    ) -> tuple[int, int, None]:
         feature_max = np.prod(kwargs["shift_counts"])
         return 0, feature_max, None
 
@@ -180,10 +183,11 @@ class MultiTargetOcclusion(MultiTargetFeatureAblation):
     def attribute(  # type: ignore
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        sliding_window_shapes: Union[Tuple[int, ...], Tuple[Tuple[int, ...], ...]],
-        strides: Union[
-            None, int, Tuple[int, ...], Tuple[Union[int, Tuple[int, ...]], ...]
-        ] = None,
+        sliding_window_shapes: tuple[int, ...] | tuple[tuple[int, ...], ...],
+        strides: None
+        | int
+        | tuple[int, ...]
+        | tuple[int | tuple[int, ...], ...] = None,
         baselines: BaselineType = None,
         target: TargetType = None,
         additional_forward_args: Any = None,
@@ -213,18 +217,17 @@ class MultiTargetOcclusion(MultiTargetFeatureAblation):
             current_shape = np.subtract(inp.shape[1:], sliding_window_shapes[i])
             # Verify sliding window doesn't exceed input dimensions.
             assert (np.array(current_shape) >= 0).all(), (
-                "Sliding window dimensions {} cannot exceed input dimensions" "{}."
-            ).format(sliding_window_shapes[i], tuple(inp.shape[1:]))
+                f"Sliding window dimensions {sliding_window_shapes[i]} cannot exceed input dimensions"
+                f"{tuple(inp.shape[1:])}."
+            )
             # Stride cannot be larger than sliding window for any dimension where
             # the sliding window doesn't cover the entire input.
             assert np.logical_or(
                 np.array(current_shape) == 0,
                 np.array(strides[i]) <= sliding_window_shapes[i],
             ).all(), (
-                "Stride dimension {} cannot be larger than sliding window "
-                "shape dimension {}."
-            ).format(
-                strides[i], sliding_window_shapes[i]
+                f"Stride dimension {strides[i]} cannot be larger than sliding window "
+                f"shape dimension {sliding_window_shapes[i]}."
             )
             shift_counts.append(
                 tuple(
@@ -248,12 +251,12 @@ class MultiTargetOcclusion(MultiTargetFeatureAblation):
     def _construct_ablated_input(
         self,
         expanded_input: Tensor,
-        input_mask: Union[None, Tensor],
-        baseline: Union[Tensor, int, float],
+        input_mask: None | Tensor,
+        baseline: Tensor | int | float,
         start_feature: int,
         end_feature: int,
         **kwargs: Any,
-    ) -> Tuple[Tensor, Tensor]:
+    ) -> tuple[Tensor, Tensor]:
         r"""
         Ablates given expanded_input tensor with given feature mask, feature range,
         and baselines, and any additional arguments.
@@ -303,8 +306,8 @@ class MultiTargetOcclusion(MultiTargetFeatureAblation):
         expanded_input: Tensor,
         ablated_feature_num: int,
         sliding_window_tsr: Tensor,
-        strides: Union[int, Tuple[int, ...]],
-        shift_counts: Tuple[int, ...],
+        strides: int | tuple[int, ...],
+        shift_counts: tuple[int, ...],
     ) -> Tensor:
         """
         This constructs the current occlusion mask, which is the appropriate
@@ -346,13 +349,14 @@ class MultiTargetOcclusion(MultiTargetFeatureAblation):
         ]
         pad_values.reverse()
         padded_tensor = torch.nn.functional.pad(
-            sliding_window_tsr, tuple(pad_values)  # type: ignore
+            sliding_window_tsr,
+            tuple(pad_values),  # type: ignore
         )
         return padded_tensor.reshape((1,) + padded_tensor.shape)
 
     def _get_feature_range_and_mask(
         self, input: Tensor, input_mask: Tensor, **kwargs: Any
-    ) -> Tuple[int, int, None]:
+    ) -> tuple[int, int, None]:
         feature_max = np.prod(kwargs["shift_counts"])
         return 0, feature_max, None
 
@@ -376,11 +380,9 @@ class OcclusionExplainer(Explainer):
 
     def __init__(
         self,
-        model: Union[Module, Callable],
-        sliding_window_shapes: Union[Tuple[int, ...], Tuple[Tuple[int, ...], ...]],
-        strides: Union[
-            None, int, Tuple[int, ...], Tuple[Union[int, Tuple[int, ...]], ...]
-        ],
+        model: Module | Callable,
+        sliding_window_shapes: tuple[int, ...] | tuple[tuple[int, ...], ...],
+        strides: None | int | tuple[int, ...] | tuple[int | tuple[int, ...], ...],
         is_multi_target: bool = False,
         internal_batch_size: int = 1,
     ) -> None:
@@ -427,5 +429,4 @@ class OcclusionExplainer(Explainer):
             sliding_window_shapes=self._sliding_window_shapes,
             strides=self._strides,
             perturbations_per_eval=self._internal_batch_size,
-            show_progress=True,
         )

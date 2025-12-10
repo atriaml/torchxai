@@ -1,20 +1,15 @@
 import pytest
 import torch  # noqa
 
-from tests.explainers.utils import (
-    make_config_for_explainer,
-    run_explainer_test_with_config,
-)
+from tests.explainers.utils import run_explainer_test_with_config
+from tests.utils.configs import ExplainersTestRuntimeConfig
 
 
-def _make_config_for_explainer(
-    *args,
-    **kwargs,
-):
+def _make_config_for_explainer(*args, **kwargs):
     strides = kwargs.pop("strides", None)
     sliding_window_shapes = kwargs.pop("sliding_window_shapes", None)
     return [
-        make_config_for_explainer(
+        ExplainersTestRuntimeConfig(
             *args,
             **kwargs,
             explainer_kwargs={
@@ -23,7 +18,7 @@ def _make_config_for_explainer(
                 "sliding_window_shapes": sliding_window_shapes,
             },
             explainer="occlusion",
-            test_name_suffix=f"_internal_batch_size_{internal_batch_size}",
+            test_name=f"internal_batch_size_{internal_batch_size}",
         )
         for internal_batch_size in [1, 20, 100]
     ]

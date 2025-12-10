@@ -1,29 +1,29 @@
-import dataclasses
-
 import pytest
 import torch  # noqa
 
 from tests.explainers.utils import (
     ExplainersTestRuntimeConfig,
-    make_config_for_explainer_with_internal_batch_size,
     run_explainer_test_with_config,
 )
 from tests.utils.common import _grid_segmenter
+from tests.utils.configs import TestBaseConfig
 
 
-@dataclasses.dataclass
 class ExplainersTestRuntimeConfig_(ExplainersTestRuntimeConfig):
     set_image_feature_mask: bool = False
 
 
 def _make_config_for_explainer(*args, **kwargs):
-    return make_config_for_explainer_with_internal_batch_size(
-        *args,
-        **kwargs,
-        explainer="lime",
-        config_class=ExplainersTestRuntimeConfig_,
-        internal_batch_sizes=[1, 20, 100],  # perturbation_batch_size
-    )
+    return [
+        ExplainersTestRuntimeConfig_(
+            *args,
+            **kwargs,
+            explainer="lime",
+            explainer_kwargs={"internal_batch_size": internal_batch_size},
+            test_name=f"internal_batch_size_{internal_batch_size}",
+        )
+        for internal_batch_size in [1, 20, 100]
+    ]
 
 
 test_configurations = [
@@ -144,9 +144,21 @@ test_configurations = [
 )
 def test_lime(explainer_runtime_test_configuration):
     base_config, runtime_config = explainer_runtime_test_configuration
+    base_config: TestBaseConfig
 
     if runtime_config.set_image_feature_mask:
-        base_config.feature_mask = _grid_segmenter(base_config.inputs, cell_size=32)
+        base_config = base_config.model_copy(
+            update={
+                "explanation_inputs": base_config.explanation_inputs.model_copy(
+                    update={
+                        "feature_masks": _grid_segmenter(
+                            base_config.explanation_inputs.explained_features["0"],
+                            cell_size=32,
+                        )
+                    }
+                )
+            }
+        )
 
     run_explainer_test_with_config(
         base_config=base_config, runtime_config=runtime_config
