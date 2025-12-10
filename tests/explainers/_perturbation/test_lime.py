@@ -113,7 +113,10 @@ test_configurations = [
     ),
     *_make_config_for_explainer(
         target_fixture="classification_softmax_model_multi_tuple_input_single_target_config",
-        expected=[torch.tensor([[0] * 10] * 3), torch.tensor([[0] * 10] * 3)],
+        expected=[
+            (torch.tensor([[0] * 10] * 3), torch.tensor([[0] * 10] * 3)),
+            (torch.tensor([[0] * 10] * 3), torch.tensor([[0] * 10] * 3)),
+        ],
         override_target=[torch.tensor([0]), torch.tensor([1])],
     ),
     *_make_config_for_explainer(
