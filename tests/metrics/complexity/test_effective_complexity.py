@@ -1,13 +1,13 @@
 import dataclasses
 import itertools
 import math
-from typing import Callable
+from collections.abc import Callable
 
 import pytest  # noqa
 import torch
 
 from tests.utils.common import assert_tensor_almost_equal
-from tests.utils.containers import TestRuntimeConfig
+from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics._utils.perturbation import (
     default_fixed_baseline_perturb_func,
     default_random_perturb_func,
@@ -287,6 +287,6 @@ def test_effective_complexity(metrics_runtime_test_configuration):
         assert_tensor_almost_equal(
             effective_complexity_score, curr_expected, delta=runtime_config.delta
         )
-        assert (
-            n_features_found[0] == target_n_features
-        ), f"{n_features_found[0]} != {target_n_features}"
+        assert n_features_found[0] == target_n_features, (
+            f"{n_features_found[0]} != {target_n_features}"
+        )

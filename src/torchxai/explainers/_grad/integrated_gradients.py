@@ -1,4 +1,5 @@
-from typing import Any, Callable, List, Optional, Tuple, Union
+from collections.abc import Callable
+from typing import Any
 
 import torch
 from captum._utils.common import (
@@ -53,11 +54,9 @@ class MultiTargetIntegratedGradients(IntegratedGradients):
         additional_forward_args: Any = None,
         n_steps: int = 50,
         method: str = "gausslegendre",
-        internal_batch_size: Union[None, int] = None,
+        internal_batch_size: None | int = None,
         return_convergence_delta: bool = False,
-    ) -> Union[
-        TensorOrTupleOfTensorsGeneric, Tuple[TensorOrTupleOfTensorsGeneric, Tensor]
-    ]:
+    ) -> TensorOrTupleOfTensorsGeneric | tuple[TensorOrTupleOfTensorsGeneric, Tensor]:
         # Keeps track whether original input is a tuple or not before
         # converting it into a tuple.
         is_inputs_tuple = _is_tuple(inputs)
@@ -134,14 +133,14 @@ class MultiTargetIntegratedGradients(IntegratedGradients):
 
     def _attribute(
         self,
-        inputs: Tuple[Tensor, ...],
-        baselines: Tuple[Union[Tensor, int, float], ...],
+        inputs: tuple[Tensor, ...],
+        baselines: tuple[Tensor | int | float, ...],
         target: TargetType = None,
         additional_forward_args: Any = None,
         n_steps: int = 50,
         method: str = "gausslegendre",
-        step_sizes_and_alphas: Union[None, Tuple[List[float], List[float]]] = None,
-    ) -> Tuple[Tensor, ...]:
+        step_sizes_and_alphas: None | tuple[list[float], list[float]] = None,
+    ) -> tuple[Tensor, ...]:
         if step_sizes_and_alphas is None:
             # retrieve step size and scaling factor for specified
             # approximation method
@@ -241,7 +240,7 @@ class IntegratedGradientsExplainer(Explainer):
 
     def __init__(
         self,
-        model: Union[Module, Callable],
+        model: Module | Callable,
         is_multi_target: bool = False,
         internal_batch_size: int = 50,
         n_steps: int = 50,
@@ -272,7 +271,7 @@ class IntegratedGradientsExplainer(Explainer):
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
         target: TargetType,
-        baselines: Optional[BaselineType] = None,
+        baselines: BaselineType | None = None,
         additional_forward_args: Any = None,
         return_convergence_delta: bool = False,
     ) -> TensorOrTupleOfTensorsGeneric:

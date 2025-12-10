@@ -9,7 +9,7 @@ from tests.utils.common import (
     assert_tensor_almost_equal,
     set_all_random_seeds,
 )
-from tests.utils.containers import TestRuntimeConfig
+from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import monotonicity
 from torchxai.metrics._utils.common import _tuple_tensors_to_tensors
 
@@ -118,10 +118,7 @@ def test_monotonicity(metrics_runtime_test_configuration):
         itertools.cycle(runtime_config.expected),
     ):
         set_all_random_seeds(1234)
-        (
-            monotonicity_result,
-            fwds,
-        ) = monotonicity(
+        (monotonicity_result, fwds) = monotonicity(
             forward_func=base_config.model,
             inputs=base_config.inputs,
             attributions=explanations,
@@ -144,8 +141,8 @@ def test_monotonicity(metrics_runtime_test_configuration):
             "which is the same as the input batch size."
         )
         for fwd, explanation in zip(fwds, explanations_flattened):
-            assert (
-                fwd.numel() == explanation.numel()
-            ), "The number of features should match the number of features in the explanations."  # match number of features
+            assert fwd.numel() == explanation.numel(), (
+                "The number of features should match the number of features in the explanations."
+            )  # match number of features
         fwds_per_run.append(torch.cat(fwds))
     assert_all_tensors_almost_equal(fwds_per_run)

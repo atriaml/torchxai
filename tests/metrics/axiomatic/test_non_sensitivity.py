@@ -1,13 +1,16 @@
 import dataclasses
 import itertools
 import math
-from typing import Callable
+from collections.abc import Callable
 
 import pytest  # noqa
 import torch
 
+from tests.conftest import _run_metric_via_ignite
 from tests.utils.common import assert_tensor_almost_equal
-from tests.utils.containers import TestRuntimeConfig
+from tests.utils.configs import TestRuntimeConfig
+from torchxai.ignite._axiomatic import MonotonicityCorrAndNonSensMetric
+from torchxai.ignite._utilities import ExplanationStateTransform
 from torchxai.metrics import monotonicity_corr_and_non_sens
 from torchxai.metrics._utils.perturbation import (
     default_fixed_baseline_perturb_func,
@@ -224,13 +227,16 @@ test_configurations = [
 
 @pytest.mark.metrics
 @pytest.mark.parametrize(
-    "metrics_runtime_test_configuration",
+    "metrics_runtime_test_configuration_with_explanation_state",
     test_configurations,
     ids=[f"{idx}_{config.test_name}" for idx, config in enumerate(test_configurations)],
     indirect=True,
 )
-def test_non_sensitivity(metrics_runtime_test_configuration):
-    base_config, runtime_config, explanations = metrics_runtime_test_configuration
+def test_non_sensitivity(metrics_runtime_test_configuration_with_explanation_state):
+    base_config, runtime_config, model, explainer, explanation_state = (
+        metrics_runtime_test_configuration_with_explanation_state
+    )
+    tf = ExplanationStateTransform(state=explanation_state)
 
     runtime_config.n_perturbations_per_feature = _format_to_list(
         runtime_config.n_perturbations_per_feature
@@ -253,30 +259,26 @@ def test_non_sensitivity(metrics_runtime_test_configuration):
         runtime_config.max_features_processed_per_batch,
         itertools.cycle(runtime_config.expected),
     ):
-        (
-            _,
-            non_sensitivity_score,
-            n_features_found,
-            _,
-            _,
-        ) = monotonicity_corr_and_non_sens(
-            forward_func=base_config.model,
-            inputs=base_config.inputs,
-            attributions=explanations,
-            feature_mask=base_config.feature_mask,
-            baselines=base_config.baselines,
-            additional_forward_args=base_config.additional_forward_args,
-            target=base_config.target,
-            frozen_features=base_config.frozen_features,
-            perturb_func=runtime_config.perturb_func,
-            n_perturbations_per_feature=n_perturbs,
-            max_features_processed_per_batch=max_features,
-            zero_attribution_threshold=runtime_config.zero_attribution_threshold,
-            zero_variance_threshold=runtime_config.zero_variance_threshold,
-            use_percentage_attribution_threshold=runtime_config.use_percentage_attribution_threshold,
-            percentage_feature_removal_per_step=runtime_config.percentage_feature_removal_per_step,
-            return_intermediate_results=True,
-            return_ratio=False,
+        (_, non_sensitivity_score, n_features_found, _, _) = (
+            monotonicity_corr_and_non_sens(
+                forward_func=base_config.model,
+                inputs=tf.inputs,
+                attributions=tf.attributions,
+                feature_mask=tf.feature_mask,
+                baselines=tf.metric_baselines,
+                additional_forward_args=tf.additional_forward_args,
+                target=tf.target,
+                frozen_features=tf.frozen_features,
+                perturb_func=runtime_config.perturb_func,
+                n_perturbations_per_feature=n_perturbs,
+                max_features_processed_per_batch=max_features,
+                zero_attribution_threshold=runtime_config.zero_attribution_threshold,
+                zero_variance_threshold=runtime_config.zero_variance_threshold,
+                use_percentage_attribution_threshold=runtime_config.use_percentage_attribution_threshold,
+                percentage_feature_removal_per_step=runtime_config.percentage_feature_removal_per_step,
+                return_intermediate_results=True,
+                return_ratio=False,
+            )
         )
         assert_tensor_almost_equal(
             non_sensitivity_score, curr_expected, delta=runtime_config.delta
@@ -290,6 +292,28 @@ def test_non_sensitivity(metrics_runtime_test_configuration):
                 * runtime_config.percentage_feature_removal_per_step
             )
         )
-        assert (
-            n_features_found[0].item() == target_n_features
-        ), f"{n_features_found} != {target_n_features}"
+        assert n_features_found[0].item() == target_n_features, (
+            f"{n_features_found} != {target_n_features}"
+        )
+
+        # first prepare the metric
+        metric = MonotonicityCorrAndNonSensMetric(
+            model=base_config.model,
+            device=base_config.inputs[0].device,
+            n_perturbations_per_feature=n_perturbs,
+            max_features_processed_per_batch=max_features,
+            perturb_func=runtime_config.perturb_func,
+            zero_attribution_threshold=runtime_config.zero_attribution_threshold,
+            zero_variance_threshold=runtime_config.zero_variance_threshold,
+            use_percentage_attribution_threshold=runtime_config.use_percentage_attribution_threshold,
+            percentage_feature_removal_per_step=runtime_config.percentage_feature_removal_per_step,
+            return_ratio=False,
+        )
+
+        # now test via the Ignite Metric interface
+        non_sensitivity_score = _run_metric_via_ignite(metric, explanation_state)[
+            "non_sensitivity_score"
+        ]
+        assert_tensor_almost_equal(
+            non_sensitivity_score, curr_expected, delta=runtime_config.delta
+        )

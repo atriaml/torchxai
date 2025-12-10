@@ -1,5 +1,4 @@
 import dataclasses
-from typing import List
 
 import pytest  # noqa
 
@@ -8,7 +7,7 @@ from tests.utils.common import (
     grid_segmenter,
     set_all_random_seeds,
 )
-from tests.utils.containers import TestRuntimeConfig
+from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import aopc
 
 
@@ -25,20 +24,18 @@ class MetricTestRuntimeConfig_(TestRuntimeConfig):
     set_image_feature_mask: bool = True
     test_name: str = "classification_alexnet_model"
     explainerstr = "saliency"
-    override_target: List[int] = dataclasses.field(default_factory=lambda: [0, 1, 2])
+    override_target: list[int] = dataclasses.field(default_factory=lambda: [0, 1, 2])
     explainer_kwargs: dict = dataclasses.field(
         default_factory=lambda: {"is_multi_target": True}
     )
     delta: float = 1e-8
-    max_features_processed_per_batch: List[int] = dataclasses.field(
+    max_features_processed_per_batch: list[int] = dataclasses.field(
         default_factory=lambda: [5, 1, 40]
     )
 
 
 test_configurations = [
-    MetricTestRuntimeConfig_(
-        target_fixture="classification_alexnet_model_config",
-    ),
+    MetricTestRuntimeConfig_(target_fixture="classification_alexnet_model_config"),
     MetricTestRuntimeConfig_(
         test_name="classification_alexnet_model",
         target_fixture="classification_alexnet_model_config",
@@ -61,9 +58,9 @@ test_configurations = [
 def test_aopc_multi_target(metrics_runtime_test_configuration):
     base_config, runtime_config, explanations = metrics_runtime_test_configuration
 
-    assert len(explanations) == len(
-        runtime_config.override_target
-    ), "Number of explanations should be equal to the number of targets"
+    assert len(explanations) == len(runtime_config.override_target), (
+        "Number of explanations should be equal to the number of targets"
+    )
 
     if runtime_config.set_image_feature_mask:
         base_config.feature_mask = grid_segmenter(base_config.inputs, cell_size=32)

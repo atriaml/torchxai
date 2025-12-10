@@ -1,6 +1,6 @@
 import dataclasses
+from collections.abc import Callable
 from dataclasses import field
-from typing import Callable, List
 
 import pytest
 import torch
@@ -11,7 +11,7 @@ from tests.utils.common import (
     grid_segmenter,
     set_all_random_seeds,
 )
-from tests.utils.containers import TestRuntimeConfig
+from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import monotonicity_corr_and_non_sens
 from torchxai.metrics._utils.perturbation import default_random_perturb_func
 
@@ -26,13 +26,13 @@ def _format_to_list(value):
 class MetricTestRuntimeConfig(TestRuntimeConfig):
     test_name: str = "compare_multi_target_to_single_target"
     expainer: str = "saliency"
-    override_target: List[int] = field(default_factory=lambda: [0, 1, 2])
+    override_target: list[int] = field(default_factory=lambda: [0, 1, 2])
     expected: torch.Tensor = None
     explainer_kwargs: dict = field(default_factory=lambda: {"is_multi_target": True})
     delta: float = 1e-8
     perturb_func: Callable = default_random_perturb_func()
-    n_perturbations_per_feature: List[int] = field(default_factory=lambda: [10, 10, 20])
-    max_features_processed_per_batch: List[int] = field(
+    n_perturbations_per_feature: list[int] = field(default_factory=lambda: [10, 10, 20])
+    max_features_processed_per_batch: list[int] = field(
         default_factory=lambda: [1, None, 40]
     )
     set_image_feature_mask: bool = True
@@ -58,11 +58,9 @@ test_configurations = [
         explainer="integrated_gradients",
         percentage_feature_removal_per_step=0.1,
     ),
+    MetricTestRuntimeConfig(target_fixture="classification_alexnet_model_config"),
     MetricTestRuntimeConfig(
-        target_fixture="classification_alexnet_model_config",
-    ),
-    MetricTestRuntimeConfig(
-        target_fixture="classification_alexnet_model_single_sample_config",
+        target_fixture="classification_alexnet_model_single_sample_config"
     ),
     MetricTestRuntimeConfig(
         target_fixture="classification_alexnet_model_real_images_config",
@@ -85,9 +83,9 @@ test_configurations = [
 def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
     base_config, runtime_config, explanations = metrics_runtime_test_configuration
 
-    assert len(explanations) == len(
-        runtime_config.override_target
-    ), "Number of explanations should be equal to the number of targets"
+    assert len(explanations) == len(runtime_config.override_target), (
+        "Number of explanations should be equal to the number of targets"
+    )
 
     if runtime_config.set_image_feature_mask:
         base_config.feature_mask = grid_segmenter(base_config.inputs, cell_size=32)
@@ -198,10 +196,7 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
                 xx = xx / torch.max(xx)
                 yy = yy / torch.max(yy)
                 assert_tensor_almost_equal(
-                    xx.float(),
-                    yy.float(),
-                    delta=runtime_config.delta,
-                    mode="mean",
+                    xx.float(), yy.float(), delta=runtime_config.delta, mode="mean"
                 )
         for x, y in zip(
             feature_group_attribution_scores_batch_list_1,

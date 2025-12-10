@@ -9,7 +9,7 @@ from tests.utils.common import (
     assert_tensor_almost_equal,
     set_all_random_seeds,
 )
-from tests.utils.containers import TestRuntimeConfig
+from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import aopc
 from torchxai.metrics._utils.common import _tuple_tensors_to_tensors
 
@@ -30,15 +30,15 @@ class MetricTestRuntimeConfig_(TestRuntimeConfig):
 
     def __post_init__(self):
         assert self.target_fixture is not None, "Target fixture must be provided"
-        assert (
-            self.expected_desc is not None
-        ), "Expected value for aopc_desc must be provided"
-        assert (
-            self.expected_asc is not None
-        ), "Expected value for aopc_desc must be provided"
-        assert (
-            self.expected_rand is not None
-        ), "Expected value for aopc_desc must be provided"
+        assert self.expected_desc is not None, (
+            "Expected value for aopc_desc must be provided"
+        )
+        assert self.expected_asc is not None, (
+            "Expected value for aopc_desc must be provided"
+        )
+        assert self.expected_rand is not None, (
+            "Expected value for aopc_desc must be provided"
+        )
         if self.explainer_kwargs is None:
             self.explainer_kwargs = {}
 
@@ -288,9 +288,9 @@ def test_aopc(metrics_runtime_test_configuration):
             # current tests assume all inputs have the same number of features
             # these will fail in case a mask is used and the number of features is different for each input
             # in the batch
-            assert (
-                aopc_scores[0].shape[0] == expected_output_size + 1
-            ), f"The output size of aopcs is invalid. Expected: {expected_output_size}, Got: {aopc_scores[0].shape[0]}"
+            assert aopc_scores[0].shape[0] == expected_output_size + 1, (
+                f"The output size of aopcs is invalid. Expected: {expected_output_size}, Got: {aopc_scores[0].shape[0]}"
+            )
 
         for output, expected in zip(aopc_output["desc"], curr_expected_desc):
             assert_tensor_almost_equal(

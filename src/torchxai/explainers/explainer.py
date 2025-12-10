@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Tuple, Union
+from collections.abc import Callable
+from typing import Any
 
 import torch
 from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
@@ -20,7 +21,7 @@ class Explainer(ABC):
 
     def __init__(
         self,
-        model: Union[torch.nn.Module, Callable],
+        model: torch.nn.Module | Callable,
         is_multi_target: bool = False,
         internal_batch_size: int = 64,
         grad_batch_size: int = 64,
@@ -32,11 +33,11 @@ class Explainer(ABC):
         self._explanation_fn = self._init_explanation_fn()
 
     @property
-    def model(self) -> Union[torch.nn.Module, Callable]:
+    def model(self) -> torch.nn.Module | Callable:
         return self._model
 
     @model.setter
-    def model(self, model: Union[torch.nn.Module, Callable]) -> None:
+    def model(self, model: torch.nn.Module | Callable) -> None:
         self._model = model
         self._explanation_fn = self._init_explanation_fn()
 
@@ -60,7 +61,7 @@ class Explainer(ABC):
         inputs: TensorOrTupleOfTensorsGeneric,
         target: TargetType,
         baselines: BaselineType = None,
-        feature_mask: Union[None, Tensor, Tuple[Tensor, ...]] = None,
+        feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         additional_forward_args: Any = None,
     ) -> TensorOrTupleOfTensorsGeneric:
         """

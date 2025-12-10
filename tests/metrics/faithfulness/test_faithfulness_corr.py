@@ -1,6 +1,6 @@
 import dataclasses
 import itertools
-from typing import Callable
+from collections.abc import Callable
 
 import pytest  # noqa
 import torch
@@ -10,7 +10,7 @@ from tests.utils.common import (
     assert_tensor_almost_equal,
     set_all_random_seeds,
 )
-from tests.utils.containers import TestRuntimeConfig
+from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import faithfulness_corr
 from torchxai.metrics._utils.perturbation import (
     default_fixed_baseline_perturb_func,
@@ -63,11 +63,7 @@ test_configurations = [
             [1]
         ),  # slight differences across runs not expected as zero baseline is used
         perturb_func=default_zero_baseline_func(),
-        n_perturb_samples=[
-            10,
-            10,
-            10,
-        ],
+        n_perturb_samples=[10, 10, 10],
         max_examples_per_batch=[5, 1, 40],
         assert_across_runs=True,  # no randomness in perturbation so no differences expected
     ),
@@ -79,11 +75,7 @@ test_configurations = [
         ),  # slight differences across runs not expected as zero baseline is used
         perturb_func=default_fixed_baseline_perturb_func(),  # here we use random function but use the underlying fixed baseline
         set_fixed_baseline_of_type="zero",
-        n_perturb_samples=[
-            10,
-            10,
-            10,
-        ],
+        n_perturb_samples=[10, 10, 10],
         max_examples_per_batch=[5, 1, 40],
         assert_across_runs=True,  # no randomness in perturbation so no differences expected
     ),
@@ -95,11 +87,7 @@ test_configurations = [
         ),  # slight differences across runs not expected as zero baseline is used
         perturb_func=default_fixed_baseline_perturb_func(),  # here we use random function but use the underlying fixed baseline
         set_fixed_baseline_of_type="random",
-        n_perturb_samples=[
-            10,
-            10,
-            10,
-        ],
+        n_perturb_samples=[10, 10, 10],
         max_examples_per_batch=[5, 1, 40],
         assert_across_runs=True,  # no randomness in perturbation so no differences expected
     ),
@@ -114,14 +102,7 @@ test_configurations = [
             torch.tensor([1] * 3),  # 100 perturbations per example, run 5
             torch.tensor([1] * 3),  # 100 perturbations per example, run 6
         ],  # slight differences expected due to difference in per-batch randomness with different max_examples_per_batch
-        n_perturb_samples=[
-            10,
-            10,
-            10,
-            100,
-            100,
-            100,
-        ],
+        n_perturb_samples=[10, 10, 10, 100, 100, 100],
         max_examples_per_batch=[5, 1, 40, None, 10, 40],
         assert_across_runs=False,
     ),
@@ -135,11 +116,7 @@ test_configurations = [
             torch.tensor([1] * 3),  # 10 perturbations per example, run 2
             torch.tensor([1] * 3),  # 10 perturbations per example, run 3
         ],
-        n_perturb_samples=[
-            10,
-            10,
-            10,
-        ],
+        n_perturb_samples=[10, 10, 10],
         max_examples_per_batch=[5, 1, 40],
         perturb_func=default_zero_baseline_func(),  # here we use random function but use the underlying fixed baseline
         assert_across_runs=True,
@@ -154,11 +131,7 @@ test_configurations = [
             torch.tensor([1] * 3),  # 10 perturbations per example, run 2
             torch.tensor([1] * 3),  # 10 perturbations per example, run 3
         ],
-        n_perturb_samples=[
-            10,
-            10,
-            10,
-        ],
+        n_perturb_samples=[10, 10, 10],
         max_examples_per_batch=[5, 1, 40],
         perturb_func=default_fixed_baseline_perturb_func(),  # here we use random function but use the underlying fixed baseline
         set_fixed_baseline_of_type="zero",
@@ -174,11 +147,7 @@ test_configurations = [
             torch.tensor([1] * 3),  # 10 perturbations per example, run 2
             torch.tensor([1] * 3),  # 10 perturbations per example, run 3
         ],
-        n_perturb_samples=[
-            10,
-            10,
-            10,
-        ],
+        n_perturb_samples=[10, 10, 10],
         max_examples_per_batch=[5, 1, 40],
         perturb_func=default_fixed_baseline_perturb_func(),  # here we use random function but use the underlying fixed baseline
         set_fixed_baseline_of_type="random",
@@ -310,7 +279,7 @@ test_configurations = [
                         ]
                     ]
                     * 3
-                ),
+                )
             ]
         ],
         n_perturb_samples=[
@@ -356,7 +325,7 @@ test_configurations = [
                         ]
                     ]
                     * 3
-                ),
+                )
             ]
         ],
         n_perturb_samples=[
@@ -403,7 +372,7 @@ test_configurations = [
                         ]
                     ]
                     * 3
-                ),
+                )
             ]
         ],
         n_perturb_samples=[
@@ -617,7 +586,9 @@ def test_faithfulness_corr(metrics_runtime_test_configuration):
             list(attribution_sums.shape)
             == list(perturbation_fwds.shape)
             == [bsz, n_perturbs]
-        ), f"The size of the attribution sums and perturbation fwds must match {attribution_sums.shape} != {perturbation_fwds.shape}"
+        ), (
+            f"The size of the attribution sums and perturbation fwds must match {attribution_sums.shape} != {perturbation_fwds.shape}"
+        )
 
         assert_tensor_almost_equal(
             faithfulness_corr_score.float(),

@@ -2,7 +2,7 @@ import pytest  # noqa
 import torch
 
 from tests.utils.common import assert_tensor_almost_equal
-from tests.utils.containers import TestRuntimeConfig
+from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import complexity_sundararajan
 from torchxai.metrics.complexity.complexity_sundararajan import (
     complexity_sundararajan_feature_grouped,
@@ -77,13 +77,9 @@ test_configurations = [
 )
 def test_complexity_sundararajan(metrics_runtime_test_configuration):
     basic_config, runtime_config, explanations = metrics_runtime_test_configuration
-    output = complexity_sundararajan(
-        attributions=explanations,
-    )
+    output = complexity_sundararajan(attributions=explanations)
     assert_tensor_almost_equal(
-        output.float(),
-        runtime_config.expected.float(),
-        delta=runtime_config.delta,
+        output.float(), runtime_config.expected.float(), delta=runtime_config.delta
     )
 
 
@@ -96,11 +92,7 @@ def test_complexity_sundararajan(metrics_runtime_test_configuration):
 )
 def test_complexity_sundararajan_feature_grouped(metrics_runtime_test_configuration):
     basic_config, runtime_config, explanations = metrics_runtime_test_configuration
-    output = complexity_sundararajan_feature_grouped(
-        attributions=explanations,
-    )
+    output = complexity_sundararajan_feature_grouped(attributions=explanations)
     assert_tensor_almost_equal(
-        output.float(),
-        runtime_config.expected.float(),
-        delta=runtime_config.delta,
+        output.float(), runtime_config.expected.float(), delta=runtime_config.delta
     )

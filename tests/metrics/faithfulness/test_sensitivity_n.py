@@ -9,7 +9,7 @@ from tests.utils.common import (
     assert_tensor_almost_equal,
     set_all_random_seeds,
 )
-from tests.utils.containers import TestRuntimeConfig
+from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import sensitivity_n
 
 
@@ -209,8 +209,7 @@ def test_sensitivity_n(metrics_runtime_test_configuration):
 
     fwds_per_run = []
     for max_examples_per_batch, curr_expected in zip(
-        runtime_config.max_examples_per_batch,
-        itertools.cycle(runtime_config.expected),
+        runtime_config.max_examples_per_batch, itertools.cycle(runtime_config.expected)
     ):
         set_all_random_seeds(1234)
         sensitivity_n_result = sensitivity_n(

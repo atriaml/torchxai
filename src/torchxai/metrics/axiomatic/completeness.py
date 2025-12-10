@@ -1,4 +1,5 @@
-from typing import Any, Callable, List, Tuple, Union, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import torch
 from captum._utils.common import (
@@ -9,6 +10,7 @@ from captum._utils.common import (
 )
 from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torch import Tensor
+
 from torchxai.metrics.axiomatic.multi_target.completeness import (
     _multi_target_completeness,
 )
@@ -21,24 +23,24 @@ def _completeness(
     baselines: BaselineType,
     additional_forward_args: Any = None,
     target: TargetType = None,
-) -> Union[Tensor, List[Tensor]]:
+) -> Tensor | list[Tensor]:
     with torch.no_grad():
         inputs = _format_tensor_into_tuples(inputs)  # type: ignore
         if baselines is None:
             baselines = tuple(torch.zeros_like(inp) for inp in inputs)
         else:
-            baselines = _format_baseline(baselines, cast(Tuple[Tensor, ...], inputs))
+            baselines = _format_baseline(baselines, cast(tuple[Tensor, ...], inputs))
         additional_forward_args = _format_additional_forward_args(
             additional_forward_args
         )
         attributions = _format_tensor_into_tuples(attributions)  # type: ignore
 
         # Make sure that inputs and corresponding attributions have number of tuples.
-        assert len(inputs) == len(attributions), (
-            """The number of tensors in the inputs and
-          attributions must match. Found number of tensors in the inputs is: {} and in the
-          attributions: {}"""
-        ).format(len(inputs), len(attributions))
+        assert len(inputs) == len(
+            attributions
+        ), f"""The number of tensors in the inputs and
+          attributions must match. Found number of tensors in the inputs is: {len(inputs)} and in the
+          attributions: {len(attributions)}"""
 
         # for this implementation the shapes of the inputs and attributions are not necessarily needed to be matched
         # for example the inputs can be of shape (batch_size, seq_length, n_features) and the attributions can be of shape
@@ -52,10 +54,7 @@ def _completeness(
 
         # compute the forward pass on baselines
         baselines_fwd = _run_forward(
-            forward_func,
-            baselines,
-            target,
-            additional_forward_args,
+            forward_func, baselines, target, additional_forward_args
         )
 
         # compute the difference between the forward pass on inputs and baselines
@@ -72,9 +71,7 @@ def _completeness(
 def completeness(
     forward_func: Callable,
     inputs: TensorOrTupleOfTensorsGeneric,
-    attributions: Union[
-        List[TensorOrTupleOfTensorsGeneric], TensorOrTupleOfTensorsGeneric
-    ],
+    attributions: list[TensorOrTupleOfTensorsGeneric] | TensorOrTupleOfTensorsGeneric,
     baselines: BaselineType,
     additional_forward_args: Any = None,
     target: TargetType = None,

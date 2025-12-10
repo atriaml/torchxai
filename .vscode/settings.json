@@ -1,28 +1,38 @@
 {
-    // hide directories here if there are too many to handle
     "files.exclude": {
         "**/.git": true,
         "**/.svn": true,
         "**/.hg": true,
         "**/CVS": true,
         "**/**__pycache__": true,
-        "external": false, // handle contains the external submodules necessary for running the code
+        "**/**atria.egg-info": true,
+        "**/**.pytest_cache": true,
+        "**/**.mypy_cache": true,
+        "**/**.venv": true,
+        "**/**.htmlcov": true,
+        "**/**.ruff_cache": true,
+        "**/**.coverage": true,
+        "**/**uv.lock": true,
+        ".copilot-docstring-instructions.md": true,
     },
     "python.analysis.indexing": true,
     "python.analysis.autoImportCompletions": true,
-    "editor.defaultFormatter": "ms-python.black-formatter",
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-        "source.organizeImports": "explicit",
-        "source.fixAll": "explicit"
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit",
+            "source.fixAll": "explicit"
+        },
+        "editor.trimAutoWhitespace": true,
+        "editor.insertSpaces": true,
+        "editor.tabSize": 4,
+        "files.trimTrailingWhitespace": true,
+        "editor.rulers": [
+            120
+        ],
     },
-    "editor.trimAutoWhitespace": true,
-    "editor.insertSpaces": true,
-    "editor.tabSize": 4,
-    "files.trimTrailingWhitespace": true,
-    "editor.rulers": [
-        120
-    ],
+    "github.copilot.editor.enableCodeActions": false,
     "workbench.colorCustomizations": {
         // will change the color of three dots to red
         "editorHint.foreground": "#ff0000",
@@ -31,18 +41,10 @@
     },
     "notebook.output.textLineLimit": 200,
     "notebook.output.scrolling": false,
-    // Remove Unused Python imports via bash
-    "emeraldwalk.runonsave": {
-        "commands": [
-            {
-                "match": "\\.py$",
-                "isAsync": true,
-                // Use the full path from above in case it can't find it
-                "cmd": "autoflake --in-place --remove-all-unused-imports \"${file}\""
-            },
-        ]
-    },
-    "[ignore]": {
-        "editor.defaultFormatter": "foxundermoon.shell-format"
-    },
+    "github.copilot.chat.reviewSelection.instructions": [
+        {
+            "file": ".copilot-docstring-instructions.md",
+        }
+    ],
+    "python.defaultInterpreterPath": "./.venv/bin/python",
 }

@@ -3,9 +3,12 @@ import dataclasses
 import pytest
 import torch
 
+from tests.conftest import _run_metric_via_ignite
 from tests.utils.common import assert_tensor_almost_equal, grid_segmenter
-from tests.utils.containers import TestBaseConfig, TestRuntimeConfig
+from tests.utils.configs import TestBaseConfig, TestRuntimeConfig
+from torchxai.data_types import ExplainerInputs, ExplanationState, ModelInputs
 from torchxai.explainers.factory import ExplainerFactory
+from torchxai.ignite._axiomatic import InputInvarianceMetric
 from torchxai.metrics._utils.visualization import visualize_attribution
 from torchxai.metrics.axiomatic.input_invariance import input_invariance
 
@@ -23,6 +26,8 @@ class MetricTestRuntimeConfig_(TestRuntimeConfig):
     def __post_init__(self):
         super().__post_init__()
         assert self.constant_shifts is not None, "constant_shifts must be provided"
+        if not isinstance(self.constant_shifts, tuple):
+            self.constant_shifts = (self.constant_shifts,)
         if self.set_baselines_to_type is not None:
             assert self.set_baselines_to_type in ["zero", "black"]
 
@@ -30,18 +35,23 @@ class MetricTestRuntimeConfig_(TestRuntimeConfig):
         return super().__repr__()
 
 
-@pytest.fixture
-def metrics_runtime_test_configuration(request):
-    runtime_config: TestRuntimeConfig = request.param
+@pytest.fixture()
+def metrics_runtime_test_configuration_with_explanation_state(request):
+    runtime_config: MetricTestRuntimeConfig_ = request.param
     base_config: TestBaseConfig = request.getfixturevalue(
         runtime_config.target_fixture
     )(runtime_config.model_type, runtime_config.train_and_eval_model)
+    assert base_config.model is not None
+    assert base_config.inputs is not None
+    if runtime_config.override_target is not None:
+        base_config.target = runtime_config.override_target
+    base_config.model.eval()
+    base_config.put_to_device(runtime_config.device)
     explainer = ExplainerFactory.create(
         runtime_config.explainer, base_config.model, **runtime_config.explainer_kwargs
     )
     if runtime_config.use_captum_explainer:
         explainer = explainer._explanation_fn
-
     if runtime_config.generate_feature_mask:
         base_config.feature_mask = grid_segmenter(base_config.inputs, 4)
     if runtime_config.set_baselines_to_type == "zero":
@@ -53,8 +63,46 @@ def metrics_runtime_test_configuration(request):
     else:
         base_config.baselines = None
         runtime_config.shifted_baselines = None
+    with torch.no_grad():
+        model_inputs = base_config.inputs
+        additional_forward_args = base_config.additional_forward_args
+        if not isinstance(base_config.inputs, tuple):
+            model_inputs = (base_config.inputs,)
+        if additional_forward_args is not None:
+            if not isinstance(additional_forward_args, tuple):
+                additional_forward_args = additional_forward_args
+        else:
+            additional_forward_args = ()
+        batch_size = model_inputs[0].shape[0]
+        model_outputs = base_config.model(*model_inputs, *additional_forward_args)
 
-    yield base_config, runtime_config, explainer
+    yield (
+        base_config,
+        runtime_config,
+        base_config.model,
+        explainer,
+        ExplanationState(
+            sample_id=[str(x) for x in range(batch_size)],
+            explainer_inputs=ExplainerInputs(
+                model_inputs=ModelInputs(
+                    explained_features=model_inputs,
+                    additional_forward_args=additional_forward_args,
+                ),
+                explainer_baselines=base_config.baselines,
+                metric_baselines=base_config.baselines,
+                feature_masks=base_config.feature_mask,
+                input_layer_names=base_config.input_layer_names,
+                frozen_features=base_config.frozen_features,
+                train_baselines=base_config.train_baselines,
+                constant_shifts=runtime_config.constant_shifts
+                if hasattr(runtime_config, "constant_shifts")
+                else None,  # type: ignore
+            ),
+            target=base_config.target,  # type: ignore
+            model_outputs=model_outputs,
+            explanations=None,
+        ),
+    )
 
 
 def setup_test_config_for_explainer(explainer, **kwargs):
@@ -85,8 +133,7 @@ test_configurations = [
     # a 3-layer linear model is trained on MNIST, input invariance is computed for saliency maps
     # on 4 input samples. The expected output is [True, True, True, True]
     *setup_test_config_for_explainer(
-        explainer="saliency",
-        expected=torch.tensor([0.0, 0.0, 0.0, 0.0]),
+        explainer="saliency", expected=torch.tensor([0.0, 0.0, 0.0, 0.0])
     ),
     *setup_test_config_for_explainer(
         explainer="input_x_gradient",
@@ -147,17 +194,18 @@ test_configurations = [
 
 @pytest.mark.metrics
 @pytest.mark.parametrize(
-    "metrics_runtime_test_configuration",
+    "metrics_runtime_test_configuration_with_explanation_state",
     test_configurations,
     ids=[f"{idx}_{config.test_name}" for idx, config in enumerate(test_configurations)],
     indirect=True,
 )
-def test_input_invariance(metrics_runtime_test_configuration):
-    base_config, runtime_config, explainer = metrics_runtime_test_configuration
+def test_non_sensitivity(metrics_runtime_test_configuration_with_explanation_state):
+    base_config, runtime_config, model, explainer, explanation_state = (
+        metrics_runtime_test_configuration_with_explanation_state
+    )
 
     device = base_config.inputs.device
     kwargs = dict(target=base_config.target)
-    runtime_config.constant_shifts = runtime_config.constant_shifts.to(device)
     if base_config.feature_mask is not None:
         kwargs["feature_mask"] = base_config.feature_mask.to(device)
     if base_config.baselines is not None:
@@ -176,7 +224,10 @@ def test_input_invariance(metrics_runtime_test_configuration):
         runtime_config.explainer_kwargs.pop(
             "weight_attributions", None
         )  # this is only available in our implementation
-
+    runtime_config.constant_shifts = tuple(
+        x.to(device) for x in runtime_config.constant_shifts
+    )
+    print("runtime_config.constant_shifts", runtime_config.constant_shifts[0].device)
     output_invariance, expl_inputs, expl_shifted_inputs = input_invariance(
         explainer=explainer,
         inputs=base_config.inputs,
@@ -198,8 +249,25 @@ def test_input_invariance(metrics_runtime_test_configuration):
         ):
             visualize_attribution(input, expl_input, "Original")
             visualize_attribution(input, expl_shifted_input, "Shifted")
+
     assert_tensor_almost_equal(
         output_invariance.float(),
+        runtime_config.expected.float(),
+        delta=runtime_config.delta,
+        mode="mean",
+    )
+
+    # first prepare the metric
+    metric = InputInvarianceMetric(model=model, explainer=explainer, device=device)
+
+    # now test via the Ignite Metric interface
+    explanation_state.to(device)
+    print("explanation_state", explanation_state)
+    input_invarance_score = _run_metric_via_ignite(metric, explanation_state)[
+        "input_invarance_score"
+    ]
+    assert_tensor_almost_equal(
+        input_invarance_score,
         runtime_config.expected.float(),
         delta=runtime_config.delta,
         mode="mean",

@@ -1,12 +1,11 @@
 import inspect
 from dataclasses import dataclass, field
-from typing import List
 
 import pytest
 import torch  # noqa
 
 from tests.utils.common import assert_tensor_almost_equal, set_all_random_seeds
-from tests.utils.containers import TestRuntimeConfig
+from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import sensitivity_max_and_avg
 
 
@@ -14,18 +13,16 @@ from torchxai.metrics import sensitivity_max_and_avg
 class MetricTestRuntimeConfig(TestRuntimeConfig):
     test_name: str = "compare_multi_target_to_single_target"
     explainer: str = "saliency"
-    override_target: List[int] = field(default_factory=lambda: [0, 1, 2])
+    override_target: list[int] = field(default_factory=lambda: [0, 1, 2])
     expected: torch.Tensor = None
     explainer_kwargs: dict = field(default_factory=lambda: {"is_multi_target": True})
     delta: float = 1e-5
 
 
 test_configurations = [
+    MetricTestRuntimeConfig(target_fixture="classification_alexnet_model_config"),
     MetricTestRuntimeConfig(
-        target_fixture="classification_alexnet_model_config",
-    ),
-    MetricTestRuntimeConfig(
-        target_fixture="classification_alexnet_model_single_sample_config",
+        target_fixture="classification_alexnet_model_single_sample_config"
     ),
     MetricTestRuntimeConfig(
         target_fixture="classification_alexnet_model_real_images_config",
@@ -45,7 +42,7 @@ test_configurations = [
     ids=[f"{idx}_{config.test_name}" for idx, config in enumerate(test_configurations)],
     indirect=True,
 )
-def test_completeness_multi_target(explainer_metrics_runtime_test_configuration):
+def test_sensitivity_max_avg_mt(explainer_metrics_runtime_test_configuration):
     base_config, runtime_config, explainer = (
         explainer_metrics_runtime_test_configuration
     )

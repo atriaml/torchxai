@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Callable
+from collections.abc import Callable
 
 import pytest  # noqa
 
@@ -8,7 +8,7 @@ from tests.utils.common import (
     grid_segmenter,
     set_all_random_seeds,
 )
-from tests.utils.containers import TestRuntimeConfig
+from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import monotonicity_corr_and_non_sens
 from torchxai.metrics._utils.perturbation import default_random_perturb_func
 
@@ -65,9 +65,9 @@ test_configurations = [
 def test_monotonicity_corr_multi_target(metrics_runtime_test_configuration):
     base_config, runtime_config, explanations = metrics_runtime_test_configuration
 
-    assert len(explanations) == len(
-        runtime_config.override_target
-    ), "Number of explanations should be equal to the number of targets"
+    assert len(explanations) == len(runtime_config.override_target), (
+        "Number of explanations should be equal to the number of targets"
+    )
 
     if runtime_config.set_image_feature_mask:
         base_config.feature_mask = grid_segmenter(base_config.inputs, cell_size=32)
@@ -176,10 +176,7 @@ def test_monotonicity_corr_multi_target(metrics_runtime_test_configuration):
                 xx = xx / torch.max(xx)
                 yy = yy / torch.max(yy)
                 assert_tensor_almost_equal(
-                    xx.float(),
-                    yy.float(),
-                    delta=runtime_config.delta,
-                    mode="mean",
+                    xx.float(), yy.float(), delta=runtime_config.delta, mode="mean"
                 )
         for x, y in zip(
             feature_group_attribution_scores_batch_list_1,

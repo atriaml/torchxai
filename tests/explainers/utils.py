@@ -1,122 +1,115 @@
-import copy
-import dataclasses
-
 import pytest  # noqa
 
-from tests.utils.common import (
-    compare_explanation_per_target,
-    compute_explanations,
-    set_all_random_seeds,
+from tests.utils.common import compare_explanation_per_target, set_all_random_seeds
+from tests.utils.configs import (
+    ExplainersTestRuntimeConfig,
+    TestBaseConfig,
+    TestRuntimeConfig,
 )
-from tests.utils.containers import TestRuntimeConfig
 from torchxai.explainers.factory import ExplainerFactory
+from torchxai.ignite._explanation_step import (
+    ExplanationStep,
+    MultiTargetExplanationStep,
+)
 
 
-@dataclasses.dataclass
-class ExplainersTestRuntimeConfig(TestRuntimeConfig):
-    is_multi_target: bool = False
-    grad_batch_size: int = 64
-    visualize: bool = False
-    check_multi_target_list_against_single_target: bool = True
+@pytest.fixture()
+def explainer_runtime_test_configuration(request):
+    runtime_config: TestRuntimeConfig = request.param
+    base_config: TestBaseConfig = request.getfixturevalue(runtime_config.target_fixture)
+    if runtime_config.override_target is not None:
+        base_config = base_config.model_copy(
+            update={"target": runtime_config.override_target}
+        )
+
+    yield base_config, runtime_config
 
 
-def make_config_for_explainer(
-    target_fixture,
-    explainer,
-    test_name_suffix="",
-    config_class=ExplainersTestRuntimeConfig,
-    **kwargs,
-):
-    return config_class(
-        test_name=f"{target_fixture}_{explainer}{test_name_suffix}",
-        target_fixture=target_fixture,
-        explainer=explainer,
-        **kwargs,
-    )
-
-
-def make_config_for_explainer_with_grad_batch_size(
-    *args,
-    **kwargs,
-):
+def make_config_for_explainer_with_grad_batch_size(*args, **kwargs):
     return [
-        make_config_for_explainer(
+        ExplainersTestRuntimeConfig(
             *args,
             **kwargs,
             explainer_kwargs={"grad_batch_size": grad_batch_size},
-            test_name_suffix=f"_grad_batch_size{grad_batch_size}",
+            test_name=f"grad_batch_size{grad_batch_size}",
         )
         for grad_batch_size in [1, 10, 64]
     ]
 
 
-def make_config_for_explainer_with_internal_and_grad_batch_size(
-    *args,
-    **kwargs,
-):
+def make_config_for_explainer_with_internal_and_grad_batch_size(*args, **kwargs):
     internal_batch_sizes = kwargs.pop("internal_batch_sizes", [None])
     return [
-        make_config_for_explainer(
+        ExplainersTestRuntimeConfig(
             *args,
             **kwargs,
             explainer_kwargs={
                 "internal_batch_size": internal_batch_size,
                 "grad_batch_size": grad_batch_size,
             },
-            test_name_suffix=f"_internal_batch_size_{internal_batch_size}_grad_batch_size_{grad_batch_size}",
+            test_name=f"internal_batch_size_{internal_batch_size}_grad_batch_size_{grad_batch_size}",
         )
         for grad_batch_size in [1, 10, 64]
         for internal_batch_size in internal_batch_sizes
     ]
 
 
-def make_config_for_explainer_with_internal_batch_size(
-    *args,
-    **kwargs,
-):
+def make_config_for_explainer_with_internal_batch_size(*args, **kwargs):
     internal_batch_sizes = kwargs.pop("internal_batch_sizes", [None])
     return [
-        make_config_for_explainer(
+        ExplainersTestRuntimeConfig(
             *args,
             **kwargs,
-            explainer_kwargs={
-                "internal_batch_size": internal_batch_size,
-            },
-            test_name_suffix=f"_internal_batch_size_{internal_batch_size}",
+            explainer_kwargs={"internal_batch_size": internal_batch_size},
+            test_name=f"internal_batch_size_{internal_batch_size}",
         )
         for internal_batch_size in internal_batch_sizes
     ]
 
 
-def run_explainer_test_with_config(base_config, runtime_config):
-    if not isinstance(runtime_config.expected, list):
-        runtime_config.expected = [runtime_config.expected]
-    if not isinstance(base_config.target, list):
-        base_config.target = [base_config.target]
+def _format_to_list_if_not_list(obj):
+    if not isinstance(obj, list):
+        return [obj]
+    return obj
 
-    assert len(base_config.target) == len(
-        runtime_config.expected
-    ), "The number of targets must be equal to the number of expected outputs"
 
+def run_explainer_test_with_config(
+    base_config: TestBaseConfig, runtime_config: ExplainersTestRuntimeConfig
+):
+    print("Running test:", runtime_config.test_name)
+    # perform basic validation
+    expected = _format_to_list_if_not_list(runtime_config.expected)
+    target = _format_to_list_if_not_list(base_config.explanation_inputs.target)
+    assert len(target) == len(expected), (
+        "The number of targets must be equal to the number of expected outputs"
+    )
+
+    # in the first pass we compute explanations for each target separately using single-target explainer
+    print("First pass: single-target explanations")
     single_target_explanations = []
-    for curr_target, curr_expected in zip(base_config.target, runtime_config.expected):
-        curr_runtime_config = copy.deepcopy(runtime_config)
-        curr_base_config = copy.deepcopy(base_config)
-
-        # run for normal case
-        curr_runtime_config.expected = curr_expected
-        curr_base_config.target = curr_target
-
-        # get explanation using single-target explainer
-        explanations = run_single_test(curr_base_config, curr_runtime_config)
+    for curr_target, curr_expected in zip(target, expected, strict=True):
+        explanations = run_single_test(
+            base_config.model_copy(
+                update={
+                    "explanation_inputs": base_config.explanation_inputs.model_copy(
+                        update={"target": curr_target}
+                    )
+                }
+            ),
+            runtime_config.model_copy(update={"expected": curr_expected}),
+        )
 
         if runtime_config.check_multi_target_list_against_single_target:
-            curr_runtime_config.expected = [curr_expected]
-
-            # get explanation using multi-target explainer but as list input and verify the output is same as single target
-            curr_base_config.target = [curr_base_config.target]
             multi_target_explanations_2 = run_single_test(
-                curr_base_config, curr_runtime_config, is_multi_target=True
+                base_config.model_copy(
+                    update={
+                        "explanation_inputs": base_config.explanation_inputs.model_copy(
+                            update={"target": [curr_target]}
+                        )
+                    }
+                ),
+                runtime_config.model_copy(update={"expected": [curr_expected]}),
+                is_multi_target=True,
             )
             if multi_target_explanations_2 is None:
                 assert explanations is None
@@ -130,13 +123,14 @@ def run_explainer_test_with_config(base_config, runtime_config):
 
         single_target_explanations.append(explanations)
 
+    print("Second pass: single-target explanations")
     if len(single_target_explanations) > 1:
         multi_target_explanations = run_single_test(
             base_config, runtime_config, is_multi_target=True
         )
 
         for multi_target_explanation, single_target_explanation in zip(
-            multi_target_explanations, single_target_explanations
+            multi_target_explanations, single_target_explanations, strict=True
         ):
             # target explanation in the list should match the single target explanations at the same index
             compare_explanation_per_target(
@@ -147,68 +141,63 @@ def run_explainer_test_with_config(base_config, runtime_config):
             )
 
 
-def run_single_test(base_config, runtime_config, is_multi_target=False):
+def run_single_test(
+    base_config: TestBaseConfig,
+    runtime_config: ExplainersTestRuntimeConfig,
+    is_multi_target: bool = False,
+):
+    print("is_multi_target", is_multi_target)
     set_all_random_seeds(1234)
+    print("base_config", base_config)
 
-    if is_multi_target:
-        runtime_config.explainer_kwargs["is_multi_target"] = True
-
-    base_config.model.eval()
-    base_config.put_to_device(runtime_config.device)
     explainer = ExplainerFactory.create(
         runtime_config.explainer, base_config.model, **runtime_config.explainer_kwargs
     )
+    if is_multi_target:
+        explanation_step = MultiTargetExplanationStep(
+            model=base_config.model, explainer=explainer, device=runtime_config.device
+        )
+    else:
+        explanation_step = ExplanationStep(
+            model=base_config.model,
+            explainer=explainer,
+            device=runtime_config.device,
+            use_captum_explainer=runtime_config.use_captum_explainer,
+        )
     if runtime_config.throws_exception:
         with pytest.raises(Exception) as e_info:
-            explanations = compute_explanations(
-                explainer=explainer,
-                inputs=base_config.inputs,
-                additional_forward_args=base_config.additional_forward_args,
-                baselines=base_config.baselines,
-                train_baselines=base_config.train_baselines,
-                feature_mask=base_config.feature_mask,
-                target=base_config.target,
-                multiply_by_inputs=base_config.multiply_by_inputs,
-                use_captum_explainer=runtime_config.use_captum_explainer,
-                device=runtime_config.device,
-                **runtime_config.explainer_kwargs,
+            explanation_step(
+                explanation_inputs=base_config.explanation_inputs,
+                metric_inputs=base_config.metric_inputs,
             )
         return
 
-    explanations = compute_explanations(
-        explainer=explainer,
-        inputs=base_config.inputs,
-        additional_forward_args=base_config.additional_forward_args,
-        baselines=base_config.baselines,
-        train_baselines=base_config.train_baselines,
-        feature_mask=base_config.feature_mask,
-        target=base_config.target,
-        multiply_by_inputs=base_config.multiply_by_inputs,
-        use_captum_explainer=runtime_config.use_captum_explainer,
-        device=runtime_config.device,
-        **runtime_config.explainer_kwargs,
-    )
+    explanations = explanation_step(
+        explanation_inputs=base_config.explanation_inputs,
+        metric_inputs=base_config.metric_inputs,
+    ).explanations_as_tuple
 
     has_expected = (
         runtime_config.expected is not None
         if not isinstance(runtime_config.expected, list)
         else all(v is not None for v in runtime_config.expected)
     )
+    print("explanations", explanations, runtime_config.expected)
     if has_expected:
         if is_multi_target:
-            assert isinstance(
-                explanations, list
-            ), "The output explanations must be a list when is_multi_target is True"
-            assert isinstance(
-                runtime_config.expected, list
-            ), "The expected explanations must be a list when is_multi_target is True"
+            assert isinstance(explanations, list), (
+                "The output explanations must be a list when is_multi_target is True"
+            )
+            assert isinstance(runtime_config.expected, list), (
+                "The expected explanations must be a list when is_multi_target is True"
+            )
             assert len(explanations) == len(runtime_config.expected), (
                 "The number of output explanations must be equal to the number of expected outputs "
                 "when is_multi_target is True"
             )
 
             for output_per_target, expected_per_target in zip(
-                explanations, runtime_config.expected
+                explanations, runtime_config.expected, strict=True
             ):
                 compare_explanation_per_target(
                     output_per_target, expected_per_target, delta=runtime_config.delta

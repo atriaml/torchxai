@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Callable
+from collections.abc import Callable
 
 import pytest
 import torch  # noqa
@@ -9,7 +9,7 @@ from tests.utils.common import (
     grid_segmenter,
     set_all_random_seeds,
 )
-from tests.utils.containers import TestRuntimeConfig
+from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import faithfulness_corr
 from torchxai.metrics._utils.perturbation import default_random_perturb_func
 
@@ -107,9 +107,9 @@ test_configurations = [
 def test_faithfulness_corr_multi_target(metrics_runtime_test_configuration):
     base_config, runtime_config, explanations = metrics_runtime_test_configuration
 
-    assert len(explanations) == len(
-        runtime_config.override_target
-    ), "Number of explanations should be equal to the number of targets"
+    assert len(explanations) == len(runtime_config.override_target), (
+        "Number of explanations should be equal to the number of targets"
+    )
 
     if runtime_config.set_image_feature_mask:
         base_config.feature_mask = grid_segmenter(base_config.inputs, cell_size=32)
@@ -149,8 +149,7 @@ def test_faithfulness_corr_multi_target(metrics_runtime_test_configuration):
                 perturbation_baseline = torch.rand_like(base_config.inputs)
 
     for n_perturbs, max_examples in zip(
-        runtime_config.n_perturb_samples,
-        runtime_config.max_examples_per_batch,
+        runtime_config.n_perturb_samples, runtime_config.max_examples_per_batch
     ):
         set_all_random_seeds(1234)
         (
@@ -227,10 +226,7 @@ def test_faithfulness_corr_multi_target(metrics_runtime_test_configuration):
             perturbed_fwd_diffs_relative_vars_batch_list_2,
         ):
             assert_tensor_almost_equal(
-                x.float(),
-                y.float(),
-                delta=runtime_config.delta,
-                mode="mean",
+                x.float(), y.float(), delta=runtime_config.delta, mode="mean"
             )
         for x, y in zip(
             feature_group_attribution_scores_batch_list_1,

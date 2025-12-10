@@ -1,6 +1,7 @@
 import logging
 from logging import getLogger
 
+import pytest
 import torch
 
 from tests.explainers.utils import (
@@ -11,31 +12,17 @@ from tests.explainers.utils import (
 logging.basicConfig(level=logging.INFO)
 logger = getLogger(__name__)
 
-import logging
-from logging import getLogger
-
-import pytest  # noqa
-
-logging.basicConfig(level=logging.INFO)
-logger = getLogger(__name__)
-
 
 test_configurations = [
     *make_config_for_explainer_with_grad_batch_size(
         target_fixture="basic_model_single_input_config",
         explainer="saliency",
-        expected=(
-            torch.tensor([1.0]),
-            torch.tensor([-1.0]),
-        ),
+        expected=(torch.tensor([1.0]), torch.tensor([-1.0])),
     ),
     *make_config_for_explainer_with_grad_batch_size(
         target_fixture="basic_model_single_input_config",
         explainer="saliency",
-        expected=(
-            torch.tensor([1.0]),
-            torch.tensor([-1.0]),
-        ),
+        expected=(torch.tensor([1.0]), torch.tensor([-1.0])),
         override_target=0,
         throws_exception=True,
     ),
@@ -48,18 +35,12 @@ test_configurations = [
     *make_config_for_explainer_with_grad_batch_size(
         target_fixture="basic_model_batch_input_config",
         explainer="saliency",
-        expected=(
-            torch.tensor([1.0, 1.0, 1.0]),
-            torch.tensor([-1.0, -1.0, -1.0]),
-        ),
+        expected=(torch.tensor([1.0, 1.0, 1.0]), torch.tensor([-1.0, -1.0, -1.0])),
     ),
     *make_config_for_explainer_with_grad_batch_size(
         target_fixture="basic_model_batch_input_with_additional_forward_args_config",
         explainer="saliency",
-        expected=(
-            torch.tensor([[0, 0, 0]]),
-            torch.tensor([[0, 0, 0]]),
-        ),
+        expected=(torch.tensor([[0, 0, 0]]), torch.tensor([[0, 0, 0]])),
     ),
     *make_config_for_explainer_with_grad_batch_size(
         target_fixture="classification_convnet_model_with_multiple_targets_config",

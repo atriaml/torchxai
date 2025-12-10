@@ -1,5 +1,6 @@
 import warnings
-from typing import Any, Callable, Optional, Tuple, Union
+from collections.abc import Callable
+from typing import Any
 
 import torch
 import torch.version
@@ -65,13 +66,11 @@ class MultiTargetDeepLift(DeepLift):
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
         baselines: BaselineType = None,
-        target: Tuple[TargetType, ...] = None,
+        target: tuple[TargetType, ...] = None,
         additional_forward_args: Any = None,
         return_convergence_delta: bool = False,
-        custom_attribution_func: Union[None, Callable[..., Tuple[Tensor, ...]]] = None,
-    ) -> Union[
-        TensorOrTupleOfTensorsGeneric, Tuple[TensorOrTupleOfTensorsGeneric, Tensor]
-    ]:
+        custom_attribution_func: None | Callable[..., tuple[Tensor, ...]] = None,
+    ) -> TensorOrTupleOfTensorsGeneric | tuple[TensorOrTupleOfTensorsGeneric, Tensor]:
         # Keeps track whether original input is a tuple or not before
         # converting it into a tuple.
         is_inputs_tuple = _is_tuple(inputs)
@@ -184,8 +183,8 @@ class MultiTargetDeepLift(DeepLift):
     def _construct_forward_func(
         self,
         forward_func: Callable,
-        inputs: Tuple,
-        target: Tuple[TargetType, ...] = None,
+        inputs: tuple,
+        target: tuple[TargetType, ...] = None,
         additional_forward_args: Any = None,
     ) -> Callable:
         def forward_fn():
@@ -212,10 +211,7 @@ class MultiTargetDeepLift(DeepLift):
         return forward_fn
 
     def _backward_hook(
-        self,
-        module: Module,
-        grad_input: Tensor,
-        grad_output: Tensor,
+        self, module: Module, grad_input: Tensor, grad_output: Tensor
     ) -> Tensor:
         r"""
         `grad_input` is the gradient of the neuron with respect to its input
@@ -230,21 +226,16 @@ class MultiTargetDeepLift(DeepLift):
         attr_criteria = self.satisfies_attribute_criteria(module)
         if not attr_criteria:
             raise RuntimeError(
-                "A Module {} was detected that does not contain some of "
+                f"A Module {module} was detected that does not contain some of "
                 "the input/output attributes that are required for DeepLift "
                 "computations. This can occur, for example, if "
                 "your module is being used more than once in the network."
                 "Please, ensure that module is being used only once in the "
-                "network.".format(module)
+                "network."
             )
 
         multipliers = SUPPORTED_NON_LINEAR[type(module)](
-            module,
-            module.input,
-            module.output,
-            grad_input,
-            grad_output,
-            eps=self.eps,
+            module, module.input, module.output, grad_input, grad_output, eps=self.eps
         )
 
         # in deeplift we delete the input/output attributes but in multi-target case, we keep them as
@@ -281,7 +272,7 @@ class DeepLiftExplainer(Explainer):
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
         target: TargetType,
-        baselines: Optional[BaselineType] = None,
+        baselines: BaselineType | None = None,
         additional_forward_args: Any = None,
         return_convergence_delta: bool = False,
     ) -> TensorOrTupleOfTensorsGeneric:

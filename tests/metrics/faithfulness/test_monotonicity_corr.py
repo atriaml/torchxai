@@ -1,12 +1,12 @@
 import dataclasses
 import itertools
-from typing import Callable
+from collections.abc import Callable
 
 import pytest  # noqa
 import torch
 
 from tests.utils.common import assert_tensor_almost_equal, set_all_random_seeds
-from tests.utils.containers import TestRuntimeConfig
+from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics import monotonicity_corr_and_non_sens
 from torchxai.metrics._utils.perturbation import default_random_perturb_func
 
@@ -95,7 +95,7 @@ test_configurations = [
                     0.3658,
                     0.3658,
                     0.3628,
-                ],
+                ]
             ),
             torch.tensor(
                 [
@@ -119,7 +119,7 @@ test_configurations = [
                     0.3658,
                     0.3658,
                     0.3628,
-                ],
+                ]
             ),
             torch.tensor(
                 [
@@ -143,7 +143,7 @@ test_configurations = [
                     0.3628,
                     0.3805,
                     0.3422,
-                ],
+                ]
             ),
         ],
         n_perturbations_per_feature=[10, 10, 20],
@@ -197,27 +197,23 @@ def test_monotonicity_corr(metrics_runtime_test_configuration):
         itertools.cycle(runtime_config.expected),
     ):
         set_all_random_seeds(1234)
-        (
-            monotonicity_corr_score,
-            _,
-            n_features_found,
-            _,
-            _,
-        ) = monotonicity_corr_and_non_sens(
-            forward_func=base_config.model,
-            inputs=base_config.inputs,
-            attributions=explanations,
-            feature_mask=base_config.feature_mask,
-            additional_forward_args=base_config.additional_forward_args,
-            target=base_config.target,
-            perturb_func=runtime_config.perturb_func,
-            n_perturbations_per_feature=n_perturbs,
-            max_features_processed_per_batch=max_features,
-            zero_attribution_threshold=1e-5,
-            zero_variance_threshold=1e-5,
-            use_percentage_attribution_threshold=False,
-            return_intermediate_results=True,
-            return_ratio=False,
+        (monotonicity_corr_score, _, n_features_found, _, _) = (
+            monotonicity_corr_and_non_sens(
+                forward_func=base_config.model,
+                inputs=base_config.inputs,
+                attributions=explanations,
+                feature_mask=base_config.feature_mask,
+                additional_forward_args=base_config.additional_forward_args,
+                target=base_config.target,
+                perturb_func=runtime_config.perturb_func,
+                n_perturbations_per_feature=n_perturbs,
+                max_features_processed_per_batch=max_features,
+                zero_attribution_threshold=1e-5,
+                zero_variance_threshold=1e-5,
+                use_percentage_attribution_threshold=False,
+                return_intermediate_results=True,
+                return_ratio=False,
+            )
         )
         assert_tensor_almost_equal(
             monotonicity_corr_score,
@@ -225,6 +221,6 @@ def test_monotonicity_corr(metrics_runtime_test_configuration):
             delta=runtime_config.delta,
             mode="mean",
         )
-        assert (
-            n_features_found[0].item() == base_config.n_features
-        ), f"{n_features_found} != {base_config.n_features}"
+        assert n_features_found[0].item() == base_config.n_features, (
+            f"{n_features_found} != {base_config.n_features}"
+        )

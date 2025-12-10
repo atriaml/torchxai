@@ -8,7 +8,7 @@ from tests.utils.common import (
     grid_segmenter,
     set_all_random_seeds,
 )
-from tests.utils.containers import TestBaseConfig, TestRuntimeConfig
+from tests.utils.configs import TestBaseConfig, TestRuntimeConfig
 from torchxai.explainers.factory import ExplainerFactory
 from torchxai.metrics.axiomatic.input_invariance import input_invariance
 
@@ -65,7 +65,7 @@ def setup_test_config_for_explainer(explainer, **kwargs):
         kwargs["explainer_kwargs"] = {"is_multi_target": True}
     return [
         MetricTestRuntimeConfig(
-            test_name=f"compare_multi_target_to_single_target",
+            test_name="compare_multi_target_to_single_target",
             target_fixture="mnist_train_configuration",
             explainer=explainer,
             train_and_eval_model=True,
@@ -75,17 +75,13 @@ def setup_test_config_for_explainer(explainer, **kwargs):
             expected=None,
             delta=1e-5,
             **kwargs,
-        ),
+        )
     ]
 
 
 test_configurations = [
-    *setup_test_config_for_explainer(
-        explainer="saliency",
-    ),
-    *setup_test_config_for_explainer(
-        explainer="input_x_gradient",
-    ),
+    *setup_test_config_for_explainer(explainer="saliency"),
+    *setup_test_config_for_explainer(explainer="input_x_gradient"),
     *setup_test_config_for_explainer(
         explainer="integrated_gradients",
         set_baselines_to_type="zero",

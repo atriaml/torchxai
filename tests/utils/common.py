@@ -2,7 +2,7 @@ import inspect
 import logging
 import random
 from pathlib import Path
-from typing import Any, List, Optional, Tuple, Union, cast
+from typing import Any, cast
 
 import numpy as np
 import torch
@@ -12,7 +12,7 @@ from captum.attr import Attribution
 from torch import Tensor, nn
 
 from tests.helpers.basic_models import MNISTCNNModel, MNISTLinearModel
-from tests.utils.containers import TestBaseConfig
+from tests.utils.configs import TestBaseConfig
 from torchxai.explainers.explainer import Explainer
 
 logger = logging.getLogger(__name__)
@@ -146,8 +146,8 @@ def mnist_trainer(model_type: bool = "linear", train_and_eval_model: bool = True
 
 
 def compare_explanation_per_target(
-    output_explanation_per_target: Tuple[Tensor, ...],
-    expected_explanation_per_target: Tuple[Tensor, ...],
+    output_explanation_per_target: tuple[Tensor, ...],
+    expected_explanation_per_target: tuple[Tensor, ...],
     delta: float = 1e-5,
     visualize: bool = False,
 ) -> None:
@@ -186,18 +186,25 @@ def compare_explanation_per_target(
         )
 
 
-def compute_explanations(
-    explainer: Union[Explainer, Attribution],
+def _run_model_forward(model: torch.nn.Module, device: str, *model_inputs) -> Tensor:
+    model.eval()
+    model.to(device)
+    with torch.no_grad():
+        return model(*model_inputs)
+
+
+def _run_explainer_forward(
+    explainer: Explainer | Attribution,
     inputs: TensorOrTupleOfTensorsGeneric,
-    additional_forward_args: Optional[Any] = None,
-    baselines: Optional[BaselineType] = None,
-    train_baselines: Optional[BaselineType] = None,
-    feature_mask: Optional[TensorOrTupleOfTensorsGeneric] = None,
-    target: Optional[TargetType] = None,
+    additional_forward_args: Any | None = None,
+    baselines: BaselineType | None = None,
+    train_baselines: BaselineType | None = None,
+    feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
+    target: TargetType | None = None,
     multiply_by_inputs: bool = False,
     use_captum_explainer: bool = False,
     **explainer_kwargs,
-) -> Tensor:
+) -> dict[str, TensorOrTupleOfTensorsGeneric] | TensorOrTupleOfTensorsGeneric:
     if use_captum_explainer:
         explainer = explainer._explanation_fn
 
@@ -233,67 +240,64 @@ def compute_explanations(
     if multiply_by_inputs:
         explanations = cast(
             TensorOrTupleOfTensorsGeneric,
-            tuple(attr / input for input, attr in zip(inputs, explanations)),
+            tuple(
+                attr / input for input, attr in zip(inputs, explanations, strict=True)
+            ),
         )
     return explanations
 
 
 def assert_tensor_almost_equal(
-    actual,
-    expected,
-    delta: float = 0.0001,
-    mode: str = "sum",
+    actual, expected, delta: float = 0.0001, mode: str = "sum"
 ) -> None:
     assert isinstance(actual, torch.Tensor), (
-        "Actual parameter given for " "comparison must be a tensor."
+        "Actual parameter given for comparison must be a tensor."
     )
     if not isinstance(expected, torch.Tensor):
         expected = torch.tensor(expected, dtype=actual.dtype)
-    assert (
-        actual.shape == expected.shape
-    ), f"Expected tensor with shape: {expected.shape}. Actual shape {actual.shape}."
+    assert actual.shape == expected.shape, (
+        f"Expected tensor with shape: {expected.shape}. Actual shape {actual.shape}."
+    )
     actual = actual.cpu()
     expected = expected.cpu()
 
     # check if both are nan
     if torch.isnan(actual).all():
-        assert torch.isnan(
-            expected
-        ).all(), f"Actual tensor is nan while expected tensor is not. Actual: {actual}, Expected: {expected}"
+        assert torch.isnan(expected).all(), (
+            f"Actual tensor is nan while expected tensor is not. Actual: {actual}, Expected: {expected}"
+        )
         return
 
     if mode == "sum":
-        assert (
-            torch.sum(torch.abs(actual - expected)).item() < delta
-        ), f"Tensors are not equal with tolerance ({delta}). Actual: {actual}, Expected: {expected}"
+        assert torch.sum(torch.abs(actual - expected)).item() < delta, (
+            f"Tensors are not equal with tolerance ({delta}). Actual: {actual}, Expected: {expected}"
+        )
     elif mode == "mean":
-        assert (
-            torch.mean(torch.abs(actual - expected)).item() < delta
-        ), f"Tensors are not equal with tolerance ({delta}). Actual: {actual}, Expected: {expected}"
+        assert torch.mean(torch.abs(actual - expected)).item() < delta, (
+            f"Tensors are not equal with tolerance ({delta}). Actual: {actual}, Expected: {expected}"
+        )
     elif mode == "max":
         # if both tensors are empty, they are equal but there is no max
         if actual.numel() == expected.numel() == 0:
             return
 
         if actual.size() == torch.Size([]):
-            assert (
-                torch.max(torch.abs(actual - expected)).item() < delta
-            ), f"Tensors are not equal with tolerance ({delta}). Actual: {actual}, Expected: {expected}"
+            assert torch.max(torch.abs(actual - expected)).item() < delta, (
+                f"Tensors are not equal with tolerance ({delta}). Actual: {actual}, Expected: {expected}"
+            )
         else:
             for index, (input, ref) in enumerate(zip(actual, expected)):
                 almost_equal = abs(input - ref) <= delta
                 if hasattr(almost_equal, "__iter__"):
                     almost_equal = almost_equal.all()
-                assert (
-                    almost_equal
-                ), "Values at index {}, {} and {}, differ more than by {}".format(
-                    index, input, ref, delta
+                assert almost_equal, (
+                    f"Values at index {index}, {input} and {ref}, differ more than by {delta}"
                 )
     else:
         raise ValueError("Mode for assertion comparison must be one of `max` or `sum`.")
 
 
-def assert_all_tensors_almost_equal(tensors: List[torch.Tensor]):
+def assert_all_tensors_almost_equal(tensors: list[torch.Tensor]):
     for i in range(1, len(tensors)):
         if isinstance(tensors[i], list):
             for x, y in zip(tensors[i - 1], tensors[i]):

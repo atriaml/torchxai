@@ -1,4 +1,5 @@
-from typing import Any, Callable, Tuple
+from collections.abc import Callable
+from typing import Any
 
 import torch
 from captum._utils.common import _format_output, _format_tensor_into_tuples, _is_tuple
@@ -37,7 +38,7 @@ class MultiTargetSaliency(Saliency):
     def attribute(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        target: Tuple[TargetType, ...] = None,
+        target: tuple[TargetType, ...] = None,
         abs: bool = True,
         additional_forward_args: Any = None,
     ) -> TensorOrTupleOfTensorsGeneric:

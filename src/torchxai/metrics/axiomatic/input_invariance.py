@@ -1,4 +1,5 @@
-from typing import Any, List, Tuple, Union
+import inspect
+from typing import Any
 
 import torch
 from captum._utils.common import _format_output, _format_tensor_into_tuples, _is_tuple
@@ -17,26 +18,25 @@ from torchxai.metrics.axiomatic.utilities import (
 
 
 def _input_invariance(
-    explainer: Union[Explainer, Attribution],
+    explainer: Explainer | Attribution,
     inputs: TensorOrTupleOfTensorsGeneric,
     constant_shifts: TensorOrTupleOfTensorsGeneric,
-    input_layer_names: Tuple[str],
+    input_layer_names: tuple[str],
     **kwargs: Any,
-) -> Union[Tensor, List[Tensor]]:
-
+) -> Tensor | list[Tensor]:
     kwargs_copy, shifted_kwargs_copy = _prepare_kwargs_for_base_and_shifted_inputs(
         kwargs
     )
     inputs = _format_tensor_into_tuples(inputs)  # type: ignore
     constant_shifts = _format_tensor_into_tuples(constant_shifts)  # type: ignore
 
-    assert len(input_layer_names) == len(
-        set(input_layer_names)
-    ), "Each input layer must be unique for each input constant shift tensor."
+    assert len(input_layer_names) == len(set(input_layer_names)), (
+        "Each input layer must be unique for each input constant shift tensor."
+    )
 
-    assert len(input_layer_names) == len(
-        constant_shifts
-    ), "The number of input layer names should be the same as the number of constant shifts. "
+    assert len(input_layer_names) == len(constant_shifts), (
+        "The number of input layer names should be the same as the number of constant shifts. "
+    )
 
     assert (
         len(inputs) == len(constant_shifts)
@@ -67,11 +67,21 @@ def _input_invariance(
 
     with torch.no_grad():
         if isinstance(explainer, Explainer):
+            possible_args = inspect.signature(explainer.explain).parameters
+            kwargs_copy = {k: v for k, v in kwargs_copy.items() if k in possible_args}
+            shifted_kwargs_copy = {
+                k: v for k, v in shifted_kwargs_copy.items() if k in possible_args
+            }
             inputs_expl = explainer.explain(inputs, **kwargs_copy)
             shifted_inputs_expl = shifted_explainer.explain(
                 shifted_inputs, **shifted_kwargs_copy
             )
         elif isinstance(explainer, Attribution):
+            possible_args = inspect.signature(explainer.attribute).parameters
+            kwargs_copy = {k: v for k, v in kwargs_copy.items() if k in possible_args}
+            shifted_kwargs_copy = {
+                k: v for k, v in shifted_kwargs_copy.items() if k in possible_args
+            }
             inputs_expl = explainer.attribute(inputs, **kwargs_copy)
             shifted_inputs_expl = shifted_explainer.attribute(
                 shifted_inputs, **shifted_kwargs_copy
@@ -107,15 +117,15 @@ def _input_invariance(
 
 
 def input_invariance(
-    explainer: Union[Explainer, Attribution],
+    explainer: Explainer | Attribution,
     inputs: TensorOrTupleOfTensorsGeneric,
     constant_shifts: TensorOrTupleOfTensorsGeneric,
-    input_layer_names: Tuple[str],
+    input_layer_names: tuple[str],
     is_multi_target: bool = False,
     return_intermediate_results: bool = False,
     return_dict: bool = False,
     **kwargs: Any,
-) -> Union[Tensor, List[Tensor]]:
+) -> Tensor | list[Tensor]:
     """
     Implementation of Input Invariance test by Kindermans et al., 2017. This implementation
     reuses the batch-computation ideas from captum and therefore it is fully compatible with the Captum library.
