@@ -7,8 +7,7 @@ from captum._utils.gradient import (
     apply_gradient_requirements,
     undo_gradient_requirements,
 )
-from captum.attr import Attribution, InputXGradient
-from captum.log import log_usage
+from captum.attr import GradientAttribution, InputXGradient
 
 from torchxai.data_types.common import TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.explainers._utils import (
@@ -19,7 +18,7 @@ from torchxai.explainers._utils import (
 from torchxai.explainers.explainer import Explainer
 
 
-class MultiTargetInputXGradient(InputXGradient):
+class MultiTargetInputXGradient(GradientAttribution):
     def __init__(
         self,
         forward_func: Callable,
@@ -34,13 +33,12 @@ class MultiTargetInputXGradient(InputXGradient):
         self.gradient_func = gradient_func
         self.grad_batch_size = grad_batch_size
 
-    @log_usage()
     def attribute(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
         target: TargetType = None,
         additional_forward_args: Any = None,
-    ) -> TensorOrTupleOfTensorsGeneric:
+    ) -> list[TensorOrTupleOfTensorsGeneric]:
         # Keeps track whether original input is a tuple or not before
         # converting it into a tuple.
         is_inputs_tuple = _is_tuple(inputs)
@@ -61,7 +59,8 @@ class MultiTargetInputXGradient(InputXGradient):
 
         def gradients_to_attributions(gradients):
             attributions = tuple(
-                input * gradient for input, gradient in zip(inputs, gradients)
+                input * gradient
+                for input, gradient in zip(inputs, gradients, strict=False)
             )
             return attributions
 
@@ -84,7 +83,7 @@ class InputXGradientExplainer(Explainer):
         model (torch.nn.Module): The model whose output is to be explained.
     """
 
-    def _init_explanation_fn(self) -> Attribution:
+    def _init_explanation_fn(self) -> Callable:
         """
         Initializes the explanation function.
 
@@ -94,8 +93,8 @@ class InputXGradientExplainer(Explainer):
         if self._is_multi_target:
             return MultiTargetInputXGradient(
                 self._model, grad_batch_size=self._grad_batch_size
-            )
-        return InputXGradient(self._model)
+            ).attribute
+        return InputXGradient(self._model).attribute
 
     def explain(
         self,
@@ -114,7 +113,7 @@ class InputXGradientExplainer(Explainer):
         Returns:
             TensorOrTupleOfTensorsGeneric: The computed attributions.
         """
-        return self._explanation_fn.attribute(
+        return self._explanation_fn(
             inputs=inputs,
             target=target,
             additional_forward_args=additional_forward_args,

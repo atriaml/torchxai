@@ -5,7 +5,6 @@ from typing import Any
 import torch
 from captum._utils.common import _format_additional_forward_args
 from captum._utils.models.linear_model import SkLearnLinearRegression
-from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from captum.attr import Attribution, KernelShap
 from captum.attr._core.lime import construct_feature_mask
 from captum.attr._utils.common import _format_input_baseline
@@ -14,6 +13,11 @@ from torch import Tensor
 from torch.distributions.categorical import Categorical
 from torch.nn import Module
 
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.explainers._perturbation.lime import Lime, MultiTargetLime
 from torchxai.explainers._utils import (
     _expand_feature_mask_to_target,

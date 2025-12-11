@@ -13,9 +13,13 @@ from captum._utils.common import (
     _format_tensor_into_tuples,
     _run_forward,
 )
-from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torch import Tensor
 
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.metrics._utils.batching import (
     _divide_and_aggregate_metrics_n_perturbations_per_feature,
 )
@@ -142,12 +146,14 @@ def eval_aopcs_single_sample(
         # view as input shape (this is only necessary for edge cases where input is of (1, 1) shape)
         perturbation_mask_expanded = tuple(
             mask.view_as(input)
-            for mask, input in zip(perturbation_mask_expanded, inputs_expanded)
+            for mask, input in zip(
+                perturbation_mask_expanded, inputs_expanded, strict=False
+            )
         )
         return tuple(
             input * ~mask + baseline * mask
             for input, mask, baseline in zip(
-                inputs_expanded, perturbation_mask_expanded, baselines
+                inputs_expanded, perturbation_mask_expanded, baselines, strict=False
             )
         )
 
@@ -180,12 +186,17 @@ def eval_aopcs_single_sample(
         # view as input shape (this is only necessary for edge cases where input is of (1, 1) shape)
         perturbation_mask_expanded = tuple(
             mask.view_as(input)
-            for mask, input in zip(perturbation_mask_expanded, inputs_expanded)
+            for mask, input in zip(
+                perturbation_mask_expanded, inputs_expanded, strict=False
+            )
         )
         return tuple(
             baseline * ~mask + input * mask
             for baseline, mask, input in zip(
-                baselines_expanded, perturbation_mask_expanded, inputs_expanded
+                baselines_expanded,
+                perturbation_mask_expanded,
+                inputs_expanded,
+                strict=False,
             )
         )
 
@@ -273,7 +284,9 @@ def eval_aopcs_single_sample(
         return inputs_perturbed_fwd, baselines_perturbed_fwd
 
     def _cat_aopc_tensors(agg_tensors, tensors):
-        return tuple(torch.cat([x, y], dim=0) for x, y in zip(agg_tensors, tensors))
+        return tuple(
+            torch.cat([x, y], dim=0) for x, y in zip(agg_tensors, tensors, strict=False)
+        )
 
     with torch.no_grad():
         bsz = inputs[0].size(0)
@@ -435,7 +448,9 @@ def _aopc(
         ), f"""The number of tensors in the inputs and
                 feature_masks must match. Found number of tensors in the inputs is: {len(feature_mask)} and in the
                 attributions: {len(feature_mask)}"""
-        for input, attribution, mask in zip(inputs, attributions, feature_mask):
+        for input, attribution, mask in zip(
+            inputs, attributions, feature_mask, strict=False
+        ):
             assert input.shape == mask.shape == attribution.shape, f"""
                     The shape of the input, attribution and feature mask must match. Found shapes are: input {input.shape}
                     attribution {attribution.shape} and feature mask {mask.shape}
@@ -503,7 +518,7 @@ def _aopc(
         inputs_fwd_batch.append(inputs_fwd)
 
     def _convert_to_tensor_if_possible(list_of_tensors):
-        if all([x.shape == list_of_tensors[0].shape for x in list_of_tensors]):
+        if all(x.shape == list_of_tensors[0].shape for x in list_of_tensors):
             return torch.stack(list_of_tensors)
         return list_of_tensors
 
@@ -790,7 +805,7 @@ def aopc(
     inputs_perturbed_fwds_agg_batch = []
     baselines_perturbed_fwds_agg_batch = []
     inputs_fwd_batch = []
-    for a, t in tqdm.tqdm(zip(attributions, target)):
+    for a, t in tqdm.tqdm(zip(attributions, target, strict=False)):
         (
             inputs_perturbed_aopc_desc,
             inputs_perturbed_aopc_asc,

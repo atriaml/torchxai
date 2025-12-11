@@ -5,7 +5,6 @@ from typing import Any
 import numpy as np
 import torch
 from captum._utils.common import _format_tensor_into_tuples
-from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from captum.attr import Attribution, Occlusion
 from captum.attr._utils.common import (
     _format_and_verify_sliding_window_shapes,
@@ -14,6 +13,11 @@ from captum.attr._utils.common import (
 from torch import Tensor
 from torch.nn.modules import Module
 
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.explainers._perturbation.feature_ablation import (
     FeatureAblation,
     MultiTargetFeatureAblation,
@@ -149,7 +153,9 @@ class Occlusion(FeatureAblation):
             expanded_input.shape[2:], np.add(current_index, sliding_window_tsr.shape)
         )
         pad_values = [
-            val for pair in zip(remaining_padding, current_index) for val in pair
+            val
+            for pair in zip(remaining_padding, current_index, strict=False)
+            for val in pair
         ]
         pad_values.reverse()
         padded_tensor = torch.nn.functional.pad(
@@ -345,7 +351,9 @@ class MultiTargetOcclusion(MultiTargetFeatureAblation):
             expanded_input.shape[2:], np.add(current_index, sliding_window_tsr.shape)
         )
         pad_values = [
-            val for pair in zip(remaining_padding, current_index) for val in pair
+            val
+            for pair in zip(remaining_padding, current_index, strict=False)
+            for val in pair
         ]
         pad_values.reverse()
         padded_tensor = torch.nn.functional.pad(

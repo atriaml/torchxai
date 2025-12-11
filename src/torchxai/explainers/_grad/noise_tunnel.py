@@ -11,8 +11,8 @@ from captum._utils.common import (
     _format_tensor_into_tuples,
     _is_tuple,
 )
+from captum.attr import NoiseTunnel
 from captum.attr._utils.common import _validate_noise_tunnel_type
-from captum.log import log_usage
 from torch import Tensor
 
 from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
@@ -25,19 +25,16 @@ class NoiseTunnelType(Enum):
     vargrad = 3
 
 
-from captum.attr import NoiseTunnel
-
 SUPPORTED_NOISE_TUNNEL_TYPES = list(NoiseTunnelType.__members__.keys())
 
 
 class MultiTargetNoiseTunnel(NoiseTunnel):
-    @log_usage()
     def attribute(
         self,
         inputs: Tensor | tuple[Tensor, ...],
         nt_type: str = "smoothgrad",
         nt_samples: int = 5,
-        nt_samples_batch_size: int = None,
+        nt_samples_batch_size: int | None = None,
         stdevs: float | tuple[float, ...] = 1.0,
         draw_baseline_from_distrib: bool = False,
         **kwargs: Any,
@@ -66,7 +63,7 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
                     if self.is_gradient_method
                     else add_noise_to_input(input, stdev, nt_samples_partition)
                 )
-                for (input, stdev) in zip(inputs, stdevs_)
+                for (input, stdev) in zip(inputs, stdevs_, strict=False)
             )
 
         def add_noise_to_input(
@@ -185,7 +182,7 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
             vargrad = tuple(
                 expected_attribution_sq - expected_attribution * expected_attribution
                 for expected_attribution, expected_attribution_sq in zip(
-                    expected_attributions, expected_attributions_sq
+                    expected_attributions, expected_attributions_sq, strict=False
                 )
             )
 
@@ -325,6 +322,7 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
                 for expected_attributions, expected_attributions_sq in zip(
                     multi_target_expected_attributions,
                     multi_target_expected_attributions_sq,
+                    strict=False,
                 )
             ]
 

@@ -12,11 +12,15 @@ from captum._utils.common import (
     _is_tuple,
 )
 from captum._utils.progress import progress
-from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from captum.attr import Attribution, FeatureAblation as CaptumFeatureAblation
 from captum.attr._utils.common import _format_input_baseline
 from torch import Tensor, dtype
 
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.explainers._utils import (
     _expand_feature_mask_to_target,
     _run_forward_multi_target,
@@ -211,7 +215,9 @@ class FeatureAblation(CaptumFeatureAblation):
             if self.use_weights:
                 attrib = tuple(
                     single_attrib.float() / weight
-                    for single_attrib, weight in zip(total_attrib, weights)
+                    for single_attrib, weight in zip(
+                        total_attrib, weights, strict=False
+                    )
                 )
             else:
                 attrib = tuple(total_attrib)
@@ -416,7 +422,9 @@ class MultiTargetFeatureAblation(FeatureAblation):
                 attrib = tuple(
                     single_attrib.float()
                     / weight.repeat((output_shape[1],) + (weights[0].dim() - 1) * (1,))
-                    for single_attrib, weight in zip(total_attrib, weights)
+                    for single_attrib, weight in zip(
+                        total_attrib, weights, strict=False
+                    )
                 )
             else:
                 attrib = tuple(total_attrib)

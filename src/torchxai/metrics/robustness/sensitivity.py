@@ -119,7 +119,7 @@ def _sensitivity_scores(
             [
                 (expl_input - expl_perturbed).view(expl_perturbed.size(0), -1)
                 for expl_perturbed, expl_input in zip(
-                    expl_perturbed_inputs, expl_inputs_expanded
+                    expl_perturbed_inputs, expl_inputs_expanded, strict=False
                 )
             ],
             dim=1,

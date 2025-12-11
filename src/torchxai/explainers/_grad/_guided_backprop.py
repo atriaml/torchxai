@@ -1,15 +1,23 @@
 import warnings
+from collections.abc import Callable
 from typing import Any
 
 import torch
-from captum._utils.common import _format_output, _format_tensor_into_tuples, _is_tuple
+import torch.nn.functional as F
+from captum._utils.common import (
+    _format_output,
+    _format_tensor_into_tuples,
+    _is_tuple,
+    _register_backward_hook,
+)
 from captum._utils.gradient import (
     apply_gradient_requirements,
     undo_gradient_requirements,
 )
-from captum.attr import Attribution, GuidedBackprop
-from captum.log import log_usage
+from captum.attr import GradientAttribution, GuidedBackprop
+from torch import Tensor
 from torch.nn import Module
+from torch.utils.hooks import RemovableHandle
 
 from torchxai.data_types.common import TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.explainers._utils import (
@@ -20,10 +28,11 @@ from torchxai.explainers._utils import (
 from torchxai.explainers.explainer import Explainer
 
 
-class MultiTargetGuidedBackprop(GuidedBackprop):
+class MultiTargetGuidedBackprop(GradientAttribution):
     def __init__(
         self,
         model: Module,
+        use_relu_grad_output: bool = False,
         gradient_func=(
             _compute_gradients_vmap_autograd
             if torch.__version__ >= "2.3.0"
@@ -31,17 +40,28 @@ class MultiTargetGuidedBackprop(GuidedBackprop):
         ),
         grad_batch_size: int = 10,
     ) -> None:
-        super().__init__(model)
+        r"""
+        Args:
+
+            model (nn.Module): The reference to PyTorch model instance.
+        """
+        GradientAttribution.__init__(self, model)
+        self.model = model
+        self.backward_hooks: list[RemovableHandle] = []
+        self.use_relu_grad_output = use_relu_grad_output
         self.gradient_func = gradient_func
         self.grad_batch_size = grad_batch_size
+        assert isinstance(self.model, torch.nn.Module), (
+            "Given model must be an instance of torch.nn.Module to properly hook"
+            " ReLU layers."
+        )
 
-    @log_usage()
-    def attribute(
+    def attribute(  # type: ignore[override]
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
         target: TargetType = None,
         additional_forward_args: Any = None,
-    ) -> TensorOrTupleOfTensorsGeneric:
+    ) -> list[TensorOrTupleOfTensorsGeneric]:
         r"""
         Computes attribution by overriding relu gradients. Based on constructor
         flag use_relu_grad_output, performs either GuidedBackpropagation if False
@@ -63,7 +83,8 @@ class MultiTargetGuidedBackprop(GuidedBackprop):
         # set hooks for overriding ReLU gradients
         warnings.warn(
             "Setting backward hooks on ReLU activations."
-            "The hooks will be removed after the attribution is finished"
+            "The hooks will be removed after the attribution is finished",
+            stacklevel=2,
         )
         try:
             self.model.apply(self._register_hooks)
@@ -84,6 +105,29 @@ class MultiTargetGuidedBackprop(GuidedBackprop):
             for per_target_gradients in multi_target_gradients
         ]
 
+    def _register_hooks(self, module: Module):
+        if isinstance(module, torch.nn.ReLU):
+            hooks = _register_backward_hook(module, self._backward_hook, self)
+            self.backward_hooks.extend(hooks)
+
+    def _backward_hook(
+        self,
+        module: Module,
+        grad_input: Tensor | tuple[Tensor, ...],
+        grad_output: Tensor | tuple[Tensor, ...],
+    ):
+        to_override_grads = grad_output if self.use_relu_grad_output else grad_input
+        if isinstance(to_override_grads, tuple):
+            return tuple(
+                F.relu(to_override_grad) for to_override_grad in to_override_grads
+            )
+        else:
+            return F.relu(to_override_grads)
+
+    def _remove_hooks(self):
+        for hook in self.backward_hooks:
+            hook.remove()
+
 
 class GuidedBackpropExplainer(Explainer):
     """
@@ -93,7 +137,7 @@ class GuidedBackpropExplainer(Explainer):
         model (torch.nn.Module): The model whose output is to be explained.
     """
 
-    def _init_explanation_fn(self) -> Attribution:
+    def _init_explanation_fn(self) -> Callable:
         """
         Initializes the explanation function.
 
@@ -103,8 +147,8 @@ class GuidedBackpropExplainer(Explainer):
         if self._is_multi_target:
             return MultiTargetGuidedBackprop(
                 self._model, grad_batch_size=self._grad_batch_size
-            )
-        return GuidedBackprop(self._model)
+            ).attribute
+        return GuidedBackprop(self._model).attribute
 
     def explain(
         self,
@@ -123,7 +167,7 @@ class GuidedBackpropExplainer(Explainer):
         Returns:
             TensorOrTupleOfTensorsGeneric: The computed attributions.
         """
-        return self._explanation_fn.attribute(
+        return self._explanation_fn(
             inputs=inputs,
             target=target,
             additional_forward_args=additional_forward_args,

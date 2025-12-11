@@ -50,6 +50,7 @@ dependencies = [
     "torchvision>=0.16.2",
     "pydantic>=2.12.5",
     "scikit-learn>=1.8.0",
+    "overrides>=7.7.0",
 ]
 
 

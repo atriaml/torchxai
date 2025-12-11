@@ -1,5 +1,6 @@
 import inspect
-from typing import Any, Callable, List, Optional, Tuple, Union, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import scipy
 import torch
@@ -11,8 +12,13 @@ from captum._utils.common import (
     _format_baseline,
     _format_tensor_into_tuples,
 )
-from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torch import Tensor
+
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.explainers._utils import _run_forward_multi_target
 from torchxai.metrics._utils.batching import _divide_and_aggregate_metrics
 from torchxai.metrics._utils.common import (
@@ -29,22 +35,21 @@ from torchxai.metrics._utils.perturbation import (
 def _multi_target_faithfulness_corr(
     forward_func: Callable,
     inputs: TensorOrTupleOfTensorsGeneric,
-    attributions_list: List[TensorOrTupleOfTensorsGeneric],
+    attributions_list: list[TensorOrTupleOfTensorsGeneric],
     baselines: BaselineType = None,
     feature_mask: TensorOrTupleOfTensorsGeneric = None,
     additional_forward_args: Any = None,
-    targets_list: List[TargetType] = None,
+    targets_list: list[TargetType] = None,
     perturb_func: Callable = default_fixed_baseline_perturb_func(),
     n_perturb_samples: int = 10,
     max_examples_per_batch: int = None,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    frozen_features: list[torch.Tensor] | None = None,
     percent_features_perturbed: float = 0.1,
     show_progress: bool = False,
-) -> Tuple[Tensor, Tensor, Tensor]:
+) -> tuple[Tensor, Tensor, Tensor]:
     def _generate_perturbations(
-        current_n_perturb_samples: int,
-        current_n_step: int,
-    ) -> Tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
+        current_n_perturb_samples: int, current_n_step: int
+    ) -> tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
         r"""
         The perturbations are generated for each example
         `current_n_perturb_samples` times.
@@ -56,20 +61,20 @@ def _multi_target_faithfulness_corr(
 
         def call_perturb_func():
             baselines_arg = None
-            inputs_arg: Union[Tensor, Tuple[Tensor, ...]]
+            inputs_arg: Tensor | tuple[Tensor, ...]
             if len(inputs_expanded) == 1:
                 inputs_arg = inputs_expanded[0]
                 if baselines_expanded is not None:
-                    baselines_arg = cast(Tuple, baselines_expanded)[0]
+                    baselines_arg = cast(tuple, baselines_expanded)[0]
                 perturbation_mask_arg = perturbation_masks[0]
             else:
                 inputs_arg = inputs_expanded
                 baselines_arg = baselines_expanded
                 perturbation_mask_arg = perturbation_masks
-            pertub_kwargs = dict(
-                inputs=inputs_arg,
-                perturbation_masks=perturbation_mask_arg,
-            )
+            pertub_kwargs = {
+                "inputs": inputs_arg,
+                "perturbation_masks": perturbation_mask_arg,
+            }
             if (
                 inspect.signature(perturb_func).parameters.get("baselines")
                 and baselines_arg is not None
@@ -98,34 +103,31 @@ def _multi_target_faithfulness_corr(
                     and baseline.shape[0] == input.shape[0]
                     else baseline
                 )
-                for input, baseline in zip(inputs, cast(Tuple, baselines))
+                for input, baseline in zip(inputs, cast(tuple, baselines), strict=False)
             )
 
         return call_perturb_func(), perturbation_masks
 
     def _validate_inputs_and_perturbations(
-        inputs: Tuple[Tensor, ...],
-        inputs_perturbed: Tuple[Tensor, ...],
-        perturbations: Tuple[Tensor, ...],
+        inputs: tuple[Tensor, ...],
+        inputs_perturbed: tuple[Tensor, ...],
+        perturbations: tuple[Tensor, ...],
     ) -> None:
         # asserts the sizes of the perturbations and inputs
-        assert len(inputs) == len(inputs_perturbed), (
-            """The number of inputs and corresponding perturbated inputs must have the same number of
-            elements. Found number of inputs is: {} and inputs_perturbed:
-            {}"""
-        ).format(len(inputs), len(inputs_perturbed))
+        assert (
+            len(inputs) == len(inputs_perturbed)
+        ), f"""The number of inputs and corresponding perturbated inputs must have the same number of
+            elements. Found number of inputs is: {len(inputs)} and inputs_perturbed:
+            {len(inputs_perturbed)}"""
         # asserts the sizes of the perturbations and inputs
-        assert len(perturbations) == len(inputs), (
-            """The number of perturbed
+        assert len(perturbations) == len(inputs), f"""The number of perturbed
             inputs and corresponding perturbations must have the same number of
-            elements. Found number of inputs is: {} and perturbations:
-            {}"""
-        ).format(len(perturbations), len(inputs))
+            elements. Found number of inputs is: {len(perturbations)} and perturbations:
+            {len(inputs)}"""
 
     def _next_faithfulness_corr_tensors(
-        current_n_perturb_samples: int,
-        current_n_step: int,
-    ) -> Union[Tuple[Tensor], Tuple[Tensor, Tensor, Tensor]]:
+        current_n_perturb_samples: int, current_n_step: int
+    ) -> tuple[Tensor] | tuple[Tensor, Tensor, Tensor]:
         inputs_perturbed, perturbation_masks = _generate_perturbations(
             current_n_perturb_samples, current_n_step
         )
@@ -133,9 +135,9 @@ def _multi_target_faithfulness_corr(
         perturbation_masks = _format_tensor_into_tuples(perturbation_masks)
 
         _validate_inputs_and_perturbations(
-            cast(Tuple[Tensor, ...], inputs),
-            cast(Tuple[Tensor, ...], inputs_perturbed),
-            cast(Tuple[Tensor, ...], perturbation_masks),
+            cast(tuple[Tensor, ...], inputs),
+            cast(tuple[Tensor, ...], inputs_perturbed),
+            cast(tuple[Tensor, ...], perturbation_masks),
         )
 
         targets_expanded_list = [
@@ -182,7 +184,7 @@ def _multi_target_faithfulness_corr(
                     .view(attributions_expanded[0].shape[0], -1)
                     .sum(dim=1)
                     for attribution, perturbation_mask in zip(
-                        attributions_expanded, perturbation_masks
+                        attributions_expanded, perturbation_masks, strict=False
                     )
                 )
             )
@@ -202,32 +204,39 @@ def _multi_target_faithfulness_corr(
 
     def _agg_faithfulness_corr_tensors(agg_tensors, tensors):
         return tuple(
-            [torch.cat([agg_t, t], dim=-1) for agg_t, t in zip(agg_t_list, t_list)]
-            for agg_t_list, t_list in zip(agg_tensors, tensors)
+            [
+                torch.cat([agg_t, t], dim=-1)
+                for agg_t, t in zip(agg_t_list, t_list, strict=False)
+            ]
+            for agg_t_list, t_list in zip(agg_tensors, tensors, strict=False)
         )
 
     with torch.no_grad():
-        isinstance(
-            attributions_list, list
-        ), "attributions must be a list of tensors or list of tuples of tensors"
+        (
+            isinstance(attributions_list, list),
+            "attributions must be a list of tensors or list of tuples of tensors",
+        )
         assert isinstance(targets_list, list), "targets must be a list of targets"
-        assert all(
-            isinstance(x, (tuple, int)) for x in targets_list
-        ), "targets must be a list of ints"
-        assert len(targets_list) == len(attributions_list), (
-            """The number of targets in the targets_list and
-            attributions_list must match. Found number of targets in the targets_list is: {} and in the
-            attributions_list: {}"""
-        ).format(len(targets_list), len(attributions_list))
+        assert all(isinstance(x, (tuple, int)) for x in targets_list), (
+            "targets must be a list of ints"
+        )
+        assert len(targets_list) == len(
+            attributions_list
+        ), f"""The number of targets in the targets_list and
+            attributions_list must match. Found number of targets in the targets_list is: {len(targets_list)} and in the
+            attributions_list: {len(attributions_list)}"""
         # perform argument formattings
         inputs = _format_tensor_into_tuples(inputs)  # type: ignore
         if baselines is not None:
-            baselines = _format_baseline(baselines, cast(Tuple[Tensor, ...], inputs))
+            baselines = _format_baseline(baselines, cast(tuple[Tensor, ...], inputs))
             baselines = _format_tensor_tuple_feature_dim(baselines)  # type: ignore
         additional_forward_args = _format_additional_forward_args(
             additional_forward_args
         )
-        attributions_list = [_format_tensor_into_tuples(attributions) for attributions in attributions_list]  # type: ignore
+        attributions_list = [
+            _format_tensor_into_tuples(attributions)
+            for attributions in attributions_list
+        ]  # type: ignore
         feature_mask = _format_tensor_into_tuples(feature_mask)  # type: ignore
 
         # format feature dims for single feature dim cases
@@ -238,22 +247,22 @@ def _multi_target_faithfulness_corr(
         ]
 
         # Make sure that inputs and corresponding attributions have matching sizes.
-        assert len(inputs) == len(attributions_list[0]), (
-            """The number of tensors in the inputs and
-            attributions must match. Found number of tensors in the inputs is: {} and in the
-            attributions: {}"""
-        ).format(len(inputs), len(attributions_list[0]))
+        assert len(inputs) == len(
+            attributions_list[0]
+        ), f"""The number of tensors in the inputs and
+            attributions must match. Found number of tensors in the inputs is: {len(inputs)} and in the
+            attributions: {len(attributions_list[0])}"""
         if baselines is not None:
-            assert len(inputs) == len(baselines), (
-                """The number of tensors in the inputs and
-                baselines must match. Found number of tensors in the inputs is: {} and in the
-                baselines: {}"""
-            ).format(len(inputs), len(baselines))
-            assert len(inputs[0]) == len(baselines[0]), (
-                """The batch size in the inputs and
-                baselines must match. Found batch size in the inputs is: {} and in the
-                baselines: {}"""
-            ).format(len(inputs[0]), len(baselines[0]))
+            assert len(inputs) == len(
+                baselines
+            ), f"""The number of tensors in the inputs and
+                baselines must match. Found number of tensors in the inputs is: {len(inputs)} and in the
+                baselines: {len(baselines)}"""
+            assert len(inputs[0]) == len(
+                baselines[0]
+            ), f"""The batch size in the inputs and
+                baselines must match. Found batch size in the inputs is: {len(inputs[0])} and in the
+                baselines: {len(baselines[0])}"""
 
         if feature_mask is not None:
             # assert that all elements in the feature_mask are unique and non-negative increasing
@@ -277,7 +286,7 @@ def _multi_target_faithfulness_corr(
         # if not normalize, directly return aggrgated MSE ((a-b)^2,)
         # else return aggregated MSE's polynomial expansion tensors (a^2, ab, b^2)
         agg_tensors = _divide_and_aggregate_metrics(
-            cast(Tuple[Tensor, ...], inputs),
+            cast(tuple[Tensor, ...], inputs),
             n_perturb_samples,
             _next_faithfulness_corr_tensors,
             agg_func=_agg_faithfulness_corr_tensors,
@@ -296,11 +305,14 @@ def _multi_target_faithfulness_corr(
                     for x, y in zip(
                         attributions_expanded_perturbed_sum.numpy(),
                         perturbed_fwd_diffs.numpy(),
+                        strict=False,
                     )
                 ]
             )
             for attributions_expanded_perturbed_sum, perturbed_fwd_diffs in zip(
-                attributions_expanded_perturbed_sum_list, perturbed_fwd_diffs_list
+                attributions_expanded_perturbed_sum_list,
+                perturbed_fwd_diffs_list,
+                strict=False,
             )
         ]
     return (

@@ -1,11 +1,9 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import Any
 
 import torch
-from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
-from captum.attr import Attribution
-from torch import Tensor
+
+from torchxai.data_types.common import TensorOrTupleOfTensorsOrListOfTensorsGeneric
 
 
 class Explainer(ABC):
@@ -21,7 +19,7 @@ class Explainer(ABC):
 
     def __init__(
         self,
-        model: torch.nn.Module | Callable,
+        model: torch.nn.Module,
         is_multi_target: bool = False,
         internal_batch_size: int = 64,
         grad_batch_size: int = 64,
@@ -33,11 +31,11 @@ class Explainer(ABC):
         self._explanation_fn = self._init_explanation_fn()
 
     @property
-    def model(self) -> torch.nn.Module | Callable:
+    def model(self) -> torch.nn.Module:
         return self._model
 
     @model.setter
-    def model(self, model: torch.nn.Module | Callable) -> None:
+    def model(self, model: torch.nn.Module) -> None:
         self._model = model
         self._explanation_fn = self._init_explanation_fn()
 
@@ -47,23 +45,16 @@ class Explainer(ABC):
         self._explanation_fn = self._init_explanation_fn()
 
     @abstractmethod
-    def _init_explanation_fn(self) -> Attribution:
+    def _init_explanation_fn(self) -> Callable:
         """
-        Abstract method that returns the attribution class used by the handler.
+        Initializes the attribution generation callable.
 
         Returns:
-            Attribution: The attribution class used by the handler.
+            Callable: The attribution generation callable.
         """
 
     @abstractmethod
-    def explain(
-        self,
-        inputs: TensorOrTupleOfTensorsGeneric,
-        target: TargetType,
-        baselines: BaselineType = None,
-        feature_mask: None | Tensor | tuple[Tensor, ...] = None,
-        additional_forward_args: Any = None,
-    ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
+    def explain(self, *args, **kwargs) -> TensorOrTupleOfTensorsOrListOfTensorsGeneric:
         """
         Abstract method that computes the attribution for the given inputs.
 

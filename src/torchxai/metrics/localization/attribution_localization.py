@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
-from typing import Tuple
 
 import torch
 from captum._utils.common import _format_output, _format_tensor_into_tuples, _is_tuple
 
 
 def attribution_localization(
-    attributions: Tuple[torch.Tensor, ...],
-    segmentation_masks: Tuple[torch.Tensor, ...],
+    attributions: tuple[torch.Tensor, ...],
+    segmentation_masks: tuple[torch.Tensor, ...],
     positive_attributions: bool = True,
     weighted: bool = False,
     is_multi_target: bool = False,
@@ -59,9 +58,10 @@ def attribution_localization(
         >>> attribution_localization_score = attribution_localization(attribution, feature_mask)
     """
     if is_multi_target:
-        isinstance(
-            attributions, list
-        ), "attributions must be a list of tensors or list of tuples of tensors"
+        (
+            isinstance(attributions, list),
+            "attributions must be a list of tensors or list of tuples of tensors",
+        )
         attribution_localization_scores = [
             attribution_localization(
                 attributions=a,
@@ -73,18 +73,16 @@ def attribution_localization(
             for a in attributions
         ]
         if return_dict:
-            return {
-                "attribution_localization_score": attribution_localization_scores,
-            }
+            return {"attribution_localization_score": attribution_localization_scores}
         return attribution_localization_scores
 
     with torch.no_grad():
         is_attributions_tuple = _is_tuple(attributions)
         attributions = _format_tensor_into_tuples(attributions)
         segmentation_masks = _format_tensor_into_tuples(segmentation_masks)
-        assert (
-            segmentation_masks[0].dtype == torch.bool
-        ), "Segmentation mask must be of type bool."
+        assert segmentation_masks[0].dtype == torch.bool, (
+            "Segmentation mask must be of type bool."
+        )
         assert (
             len(segmentation_masks) == len(attributions)
             and segmentation_masks[0].shape == attributions[0].shape
@@ -99,7 +97,7 @@ def attribution_localization(
         attribution_localization_scores = tuple(
             (attribution * mask).view(bsz, -1).sum(dim=1)
             / attribution.view(bsz, -1).sum(dim=1)
-            for attribution, mask in zip(attributions, segmentation_masks)
+            for attribution, mask in zip(attributions, segmentation_masks, strict=False)
         )
         mask_size_ratios = tuple(
             mask.numel() / mask.contiguous().view(bsz, -1).sum(dim=1)
@@ -110,7 +108,7 @@ def attribution_localization(
             attribution_localization_scores = tuple(
                 score * mask_size_ratio
                 for score, mask_size_ratio in zip(
-                    attribution_localization_scores, mask_size_ratios
+                    attribution_localization_scores, mask_size_ratios, strict=False
                 )
             )
 
@@ -118,7 +116,5 @@ def attribution_localization(
             is_attributions_tuple, attribution_localization_scores
         )
         if return_dict:
-            {
-                "attribution_localization_score": attribution_localization_scores,
-            }
+            {"attribution_localization_score": attribution_localization_scores}
         return attribution_localization_scores

@@ -110,7 +110,7 @@ def _eval_monotonicity_single_sample(
     with torch.no_grad():
 
         def _agg_monotonicity_tensors(agg_tensors, tensors):
-            return tuple(agg_t + t for agg_t, t in zip(agg_tensors, tensors))
+            return tuple(agg_t + t for agg_t, t in zip(agg_tensors, tensors, strict=False))
 
         bsz = inputs[0].size(0)
         assert bsz == 1, "Batch size must be 1 for monotonicity_single_sample"

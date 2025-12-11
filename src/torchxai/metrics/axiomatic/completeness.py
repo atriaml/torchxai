@@ -8,9 +8,13 @@ from captum._utils.common import (
     _format_tensor_into_tuples,
     _run_forward,
 )
-from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torch import Tensor
 
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.metrics.axiomatic.multi_target.completeness import (
     _multi_target_completeness,
 )

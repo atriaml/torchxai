@@ -1,15 +1,10 @@
-from typing import Any, Callable, Optional, Tuple, Union
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import torch
 from captum._utils.common import _is_tuple
-from captum._utils.typing import (
-    BaselineType,
-    TargetType,
-    Tensor,
-    TensorOrTupleOfTensorsGeneric,
-)
-from captum.attr import Attribution, GradientShap
+from captum.attr import GradientShap
 from captum.attr._core.gradient_shap import InputBaselineXGradient, _scale_input
 from captum.attr._core.noise_tunnel import NoiseTunnel
 from captum.attr._utils.common import (
@@ -17,9 +12,13 @@ from captum.attr._utils.common import (
     _format_callable_baseline,
     _format_input_baseline,
 )
-from captum.log import log_usage
 from torch.nn.modules import Module
 
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.explainers._grad.noise_tunnel import MultiTargetNoiseTunnel
 from torchxai.explainers._utils import (
     _compute_gradients_sequential_autograd,
@@ -29,7 +28,6 @@ from torchxai.explainers.explainer import Explainer
 
 
 class MultiTargetInputBaselineXGradient(InputBaselineXGradient):
-    @log_usage()
     def attribute(  # type: ignore
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
@@ -37,9 +35,7 @@ class MultiTargetInputBaselineXGradient(InputBaselineXGradient):
         target: TargetType = None,
         additional_forward_args: Any = None,
         return_convergence_delta: bool = False,
-    ) -> Union[
-        TensorOrTupleOfTensorsGeneric, Tuple[TensorOrTupleOfTensorsGeneric, Tensor]
-    ]:
+    ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         # Keeps track whether original input is a tuple or not before
         # converting it into a tuple.
         is_inputs_tuple = _is_tuple(inputs)
@@ -53,7 +49,7 @@ class MultiTargetInputBaselineXGradient(InputBaselineXGradient):
 
         input_baseline_scaled = tuple(
             _scale_input(input, baseline, rand_coefficient)
-            for input, baseline in zip(inputs, baselines)
+            for input, baseline in zip(inputs, baselines, strict=False)
         )
         multi_target_gradients = self.gradient_func(
             self.forward_func,
@@ -66,12 +62,13 @@ class MultiTargetInputBaselineXGradient(InputBaselineXGradient):
         def gradients_to_attributions(per_target_gradients):
             if self.multiplies_by_inputs:
                 input_baseline_diffs = tuple(
-                    input - baseline for input, baseline in zip(inputs, baselines)
+                    input - baseline
+                    for input, baseline in zip(inputs, baselines, strict=False)
                 )
                 return tuple(
                     input_baseline_diff * grad
                     for input_baseline_diff, grad in zip(
-                        input_baseline_diffs, per_target_gradients
+                        input_baseline_diffs, per_target_gradients, strict=False
                     )
                 )
             else:
@@ -100,7 +97,7 @@ class MultiTargetInputBaselineXGradient(InputBaselineXGradient):
                     is_inputs_tuple,
                 )
                 for single_target, per_target_attribution in zip(
-                    target, multi_target_attributions
+                    target, multi_target_attributions, strict=False
                 )
             ]
         else:
@@ -142,18 +139,17 @@ class GradientShapCustom(GradientShap):
         baselines: BaselineType,
         n_samples: int = 5,
         n_samples_batch_size: int = None,
-        stdevs: Union[float, Tuple[float, ...]] = 0.0,
+        stdevs: float | tuple[float, ...] = 0.0,
         target: TargetType = None,
         additional_forward_args: Any = None,
         return_convergence_delta: bool = False,
-    ) -> Union[
-        TensorOrTupleOfTensorsGeneric, Tuple[TensorOrTupleOfTensorsGeneric, Tensor]
-    ]:
+    ) -> (
+        TensorOrTupleOfTensorsGeneric
+        | tuple[TensorOrTupleOfTensorsGeneric, torch.Tensor]
+    ):
         baselines = _format_callable_baseline(baselines, inputs)
-        assert isinstance(
-            baselines[0], torch.Tensor
-        ), "Baselines distribution has to be provided in a form of a torch.Tensor {}.".format(
-            baselines[0]
+        assert isinstance(baselines[0], torch.Tensor), (
+            f"Baselines distribution has to be provided in a form of a torch.Tensor {baselines[0]}."
         )
 
         input_min_baseline_x_grad = InputBaselineXGradient(
@@ -199,24 +195,24 @@ class MultiTargetGradientShap(GradientShap):
     def attribute(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        baselines: Union[
-            TensorOrTupleOfTensorsGeneric, Callable[..., TensorOrTupleOfTensorsGeneric]
-        ],
+        baselines: TensorOrTupleOfTensorsGeneric
+        | Callable[..., TensorOrTupleOfTensorsGeneric],
         n_samples: int = 5,
         n_samples_batch_size: int = None,
-        stdevs: Union[float, Tuple[float, ...]] = 0.0,
+        stdevs: float | tuple[float, ...] = 0.0,
         target: TargetType = None,
         additional_forward_args: Any = None,
         return_convergence_delta: bool = False,
-    ) -> Union[
-        TensorOrTupleOfTensorsGeneric, Tuple[TensorOrTupleOfTensorsGeneric, Tensor]
-    ]:
+    ) -> (
+        TensorOrTupleOfTensorsGeneric
+        | tuple[TensorOrTupleOfTensorsGeneric, torch.Tensor]
+    ):
         # since `baselines` is a distribution, we can generate it using a function
         # rather than passing it as an input argument
         baselines = _format_callable_baseline(baselines, inputs)
         assert isinstance(baselines[0], torch.Tensor), (
             "Baselines distribution has to be provided in a form "
-            "of a torch.Tensor {}.".format(baselines[0])
+            f"of a torch.Tensor {baselines[0]}."
         )
 
         input_min_baseline_x_grad = MultiTargetInputBaselineXGradient(
@@ -269,7 +265,7 @@ class GradientShapExplainer(Explainer):
         )
         self.n_samples = n_samples
 
-    def _init_explanation_fn(self) -> Attribution:
+    def _init_explanation_fn(self) -> Callable:
         """
         Initializes the explanation function.
 
@@ -279,14 +275,14 @@ class GradientShapExplainer(Explainer):
         if self._is_multi_target:
             return MultiTargetGradientShap(
                 self._model, grad_batch_size=self._grad_batch_size
-            )
-        return GradientShapCustom(self._model)
+            ).attribute
+        return GradientShapCustom(self._model).attribute
 
     def explain(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
         target: TargetType,
-        baselines: Optional[BaselineType] = None,
+        baselines: BaselineType | None = None,
         additional_forward_args: Any = None,
         return_convergence_delta: bool = False,
     ) -> TensorOrTupleOfTensorsGeneric:
@@ -302,7 +298,7 @@ class GradientShapExplainer(Explainer):
         Returns:
             TensorOrTupleOfTensorsGeneric: The computed attributions.
         """
-        return self._explanation_fn.attribute(
+        return self._explanation_fn(
             inputs=inputs,
             target=target,
             baselines=baselines,

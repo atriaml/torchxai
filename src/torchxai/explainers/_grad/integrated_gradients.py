@@ -9,7 +9,6 @@ from captum._utils.common import (
     _format_output,
     _is_tuple,
 )
-from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from captum.attr import Attribution, IntegratedGradients
 from captum.attr._utils.approximation_methods import approximation_parameters
 from captum.attr._utils.common import (
@@ -21,6 +20,11 @@ from torch import Tensor
 from torch.nn import Module
 from torch.nn.modules import Module
 
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.explainers._utils import (
     _batch_attribution_multi_target,
     _compute_gradients_sequential_autograd,
@@ -108,7 +112,7 @@ class MultiTargetIntegratedGradients(IntegratedGradients):
                         target=single_target,
                     )
                     for single_target, per_target_attribution in zip(
-                        target, multi_target_attributions
+                        target, multi_target_attributions, strict=False
                     )
                 ]
             else:
@@ -155,7 +159,7 @@ class MultiTargetIntegratedGradients(IntegratedGradients):
             torch.cat(
                 [baseline + alpha * (input - baseline) for alpha in alphas], dim=0
             ).requires_grad_()
-            for input, baseline in zip(inputs, baselines)
+            for input, baseline in zip(inputs, baselines, strict=False)
         )
 
         additional_forward_args = _format_additional_forward_args(
@@ -201,7 +205,7 @@ class MultiTargetIntegratedGradients(IntegratedGradients):
                 _reshape_and_sum(
                     scaled_grad, n_steps, grad.shape[0] // n_steps, grad.shape[1:]
                 )
-                for (scaled_grad, grad) in zip(scaled_grads, grads)
+                for (scaled_grad, grad) in zip(scaled_grads, grads, strict=False)
             )
 
             # computes attribution for each tensor in input tuple
@@ -212,7 +216,7 @@ class MultiTargetIntegratedGradients(IntegratedGradients):
                 attributions = tuple(
                     total_grad * (input - baseline)
                     for total_grad, input, baseline in zip(
-                        total_grads, inputs, baselines
+                        total_grads, inputs, baselines, strict=False
                     )
                 )
             return attributions

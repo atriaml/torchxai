@@ -14,10 +14,11 @@ from captum._utils.common import (
     _is_tuple,
     _select_targets,
 )
-from captum._utils.typing import TargetType
 from captum.attr._utils.approximation_methods import approximation_parameters
 from captum.attr._utils.common import _format_tensor_into_tuples
 from torch import Tensor
+
+from torchxai.data_types.common import TargetType, TensorOrTupleOfTensorsGeneric
 
 
 def _generate_mask_weights(feature_mask_batch: torch.Tensor) -> torch.Tensor:
@@ -37,7 +38,7 @@ def _generate_mask_weights(feature_mask_batch: torch.Tensor) -> torch.Tensor:
         feature_mask_batch, dtype=torch.float32
     )
     for feature_mask, feature_mask_weighted in zip(
-        feature_mask_batch, feature_mask_weighted_batch
+        feature_mask_batch, feature_mask_weighted_batch, strict=False
     ):  # batch iteration
         labels, counts = torch.unique(feature_mask, return_counts=True)
         for idx in range(labels.shape[0]):
@@ -55,7 +56,9 @@ def _weight_attributions(attributions, feature_mask):
     )
     weighted_attributions = tuple(
         attribution * feature_mask_weight
-        for attribution, feature_mask_weight in zip(attributions, feature_mask_weights)
+        for attribution, feature_mask_weight in zip(
+            attributions, feature_mask_weights, strict=False
+        )
     )
     if is_inputs_tuple:
         return weighted_attributions
@@ -66,7 +69,7 @@ def _weight_attributions(attributions, feature_mask):
 def _run_forward_multi_target(
     forward_func: Callable,
     inputs: Any,
-    target: list[TargetType],
+    target: TargetType,
     additional_forward_args: Any = None,
 ) -> Tensor:
     forward_func_args = signature(forward_func).parameters
@@ -98,11 +101,11 @@ def _run_forward_multi_target(
 def _compute_gradients_sequential_autograd(
     forward_fn: Callable,
     inputs: Tensor | tuple[Tensor, ...],
-    target: tuple[TargetType, ...] = None,
+    target: TargetType = None,
     additional_forward_args: Any = None,
     **kwargs,
-) -> tuple[Tensor, ...]:
-    with torch.autograd.set_grad_enabled(True):
+) -> list[tuple[Tensor, ...]]:
+    with torch.autograd.set_grad_enabled(True):  # type: ignore
         outputs = _run_forward_multi_target(
             forward_fn, inputs, target, additional_forward_args
         )
@@ -134,10 +137,10 @@ def _compute_gradients_sequential_autograd(
 def _compute_gradients_vmap_autograd_direct(
     forward_fn: Callable,
     inputs: Tensor | tuple[Tensor, ...],
-    target: tuple[TargetType, ...] = None,
+    target: TargetType = None,
     additional_forward_args: Any = None,
-) -> tuple[Tensor, ...]:
-    with torch.autograd.set_grad_enabled(True):
+) -> list[tuple[Tensor, ...]]:
+    with torch.autograd.set_grad_enabled(True):  # type: ignore
         outputs = _run_forward_multi_target(
             forward_fn, inputs, target, additional_forward_args
         )
@@ -175,12 +178,12 @@ def _compute_gradients_vmap_autograd_direct(
 def _compute_gradients_vmap_autograd(
     forward_fn: Callable,
     inputs: Tensor | tuple[Tensor, ...],
-    target: tuple[TargetType, ...] = None,
+    target: TargetType = None,
     additional_forward_args: Any = None,
     grad_batch_size: int = 1,
     show_progress: bool = True,
-) -> tuple[Tensor, ...]:
-    with torch.autograd.set_grad_enabled(True):
+) -> list[tuple[Tensor, ...]]:
+    with torch.autograd.set_grad_enabled(True):  # type: ignore
         outputs = _run_forward_multi_target(
             forward_fn, inputs, target, additional_forward_args
         )
@@ -254,8 +257,8 @@ def _batch_attribution_multi_target(
     if internal_batch_size < num_examples:
         warnings.warn(
             "Internal batch size cannot be less than the number of input examples. "
-            "Defaulting to internal batch size of %d equal to the number of examples."
-            % num_examples
+            f"Defaulting to internal batch size of {num_examples} equal to the number of examples.",
+            stacklevel=2,
         )
     # Number of steps for each batch
     step_count = max(1, internal_batch_size // num_examples)
@@ -265,8 +268,9 @@ def _batch_attribution_multi_target(
             warnings.warn(
                 "This method computes finite differences between evaluations at "
                 "consecutive steps, so internal batch size must be at least twice "
-                "the number of examples. Defaulting to internal batch size of %d"
-                " equal to twice the number of examples." % (2 * num_examples)
+                f"the number of examples. Defaulting to internal batch size of {2 * num_examples}"
+                " equal to twice the number of examples.",
+                stacklevel=2,
             )
 
     total_attr = None
@@ -301,7 +305,9 @@ def _batch_attribution_multi_target(
                     total_attr[output_idx] = tuple(
                         current.detach() + prev_total
                         for current, prev_total in zip(
-                            current_attr[output_idx], total_attr[output_idx]
+                            current_attr[output_idx],
+                            total_attr[output_idx],
+                            strict=False,
                         )
                     )
 
@@ -352,8 +358,8 @@ def _expand_and_update_target_multi_target(n_samples: int, kwargs: dict):
 
 
 def _expand_feature_mask_to_target(
-    feature_mask: tuple[torch.Tensor], inputs: tuple[torch.Tensor]
-) -> tuple[torch.Tensor]:
+    feature_mask: TensorOrTupleOfTensorsGeneric, inputs: TensorOrTupleOfTensorsGeneric
+) -> TensorOrTupleOfTensorsGeneric:
     """
     Expands each feature mask tensor to match the shape of the corresponding input tensor.
     Args:
@@ -379,7 +385,7 @@ def _expand_feature_mask_to_target(
             if len(mask.shape) < len(input.shape)
             else mask.expand_as(input)
         )
-        for input, mask in zip(inputs, feature_mask)
+        for input, mask in zip(inputs, feature_mask, strict=False)
     )
     if return_first_element:
         return feature_mask[0]

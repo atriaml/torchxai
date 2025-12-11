@@ -57,6 +57,7 @@ Requires-Dist: numpy<2.0
 Requires-Dist: torchvision>=0.16.2
 Requires-Dist: pydantic>=2.12.5
 Requires-Dist: scikit-learn>=1.8.0
+Requires-Dist: overrides>=7.7.0
 Dynamic: license-file
 
 # TorchXAI

@@ -7,9 +7,13 @@ from captum._utils.common import (
     _format_baseline,
     _format_tensor_into_tuples,
 )
-from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torch import Tensor
 
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.explainers._utils import _run_forward_multi_target
 
 

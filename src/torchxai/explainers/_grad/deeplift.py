@@ -1,3 +1,4 @@
+import typing
 import warnings
 from collections.abc import Callable
 from typing import Any
@@ -17,7 +18,6 @@ from captum._utils.gradient import (
     apply_gradient_requirements,
     undo_gradient_requirements,
 )
-from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from captum.attr import Attribution, DeepLift
 from captum.attr._core.deep_lift import SUPPORTED_NON_LINEAR, nonlinear
 from captum.attr._utils.common import (
@@ -26,10 +26,14 @@ from captum.attr._utils.common import (
     _tensorize_baseline,
     _validate_input,
 )
-from captum.log import log_usage
 from torch import Tensor, nn
 from torch.nn import Module
 
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.explainers._utils import (
     _compute_gradients_sequential_autograd,
     _compute_gradients_vmap_autograd,
@@ -61,12 +65,12 @@ class MultiTargetDeepLift(DeepLift):
         self.gradient_func = gradient_func
         self.grad_batch_size = grad_batch_size
 
-    @log_usage()
-    def attribute(  # type: ignore
+    @typing.overload
+    def attribute(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
         baselines: BaselineType = None,
-        target: tuple[TargetType, ...] = None,
+        target: list[TargetType] | None = None,
         additional_forward_args: Any = None,
         return_convergence_delta: bool = False,
         custom_attribution_func: None | Callable[..., tuple[Tensor, ...]] = None,
@@ -123,7 +127,7 @@ class MultiTargetDeepLift(DeepLift):
                         attributions = tuple(
                             (input - baseline) * gradient
                             for input, baseline, gradient in zip(
-                                inputs, baselines, gradients
+                                inputs, baselines, gradients, strict=False
                             )
                         )
                     else:
@@ -162,7 +166,7 @@ class MultiTargetDeepLift(DeepLift):
                     is_inputs_tuple,
                 )
                 for single_target, per_target_attribution in zip(
-                    target, multi_target_attributions
+                    target, multi_target_attributions, strict=False
                 )
             ]
         else:

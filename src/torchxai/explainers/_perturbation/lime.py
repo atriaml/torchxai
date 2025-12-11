@@ -3,7 +3,7 @@ import math
 import typing
 import warnings
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal
 
 import torch
 from captum._utils.common import (
@@ -16,25 +16,22 @@ from captum._utils.common import (
 )
 from captum._utils.models.linear_model import SkLearnLasso
 from captum._utils.models.model import Model
-from captum._utils.typing import (
-    BaselineType,
-    Literal,
-    TargetType,
-    TensorOrTupleOfTensorsGeneric,
-)
 from captum.attr import Attribution, LimeBase
 from captum.attr._core.lime import (
-    _reduce_list,
     construct_feature_mask,
     default_from_interp_rep_transform,
     default_perturb_func,
 )
 from captum.attr._utils.batching import _batch_example_iterator
 from captum.attr._utils.common import _format_input_baseline
-from captum.log import log_usage
 from torch import Tensor
 from torch.nn import CosineSimilarity, Module
 
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.explainers._perturbation.lime_base import MultiTargetLimeBase
 from torchxai.explainers._utils import (
     _expand_feature_mask_to_target,
@@ -358,7 +355,6 @@ class MultiTargetLime(MultiTargetLimeBase):
             None,
         )
 
-    @log_usage()
     def attribute(  # type: ignore
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
@@ -428,9 +424,9 @@ class MultiTargetLime(MultiTargetLimeBase):
                     assert target[0].shape[0] == bsz
 
                     # convert the list of tensors to multiple ids for each example
-                    target = list(zip(*target))
+                    target = list(zip(*target, strict=False))
 
-                    target = list(item[0] for item in target)
+                    target = [item[0] for item in target]
             elif (
                 isinstance(target, list)
                 and isinstance(target[0], list)
@@ -439,7 +435,7 @@ class MultiTargetLime(MultiTargetLimeBase):
                 assert len(target[0]) == bsz
 
                 # convert the list of tensors to multiple ids for each example
-                target = list(zip(*target))
+                target = list(zip(*target, strict=False))
             elif (
                 isinstance(target, list)
                 and isinstance(target[0], list)
@@ -448,7 +444,7 @@ class MultiTargetLime(MultiTargetLimeBase):
                 assert len(target[0]) == bsz
 
                 # convert the list of tensors to multiple ids for each example
-                target = list(zip(*target))
+                target = list(zip(*target, strict=False))
 
             if isinstance(test_output, Tensor) and torch.numel(test_output) > n_targets:
                 if test_output.shape[0] == bsz:
@@ -520,7 +516,7 @@ class MultiTargetLime(MultiTargetLimeBase):
 
                     # switch from per sample target output to per target output
                     # each element of this output now contains the batch attributions for a single target
-                    output_list = list(zip(*output_list))
+                    output_list = list(zip(*output_list, strict=False))
 
                     return [_reduce_list(output) for output in output_list]
                 else:

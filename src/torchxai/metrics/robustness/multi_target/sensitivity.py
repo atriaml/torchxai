@@ -105,7 +105,7 @@ def _multi_target_sensitivity_scores(
                 [
                     (expl_input - expl_perturbed).view(expl_perturbed.size(0), -1)
                     for expl_perturbed, expl_input in zip(
-                        expl_perturbed_inputs, expl_inputs_expanded
+                        expl_perturbed_inputs, expl_inputs_expanded, strict=False
                     )
                 ],
                 dim=1,
@@ -148,7 +148,7 @@ def _multi_target_sensitivity_scores(
         return [
             compute_sensitivity_per_target(expl_inputs, expl_perturbed)
             for expl_inputs, expl_perturbed in zip(
-                expl_inputs_list, expl_perturbed_inputs_list
+                expl_inputs_list, expl_perturbed_inputs_list, strict=False
             )
         ]
 
@@ -170,7 +170,7 @@ def _multi_target_sensitivity_scores(
     bsz = inputs[0].size(0)
 
     def _agg_sensitivity_scores(agg_tensors, tensors):
-        return [torch.cat([agg_t, t], dim=-1) for agg_t, t in zip(agg_tensors, tensors)]
+        return [torch.cat([agg_t, t], dim=-1) for agg_t, t in zip(agg_tensors, tensors, strict=False)]
 
     with torch.no_grad():
         expl_inputs_list = explanation_func.explain(inputs, **kwargs)

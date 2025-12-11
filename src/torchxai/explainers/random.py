@@ -1,10 +1,14 @@
+from collections.abc import Callable
 from typing import Any
 
 import torch
 from captum._utils.common import _format_tensor_into_tuples
-from captum.attr import Attribution
 
-from torchxai.data_types.common import TargetType, TensorOrTupleOfTensorsGeneric
+from torchxai.data_types.common import (
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+    TensorOrTupleOfTensorsOrListOfTensorsGeneric,
+)
 from torchxai.explainers.explainer import Explainer
 
 
@@ -16,7 +20,7 @@ class RandomExplainer(Explainer):
         model (torch.nn.Module): The model whose output is to be explained.
     """
 
-    def _init_explanation_fn(self) -> Attribution:
+    def _init_explanation_fn(self) -> Callable:
         """
         Initializes the attribution function.
 
@@ -26,11 +30,11 @@ class RandomExplainer(Explainer):
 
         if self._is_multi_target:
 
-            def explanation_fn(inputs, *args, **kwargs):
+            def mt_explanation_fn(inputs, *args, **kwargs):
                 inputs = _format_tensor_into_tuples(inputs)
                 return [tuple(torch.randn_like(input) for input in inputs)]
 
-            return explanation_fn
+            return mt_explanation_fn
 
         def explanation_fn(inputs, *args, **kwargs):
             inputs = _format_tensor_into_tuples(inputs)
@@ -43,7 +47,7 @@ class RandomExplainer(Explainer):
         inputs: TensorOrTupleOfTensorsGeneric,
         target: TargetType,
         additional_forward_args: Any = None,
-    ) -> TensorOrTupleOfTensorsGeneric:
+    ) -> TensorOrTupleOfTensorsOrListOfTensorsGeneric:
         """
         Compute the attributions for the given inputs.
 
@@ -55,7 +59,6 @@ class RandomExplainer(Explainer):
         Returns:
             TensorOrTupleOfTensorsGeneric: The computed attributions.
         """
-
         return self._explanation_fn(
             inputs=inputs,
             target=target,

@@ -1,6 +1,6 @@
 import typing
 from collections.abc import Callable
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import torch
 import tqdm
@@ -13,17 +13,16 @@ from captum._utils.common import (
     _format_tensor_into_tuples,
     _is_tuple,
 )
-from captum._utils.typing import (
-    BaselineType,
-    Literal,
-    TargetType,
-    TensorOrTupleOfTensorsGeneric,
-)
 from captum.attr import Attribution, DeepLift
 from captum.attr._utils.common import _format_callable_baseline
 from torch import Tensor
 from torch.nn import Module
 
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.explainers._grad.deeplift import MultiTargetDeepLift
 from torchxai.explainers._utils import (
     _compute_gradients_sequential_autograd,
@@ -161,7 +160,7 @@ class DeepLiftShapBatched(DeepLift):
                     tuple(
                         torch.cat((agg_attribution, batch_attribution), dim=0)
                         for agg_attribution, batch_attribution in zip(
-                            agg_attributions, batch_attributions
+                            agg_attributions, batch_attributions, strict=False
                         )
                     )
                     if agg_attributions is not None
@@ -377,7 +376,9 @@ class MultiTargetDeepLiftShapBatched(MultiTargetDeepLift):
                     multi_target_delta = (
                         [
                             torch.cat((agg, curr), dim=0)
-                            for agg, curr in zip(multi_target_delta, batch_delta)
+                            for agg, curr in zip(
+                                multi_target_delta, batch_delta, strict=False
+                            )
                         ]
                         if multi_target_delta is not None
                         else batch_delta
@@ -536,7 +537,7 @@ class DeepLiftShapExplainer(Explainer):
         train_baselines: BaselineType,
         additional_forward_args: Any = None,
         return_convergence_delta: bool = False,
-    ) -> TensorOrTupleOfTensorsGeneric:
+    ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """
         Compute the DeepLIFT attributions for the given inputs.
 

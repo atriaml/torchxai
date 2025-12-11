@@ -1,5 +1,6 @@
 import inspect
-from typing import Any, Callable, List, Optional, Tuple, Union, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import torch
 from captum._utils.common import (
@@ -12,9 +13,14 @@ from captum._utils.common import (
     _run_forward,
     safe_div,
 )
-from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from captum.metrics._utils.batching import _divide_and_aggregate_metrics
 from torch import Tensor
+
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.metrics._utils.perturbation import default_infidelity_perturb_fn
 from torchxai.metrics.faithfulness.multi_target.infidelity import (
     _multi_target_infidelity,
@@ -29,15 +35,15 @@ def _infidelity(
     baselines: BaselineType = None,
     additional_forward_args: Any = None,
     target: TargetType = None,
-    feature_mask: Optional[TensorOrTupleOfTensorsGeneric] = None,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
+    frozen_features: list[torch.Tensor] | None = None,
     n_perturb_samples: int = 10,
-    max_examples_per_batch: Optional[int] = None,
+    max_examples_per_batch: int | None = None,
     normalize: bool = True,
 ) -> Tensor:
     def _generate_perturbations(
         current_n_perturb_samples: int,
-    ) -> Tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
+    ) -> tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
         r"""
         The perturbations are generated for each example
         `current_n_perturb_samples` times.
@@ -50,19 +56,17 @@ def _infidelity(
         def call_perturb_func():
             r""" """
             baselines_pert = None
-            inputs_pert: Union[Tensor, Tuple[Tensor, ...]]
+            inputs_pert: Tensor | tuple[Tensor, ...]
             if len(inputs_expanded) == 1:
                 inputs_pert = inputs_expanded[0]
                 if baselines_expanded is not None:
-                    baselines_pert = cast(Tuple, baselines_expanded)[0]
+                    baselines_pert = cast(tuple, baselines_expanded)[0]
             else:
                 inputs_pert = inputs_expanded
                 baselines_pert = baselines_expanded
 
             valid_args = inspect.signature(perturb_func).parameters.keys()
-            perturb_kwargs = dict(
-                inputs=inputs_pert,
-            )
+            perturb_kwargs = {"inputs": inputs_pert}
             if "baselines" in valid_args:
                 perturb_kwargs["baselines"] = baselines_pert
             if "feature_masks" in valid_args:
@@ -99,36 +103,34 @@ def _infidelity(
                     and baseline.shape[0] == input.shape[0]
                     else baseline
                 )
-                for input, baseline in zip(inputs, cast(Tuple, baselines))
+                for input, baseline in zip(inputs, cast(tuple, baselines), strict=False)
             )
 
         return call_perturb_func()
 
     def _validate_inputs_and_perturbations(
-        inputs: Tuple[Tensor, ...],
-        inputs_perturbed: Tuple[Tensor, ...],
-        perturbations: Tuple[Tensor, ...],
+        inputs: tuple[Tensor, ...],
+        inputs_perturbed: tuple[Tensor, ...],
+        perturbations: tuple[Tensor, ...],
     ) -> None:
         # asserts the sizes of the perturbations and inputs
-        assert len(perturbations) == len(inputs), (
-            """The number of perturbed
+        assert len(perturbations) == len(inputs), f"""The number of perturbed
             inputs and corresponding perturbations must have the same number of
-            elements. Found number of inputs is: {} and perturbations:
-            {}"""
-        ).format(len(perturbations), len(inputs))
+            elements. Found number of inputs is: {len(perturbations)} and perturbations:
+            {len(inputs)}"""
 
         # asserts the shapes of the perturbations and perturbed inputs
-        for perturb, input_perturbed in zip(perturbations, inputs_perturbed):
-            assert perturb[0].shape == input_perturbed[0].shape, (
-                """Perturbed input
+        for perturb, input_perturbed in zip(
+            perturbations, inputs_perturbed, strict=False
+        ):
+            assert perturb[0].shape == input_perturbed[0].shape, f"""Perturbed input
                 and corresponding perturbation must have the same shape and
-                dimensionality. Found perturbation shape is: {} and the input shape
-                is: {}"""
-            ).format(perturb[0].shape, input_perturbed[0].shape)
+                dimensionality. Found perturbation shape is: {perturb[0].shape} and the input shape
+                is: {input_perturbed[0].shape}"""
 
     def _next_infidelity_tensors(
         current_n_perturb_samples: int,
-    ) -> Union[Tuple[Tensor], Tuple[Tensor, Tensor, Tensor]]:
+    ) -> tuple[Tensor] | tuple[Tensor, Tensor, Tensor]:
         perturbations, inputs_perturbed = _generate_perturbations(
             current_n_perturb_samples
         )
@@ -137,9 +139,9 @@ def _infidelity(
         inputs_perturbed = _format_tensor_into_tuples(inputs_perturbed)
         # _draw_perturbated_inputs_sequences_images(inputs_perturbed)
         _validate_inputs_and_perturbations(
-            cast(Tuple[Tensor, ...], inputs),
-            cast(Tuple[Tensor, ...], inputs_perturbed),
-            cast(Tuple[Tensor, ...], perturbations),
+            cast(tuple[Tensor, ...], inputs),
+            cast(tuple[Tensor, ...], inputs_perturbed),
+            cast(tuple[Tensor, ...], perturbations),
         )
 
         targets_expanded = _expand_target(
@@ -172,7 +174,7 @@ def _infidelity(
         attributions_times_perturb = tuple(
             (attribution_expanded * perturbation).view(attribution_expanded.size(0), -1)
             for attribution_expanded, perturbation in zip(
-                attributions_expanded, perturbations
+                attributions_expanded, perturbations, strict=False
             )
         )
 
@@ -200,34 +202,30 @@ def _infidelity(
             return ((attr_times_perturb_sums - perturbed_fwd_diffs).pow(2).sum(-1),)
 
     def _sum_infidelity_tensors(agg_tensors, tensors):
-        return tuple(agg_t + t for agg_t, t in zip(agg_tensors, tensors))
+        return tuple(agg_t + t for agg_t, t in zip(agg_tensors, tensors, strict=False))
 
     # perform argument formattings
     inputs = _format_tensor_into_tuples(inputs)  # type: ignore
     if baselines is not None:
-        baselines = _format_baseline(baselines, cast(Tuple[Tensor, ...], inputs))
+        baselines = _format_baseline(baselines, cast(tuple[Tensor, ...], inputs))
     additional_forward_args = _format_additional_forward_args(additional_forward_args)
     attributions = _format_tensor_into_tuples(attributions)  # type: ignore
 
     # Make sure that inputs and corresponding attributions have matching sizes.
-    assert len(inputs) == len(attributions), (
-        """The number of tensors in the inputs and
-        attributions must match. Found number of tensors in the inputs is: {} and in the
-        attributions: {}"""
-    ).format(len(inputs), len(attributions))
-    for inp, attr in zip(inputs, attributions):
-        assert inp.shape == attr.shape, (
-            """Inputs and attributions must have
-        matching shapes. One of the input tensor's shape is {} and the
-        attribution tensor's shape is: {}"""
-        ).format(inp.shape, attr.shape)
+    assert len(inputs) == len(attributions), f"""The number of tensors in the inputs and
+        attributions must match. Found number of tensors in the inputs is: {len(inputs)} and in the
+        attributions: {len(attributions)}"""
+    for inp, attr in zip(inputs, attributions, strict=False):
+        assert inp.shape == attr.shape, f"""Inputs and attributions must have
+        matching shapes. One of the input tensor's shape is {inp.shape} and the
+        attribution tensor's shape is: {attr.shape}"""
 
     bsz = inputs[0].size(0)
     with torch.no_grad():
         # if not normalize, directly return aggrgated MSE ((a-b)^2,)
         # else return aggregated MSE's polynomial expansion tensors (a^2, ab, b^2)
         agg_tensors = _divide_and_aggregate_metrics(
-            cast(Tuple[Tensor, ...], inputs),
+            cast(tuple[Tensor, ...], inputs),
             n_perturb_samples,
             _next_infidelity_tensors,
             agg_func=_sum_infidelity_tensors,
@@ -253,17 +251,15 @@ def _infidelity(
 def infidelity(
     forward_func: Callable,
     inputs: TensorOrTupleOfTensorsGeneric,
-    attributions: Union[
-        List[TensorOrTupleOfTensorsGeneric], TensorOrTupleOfTensorsGeneric
-    ],
+    attributions: list[TensorOrTupleOfTensorsGeneric] | TensorOrTupleOfTensorsGeneric,
     baselines: BaselineType = None,
     additional_forward_args: Any = None,
     target: TargetType = None,
-    feature_mask: Optional[TensorOrTupleOfTensorsGeneric] = None,
-    frozen_features: Optional[List[torch.Tensor]] = None,
-    perturb_func: Optional[Callable] = None,
+    feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
+    frozen_features: list[torch.Tensor] | None = None,
+    perturb_func: Callable | None = None,
     n_perturb_samples: int = 10,
-    max_examples_per_batch: Optional[int] = None,
+    max_examples_per_batch: int | None = None,
     normalize: bool = True,
     is_multi_target: bool = False,
     return_dict: bool = False,
@@ -550,13 +546,13 @@ def infidelity(
         perturb_func=perturb_func,
         inputs=inputs,
         **(
-            dict(attributions_list=attributions)
+            {"attributions_list": attributions}
             if is_multi_target
-            else dict(attributions=attributions)
+            else {"attributions": attributions}
         ),
         baselines=baselines,
         additional_forward_args=additional_forward_args,
-        **dict(targets_list=target) if is_multi_target else dict(target=target),
+        **{"targets_list": target} if is_multi_target else {"target": target},
         feature_mask=feature_mask,
         frozen_features=frozen_features,
         n_perturb_samples=n_perturb_samples,

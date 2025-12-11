@@ -1,5 +1,6 @@
 import inspect
-from typing import Any, Callable, List, Optional, Tuple, Union, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import scipy
 import torch
@@ -12,8 +13,13 @@ from captum._utils.common import (
     _format_tensor_into_tuples,
     _run_forward,
 )
-from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torch import Tensor
+
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.metrics._utils.batching import _divide_and_aggregate_metrics
 from torchxai.metrics._utils.common import (
     _construct_default_feature_mask,
@@ -39,19 +45,14 @@ def _faithfulness_corr(
     target: TargetType = None,
     perturb_func: Callable = default_fixed_baseline_perturb_func(),
     n_perturb_samples: int = 10,
-    max_examples_per_batch: Optional[int] = None,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    max_examples_per_batch: int | None = None,
+    frozen_features: list[torch.Tensor] | None = None,
     percent_features_perturbed: float = 0.1,
     show_progress: bool = False,
-) -> Tuple[
-    Union[Tensor, List[Tensor]],
-    Union[Tensor, List[Tensor]],
-    Union[Tensor, List[Tensor]],
-]:
+) -> tuple[Tensor | list[Tensor], Tensor | list[Tensor], Tensor | list[Tensor]]:
     def _generate_perturbations(
-        current_n_perturb_samples: int,
-        current_n_step: int,
-    ) -> Tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
+        current_n_perturb_samples: int, current_n_step: int
+    ) -> tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
         r"""
         The perturbations are generated for each example
         `current_n_perturb_samples` times.
@@ -63,20 +64,20 @@ def _faithfulness_corr(
 
         def call_perturb_func():
             baselines_arg = None
-            inputs_arg: Union[Tensor, Tuple[Tensor, ...]]
+            inputs_arg: Tensor | tuple[Tensor, ...]
             if len(inputs_expanded) == 1:
                 inputs_arg = inputs_expanded[0]
                 if baselines_expanded is not None:
-                    baselines_arg = cast(Tuple, baselines_expanded)[0]
+                    baselines_arg = cast(tuple, baselines_expanded)[0]
                 perturbation_mask_arg = perturbation_masks[0]
             else:
                 inputs_arg = inputs_expanded
                 baselines_arg = baselines_expanded
                 perturbation_mask_arg = perturbation_masks
-            pertub_kwargs = dict(
-                inputs=inputs_arg,
-                perturbation_masks=perturbation_mask_arg,
-            )
+            pertub_kwargs = {
+                "inputs": inputs_arg,
+                "perturbation_masks": perturbation_mask_arg,
+            }
             if (
                 inspect.signature(perturb_func).parameters.get("baselines")
                 and baselines_arg is not None
@@ -105,34 +106,31 @@ def _faithfulness_corr(
                     and baseline.shape[0] == input.shape[0]
                     else baseline
                 )
-                for input, baseline in zip(inputs, cast(Tuple, baselines))
+                for input, baseline in zip(inputs, cast(tuple, baselines), strict=False)
             )
 
         return call_perturb_func(), perturbation_masks
 
     def _validate_inputs_and_perturbations(
-        inputs: Tuple[Tensor, ...],
-        inputs_perturbed: Tuple[Tensor, ...],
-        perturbations: Tuple[Tensor, ...],
+        inputs: tuple[Tensor, ...],
+        inputs_perturbed: tuple[Tensor, ...],
+        perturbations: tuple[Tensor, ...],
     ) -> None:
         # asserts the sizes of the perturbations and inputs
-        assert len(inputs) == len(inputs_perturbed), (
-            """The number of inputs and corresponding perturbated inputs must have the same number of
-            elements. Found number of inputs is: {} and inputs_perturbed:
-            {}"""
-        ).format(len(inputs), len(inputs_perturbed))
+        assert (
+            len(inputs) == len(inputs_perturbed)
+        ), f"""The number of inputs and corresponding perturbated inputs must have the same number of
+            elements. Found number of inputs is: {len(inputs)} and inputs_perturbed:
+            {len(inputs_perturbed)}"""
         # asserts the sizes of the perturbations and inputs
-        assert len(perturbations) == len(inputs), (
-            """The number of perturbed
+        assert len(perturbations) == len(inputs), f"""The number of perturbed
             inputs and corresponding perturbations must have the same number of
-            elements. Found number of inputs is: {} and perturbations:
-            {}"""
-        ).format(len(perturbations), len(inputs))
+            elements. Found number of inputs is: {len(perturbations)} and perturbations:
+            {len(inputs)}"""
 
     def _next_faithfulness_corr_tensors(
-        current_n_perturb_samples: int,
-        current_n_step: int,
-    ) -> Union[Tuple[Tensor], Tuple[Tensor, Tensor, Tensor]]:
+        current_n_perturb_samples: int, current_n_step: int
+    ) -> tuple[Tensor] | tuple[Tensor, Tensor, Tensor]:
         inputs_perturbed, perturbation_masks = _generate_perturbations(
             current_n_perturb_samples, current_n_step
         )
@@ -141,9 +139,9 @@ def _faithfulness_corr(
         # _draw_perturbated_inputs_sequences_images(inputs_perturbed)
 
         _validate_inputs_and_perturbations(
-            cast(Tuple[Tensor, ...], inputs),
-            cast(Tuple[Tensor, ...], inputs_perturbed),
-            cast(Tuple[Tensor, ...], perturbation_masks),
+            cast(tuple[Tensor, ...], inputs),
+            cast(tuple[Tensor, ...], inputs_perturbed),
+            cast(tuple[Tensor, ...], perturbation_masks),
         )
 
         targets_expanded = _expand_target(
@@ -178,7 +176,7 @@ def _faithfulness_corr(
                 .view(attributions_expanded[0].shape[0], -1)
                 .sum(dim=1)
                 for attribution, perturbation_mask in zip(
-                    attributions_expanded, perturbation_masks
+                    attributions_expanded, perturbation_masks, strict=False
                 )
             )
         )
@@ -192,14 +190,15 @@ def _faithfulness_corr(
 
     def _agg_faithfulness_corr_tensors(agg_tensors, tensors):
         return tuple(
-            torch.cat([agg_t, t], dim=-1) for agg_t, t in zip(agg_tensors, tensors)
+            torch.cat([agg_t, t], dim=-1)
+            for agg_t, t in zip(agg_tensors, tensors, strict=False)
         )
 
     with torch.no_grad():
         # perform argument formattings
         inputs = _format_tensor_into_tuples(inputs)  # type: ignore
         if baselines is not None:
-            baselines = _format_baseline(baselines, cast(Tuple[Tensor, ...], inputs))
+            baselines = _format_baseline(baselines, cast(tuple[Tensor, ...], inputs))
             baselines = _format_tensor_tuple_feature_dim(baselines)  # type: ignore
         additional_forward_args = _format_additional_forward_args(
             additional_forward_args
@@ -212,22 +211,22 @@ def _faithfulness_corr(
         attributions = _format_tensor_tuple_feature_dim(attributions)
 
         # Make sure that inputs and corresponding attributions have matching sizes.
-        assert len(inputs) == len(attributions), (
-            """The number of tensors in the inputs and
-            attributions must match. Found number of tensors in the inputs is: {} and in the
-            attributions: {}"""
-        ).format(len(inputs), len(attributions))
+        assert len(inputs) == len(
+            attributions
+        ), f"""The number of tensors in the inputs and
+            attributions must match. Found number of tensors in the inputs is: {len(inputs)} and in the
+            attributions: {len(attributions)}"""
         if baselines is not None:
-            assert len(inputs) == len(baselines), (
-                """The number of tensors in the inputs and
-                baselines must match. Found number of tensors in the inputs is: {} and in the
-                baselines: {}"""
-            ).format(len(inputs), len(baselines))
-            assert len(inputs[0]) == len(baselines[0]), (
-                """The batch size in the inputs and
-                baselines must match. Found batch size in the inputs is: {} and in the
-                baselines: {}"""
-            ).format(len(inputs[0]), len(baselines[0]))
+            assert len(inputs) == len(
+                baselines
+            ), f"""The number of tensors in the inputs and
+                baselines must match. Found number of tensors in the inputs is: {len(inputs)} and in the
+                baselines: {len(baselines)}"""
+            assert len(inputs[0]) == len(
+                baselines[0]
+            ), f"""The batch size in the inputs and
+                baselines must match. Found batch size in the inputs is: {len(inputs[0])} and in the
+                baselines: {len(baselines[0])}"""
 
         if feature_mask is None:
             feature_mask = _construct_default_feature_mask(attributions)
@@ -249,7 +248,7 @@ def _faithfulness_corr(
         # if not normalize, directly return aggrgated MSE ((a-b)^2,)
         # else return aggregated MSE's polynomial expansion tensors (a^2, ab, b^2)
         agg_tensors = _divide_and_aggregate_metrics(
-            cast(Tuple[Tensor, ...], inputs),
+            cast(tuple[Tensor, ...], inputs),
             n_perturb_samples,
             _next_faithfulness_corr_tensors,
             agg_func=_agg_faithfulness_corr_tensors,
@@ -264,6 +263,7 @@ def _faithfulness_corr(
                 for x, y in zip(
                     attributions_expanded_perturbed_sum.numpy(),
                     perturbed_fwd_diffs.numpy(),
+                    strict=False,
                 )
             ]
         )
@@ -277,27 +277,21 @@ def _faithfulness_corr(
 def faithfulness_corr(
     forward_func: Callable,
     inputs: TensorOrTupleOfTensorsGeneric,
-    attributions: Union[
-        List[TensorOrTupleOfTensorsGeneric], TensorOrTupleOfTensorsGeneric
-    ],
+    attributions: list[TensorOrTupleOfTensorsGeneric] | TensorOrTupleOfTensorsGeneric,
     baselines: BaselineType = None,
     feature_mask: TensorOrTupleOfTensorsGeneric = None,
     additional_forward_args: Any = None,
     target: TargetType = None,
     perturb_func: Callable = default_fixed_baseline_perturb_func(),
     n_perturb_samples: int = 10,
-    max_examples_per_batch: Optional[int] = None,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    max_examples_per_batch: int | None = None,
+    frozen_features: list[torch.Tensor] | None = None,
     percent_features_perturbed: float = 0.1,
     show_progress: bool = False,
     is_multi_target: bool = False,
     return_intermediate_results: bool = False,
     return_dict: bool = False,
-) -> Tuple[
-    Union[Tensor, List[Tensor]],
-    Union[Tensor, List[Tensor]],
-    Union[Tensor, List[Tensor]],
-]:
+) -> tuple[Tensor | list[Tensor], Tensor | list[Tensor], Tensor | list[Tensor]]:
     """
     Implementation of faithfulness correlation by Bhatt et al., 2020. This implementation
     reuses the batch-computation ideas from captum and therefore it is fully compatible with the Captum library.
@@ -569,14 +563,14 @@ def faithfulness_corr(
         forward_func=forward_func,
         inputs=inputs,
         **(
-            dict(attributions_list=attributions)
+            {"attributions_list": attributions}
             if is_multi_target
-            else dict(attributions=attributions)
+            else {"attributions": attributions}
         ),
         baselines=baselines,
         feature_mask=feature_mask,
         additional_forward_args=additional_forward_args,
-        **(dict(targets_list=target) if is_multi_target else dict(target=target)),
+        **({"targets_list": target} if is_multi_target else {"target": target}),
         perturb_func=perturb_func,
         n_perturb_samples=n_perturb_samples,
         max_examples_per_batch=max_examples_per_batch,

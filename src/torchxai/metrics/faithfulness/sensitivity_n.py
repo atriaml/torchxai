@@ -1,10 +1,16 @@
 import itertools
-from typing import Any, Callable, List, Optional, Union
+from collections.abc import Callable
+from typing import Any
 
 import torch
 from captum._utils.common import _format_tensor_into_tuples
-from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torch import Tensor
+
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.metrics._utils.common import (
     _construct_default_feature_mask,
     _validate_feature_mask,
@@ -17,19 +23,17 @@ from torchxai.metrics.faithfulness.multi_target.infidelity import (
 
 
 def sensitivity_n(
-    n_features_perturbed: Union[int, float],
+    n_features_perturbed: int | float,
     forward_func: Callable,
     inputs: TensorOrTupleOfTensorsGeneric,
-    attributions: Union[
-        List[TensorOrTupleOfTensorsGeneric], TensorOrTupleOfTensorsGeneric
-    ],
+    attributions: list[TensorOrTupleOfTensorsGeneric] | TensorOrTupleOfTensorsGeneric,
     baselines: BaselineType,
     feature_mask: TensorOrTupleOfTensorsGeneric = None,
     additional_forward_args: Any = None,
     target: TargetType = None,
     n_perturb_samples: int = 10,
-    max_examples_per_batch: Optional[int] = None,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    max_examples_per_batch: int | None = None,
+    frozen_features: list[torch.Tensor] | None = None,
     normalize: bool = False,
     is_multi_target: bool = False,
     return_dict: bool = False,
@@ -282,13 +286,13 @@ def sensitivity_n(
         >>> infid = sensitivity_n(net, n_features_perturbed=1, baselines=0, input, attribution)
     """
     if isinstance(n_features_perturbed, float):
-        assert (
-            0 < n_features_perturbed <= 1
-        ), "If n_features_perturbed is a float, it should be in the range (0, 1]"
+        assert 0 < n_features_perturbed <= 1, (
+            "If n_features_perturbed is a float, it should be in the range (0, 1]"
+        )
     elif isinstance(n_features_perturbed, int):
-        assert (
-            n_features_perturbed > 0
-        ), "n_features_perturbed should be greater than 0. This defines the N in sensitivity-N"
+        assert n_features_perturbed > 0, (
+            "n_features_perturbed should be greater than 0. This defines the N in sensitivity-N"
+        )
     else:
         raise ValueError(
             "n_features_perturbed should be either an int or a float between (0, 1]"
@@ -336,12 +340,15 @@ def sensitivity_n(
             frozen_features=frozen_features,
         )
         perturbation_masks = tuple(
-            mask.view_as(input) for mask, input in zip(perturbation_masks, inputs)
+            mask.view_as(input)
+            for mask, input in zip(perturbation_masks, inputs, strict=False)
         )
         assert perturbation_masks[0].dtype == torch.bool
         return perturbation_masks, tuple(
             input * ~mask + mask * baseline
-            for input, mask, baseline in zip(inputs, perturbation_masks, baselines)
+            for input, mask, baseline in zip(
+                inputs, perturbation_masks, baselines, strict=False
+            )
         )
 
     metric_func = _multi_target_infidelity if is_multi_target else _infidelity
@@ -350,13 +357,13 @@ def sensitivity_n(
         perturb_func=sensitivity_perturb_function,
         inputs=inputs,
         **(
-            dict(attributions_list=attributions)
+            {"attributions_list": attributions}
             if is_multi_target
-            else dict(attributions=attributions)
+            else {"attributions": attributions}
         ),
         baselines=baselines,
         additional_forward_args=additional_forward_args,
-        **dict(targets_list=target) if is_multi_target else dict(target=target),
+        **{"targets_list": target} if is_multi_target else {"target": target},
         feature_mask=feature_mask,
         frozen_features=frozen_features,
         n_perturb_samples=n_perturb_samples,
