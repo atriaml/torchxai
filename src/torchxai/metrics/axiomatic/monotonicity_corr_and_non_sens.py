@@ -41,10 +41,10 @@ from torchxai.metrics.axiomatic.multi_target.monotonicity_corr_and_non_sens impo
 
 def eval_monotonicity_corr_and_non_sens_single_sample(
     forward_func: Callable,
-    inputs: TensorOrTupleOfTensorsGeneric,
-    attributions: TensorOrTupleOfTensorsGeneric,
+    inputs: tuple[Tensor, ...],
+    attributions: tuple[Tensor, ...],
     baselines: BaselineType = None,
-    feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
+    feature_mask: tuple[Tensor, ...] | None = None,
     additional_forward_args: Any = None,
     target: TargetType = None,
     frozen_features: torch.Tensor | None = None,
@@ -178,11 +178,11 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
             expansion_type=ExpansionTypes.repeat_interleave,
         )
         targets_expanded = _expand_target(
-            target,  # type: ignore
+            target,  # type: ignore[arg-type]
             current_n_perturbed_features,
             expansion_type=ExpansionTypes.repeat_interleave,
         )
-        inputs_fwd = _run_forward(forward_func, inputs, target, additional_forward_args)  # type: ignore
+        inputs_fwd = _run_forward(forward_func, inputs, target, additional_forward_args)  # type: ignore[arg-type]
         inputs_fwd_inv = (
             1.0 if torch.abs(inputs_fwd) < 1e-8 else 1.0 / torch.abs(inputs_fwd)
         )
@@ -215,18 +215,18 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
 
         # flatten the feature mask
         feature_mask_flattened, flattened_mask_shape = _tuple_tensors_to_tensors(
-            feature_mask  # type: ignore
+            feature_mask
         )
 
         # validate feature masks are increasing non-negative
-        _validate_feature_mask(feature_mask_flattened)  # type: ignore
+        _validate_feature_mask(feature_mask_flattened)
 
         # remove the batch index
         feature_mask_flattened = feature_mask_flattened.squeeze()
 
         # flatten all attributions in the input, this must be done after the feature masks are flattened as
         # feature masks may depened on attribution
-        attributions, _ = _tuple_tensors_to_tensors(attributions)  # type: ignore
+        flat_attributions, _ = _tuple_tensors_to_tensors(attributions)
 
         # in this step we reduce the attributions to the feature groups
         # here the weighted sum of the attributions is computed for each feature group
@@ -237,8 +237,7 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
         # may have the indices [0, 1, 2, 3, 4] where the 0th index of the reduced attributions corresponds to the
         # 0th index of the feature mask
         reduced_attributions, _ = _reduce_tensor_with_indices_non_deterministic(
-            attributions[0],
-            indices=feature_mask_flattened.long(),  # type: ignore
+            flat_attributions[0], indices=feature_mask_flattened.long()
         )
 
         # after reduction we take the absolute value of the attributions as we are interested in the
@@ -406,13 +405,13 @@ def _monotonicity_corr_and_non_sens(
 ) -> tuple[TensorOrTupleOfTensorsOrListOfTensorsGeneric, ...]:
     with torch.no_grad():
         # perform argument formattings
-        inputs = _format_tensor_into_tuples(inputs)  # type: ignore
-        baselines = _format_tensor_into_tuples(baselines)  # type: ignore
+        inputs = _format_tensor_into_tuples(inputs)
+        baselines = _format_tensor_into_tuples(baselines)
         additional_forward_args = _format_additional_forward_args(
             additional_forward_args
         )
-        attributions = _format_tensor_into_tuples(attributions)  # type: ignore
-        feature_mask = _format_tensor_into_tuples(feature_mask)  # type: ignore
+        attributions = _format_tensor_into_tuples(attributions)
+        feature_mask = _format_tensor_into_tuples(feature_mask)
 
         # Make sure that inputs and corresponding attributions have matching sizes.
         assert len(inputs) == len(
@@ -833,10 +832,10 @@ def monotonicity_corr_and_non_sens(
     }
 
     if is_multi_target:
-        kwargs["attributions_list"] = attributions  # type: ignore
-        kwargs["targets_list"] = target  # type: ignore
+        kwargs["attributions_list"] = attributions
+        kwargs["targets_list"] = target
     else:
-        kwargs["attributions"] = attributions  # type: ignore
+        kwargs["attributions"] = attributions
         kwargs["target"] = target
 
     (
@@ -850,8 +849,8 @@ def monotonicity_corr_and_non_sens(
     if return_intermediate_results:
         if return_dict:
             return {
-                "monotonicity_corr_score": monotonicity_corr_batch,
-                "non_sensitivity_score": non_sens_batch,
+                "monotonicity_corr": monotonicity_corr_batch,
+                "non_sensitivity": non_sens_batch,
                 "n_features": n_features_batch,
                 "perturbed_fwd_diffs_relative_vars": perturbed_fwd_diffs_relative_vars_batch,
                 "feature_group_attribution_scores": feature_group_attribution_scores_batch,
@@ -867,8 +866,8 @@ def monotonicity_corr_and_non_sens(
     else:
         if return_dict:
             return {
-                "monotonicity_corr_score": monotonicity_corr_batch,
-                "non_sensitivity_score": non_sens_batch,
+                "monotonicity_corr": monotonicity_corr_batch,
+                "non_sensitivity": non_sens_batch,
             }
         else:
             return monotonicity_corr_batch, non_sens_batch

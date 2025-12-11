@@ -4,7 +4,7 @@ from logging import getLogger
 import pytest  # noqa
 import torch
 
-from tests.utils.common import _assert_tensor_almost_equal
+from tests.utils.common import _assert_tensor_almost_equal, _run_metric_via_ignite
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.metrics.complexity.complexity_entropy import (
     complexity_entropy,
@@ -81,10 +81,23 @@ test_configurations = [
     indirect=True,
 )
 def test_complexity_entropy(metrics_runtime_test_configuration):
-    base_config, runtime_config, explanations = metrics_runtime_test_configuration
-    output = complexity_entropy(attributions=explanations)
+    base_config, runtime_config, explanation_step_outputs = (
+        metrics_runtime_test_configuration
+    )
+    output = complexity_entropy(attributions=explanation_step_outputs.attributions)
     _assert_tensor_almost_equal(
         output, runtime_config.expected, delta=runtime_config.delta, mode="mean"
+    )
+
+    # test via ignite metric interface
+    metric = ComplexityEntropyMetric(
+        model=base_config.model, device=runtime_config.device
+    )
+    metric_output = _run_metric_via_ignite(
+        metric=metric, explanation_step_outputs=explanation_step_outputs
+    )[""]
+    _assert_tensor_almost_equal(
+        metric_output, runtime_config.expected, delta=runtime_config.delta
     )
 
 
@@ -96,8 +109,12 @@ def test_complexity_entropy(metrics_runtime_test_configuration):
     indirect=True,
 )
 def test_complexity_entropy_feature_grouped(metrics_runtime_test_configuration):
-    base_config, runtime_config, explanations = metrics_runtime_test_configuration
-    output = complexity_entropy_feature_grouped(attributions=explanations)
+    base_config, runtime_config, explanation_step_outputs = (
+        metrics_runtime_test_configuration
+    )
+    output = complexity_entropy_feature_grouped(
+        attributions=explanation_step_outputs.attributions
+    )
     _assert_tensor_almost_equal(
         output, runtime_config.expected, delta=runtime_config.delta, mode="mean"
     )

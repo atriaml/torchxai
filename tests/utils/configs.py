@@ -50,6 +50,8 @@ class TestRuntimeConfig(BaseModel):
     device: str = Field(
         default_factory=lambda: "cuda" if torch.cuda.is_available() else "cpu"
     )
+    is_multi_target: bool = False
+    set_image_feature_mask: bool = False
 
     @model_validator(mode="before")
     @classmethod
@@ -77,7 +79,6 @@ class ExplainersTestRuntimeConfig(TestRuntimeConfig):
         extra="forbid",
         revalidate_instances="always",
     )
-    is_multi_target: bool = False
     grad_batch_size: int = 64
     visualize: bool = False
     check_multi_target_list_against_single_target: bool = True

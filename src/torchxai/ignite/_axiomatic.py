@@ -113,7 +113,6 @@ class MonotonicityCorrAndNonSensMetric(TorchXAIMetricBase):
         )
         self._perturb_func = perturb_func
         self._return_ratio = return_ratio
-        self._num_examples = 0
 
         super().__init__(model=model, with_amp=with_amp, device=device)
 

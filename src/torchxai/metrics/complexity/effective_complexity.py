@@ -1,5 +1,6 @@
 import inspect
-from typing import Any, Callable, List, Optional, Tuple, Union, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import torch
 import tqdm
@@ -11,8 +12,13 @@ from captum._utils.common import (
     _format_tensor_into_tuples,
     _run_forward,
 )
-from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torch import Tensor
+
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.metrics._utils.batching import (
     _divide_and_aggregate_metrics_n_perturbations_per_feature,
 )
@@ -27,27 +33,26 @@ from torchxai.metrics._utils.common import (
 from torchxai.metrics._utils.perturbation import default_fixed_baseline_perturb_func
 
 
-def eval_effective_complexity_single_sample(
+def _eval_effective_complexity_single_sample(
     forward_func: Callable,
-    inputs: TensorOrTupleOfTensorsGeneric,
-    attributions: TensorOrTupleOfTensorsGeneric,
+    inputs: tuple[Tensor, ...],
+    attributions: tuple[Tensor, ...],
     baselines: BaselineType = None,
-    feature_mask: TensorOrTupleOfTensorsGeneric = None,
+    feature_mask: tuple[Tensor, ...] | None = None,
     n_perturbations_per_feature: int = 10,
     additional_forward_args: Any = None,
     target: TargetType = None,
     perturb_func: Callable = default_fixed_baseline_perturb_func(),
-    max_features_processed_per_batch: int = None,
+    max_features_processed_per_batch: int | None = None,
     percentage_feature_removal_per_step: float = 0.0,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    frozen_features: torch.Tensor | None = None,
     zero_variance_threshold: float = 0.01,
     return_ratio: bool = False,
     show_progress: bool = False,
-) -> Tensor:
+) -> tuple:
     def _generate_perturbations(
-        current_n_perturbed_features: int,
-        current_perturbation_mask: TensorOrTupleOfTensorsGeneric,
-    ) -> Tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
+        current_n_perturbed_features: int, current_perturbation_mask: torch.Tensor
+    ) -> TensorOrTupleOfTensorsGeneric:
         r"""
         The perturbations are generated for each example
         `current_n_perturbed_features * n_perturbations_per_feature` times.
@@ -60,26 +65,26 @@ def eval_effective_complexity_single_sample(
         def call_perturb_func():
             r""" """
             baselines_pert = None
-            inputs_pert: Union[Tensor, Tuple[Tensor, ...]]
+            inputs_pert: Tensor | tuple[Tensor, ...]
             if len(inputs_expanded) == 1:
                 inputs_pert = inputs_expanded[0]
                 perturbation_masks = perturbation_mask_expanded[0]
                 if baselines_expanded is not None:
-                    baselines_pert = cast(Tuple, baselines_expanded)[0]
+                    baselines_pert = cast(tuple, baselines_expanded)[0]
             else:
                 inputs_pert = inputs_expanded
                 perturbation_masks = perturbation_mask_expanded
                 baselines_pert = baselines_expanded
 
             valid_args = inspect.signature(perturb_func).parameters.keys()
-            perturb_kwargs = dict(
-                inputs=inputs_pert,
-                perturbation_masks=perturbation_masks,
-            )
+            perturb_kwargs = {
+                "inputs": inputs_pert,
+                "perturbation_masks": perturbation_masks,
+            }
             if "baselines" in valid_args:
-                assert (
-                    baselines_pert is not None
-                ), f"""The perturb_func {perturb_func} requires baselines as an argument. Please provide baselines."""
+                assert baselines_pert is not None, (
+                    f"""The perturb_func {perturb_func} requires baselines as an argument. Please provide baselines."""
+                )
                 perturb_kwargs["baselines"] = baselines_pert
             return perturb_func(**perturb_kwargs)
 
@@ -104,7 +109,7 @@ def eval_effective_complexity_single_sample(
                     and baseline.shape[0] == input.shape[0]
                     else baseline
                 )
-                for input, baseline in zip(inputs, cast(Tuple, baselines))
+                for input, baseline in zip(inputs, cast(tuple, baselines), strict=True)
             )
 
         # repeat each perturbation mask n_perturbations_per_feature times
@@ -120,35 +125,31 @@ def eval_effective_complexity_single_sample(
         # view as input shape (this is only necessary for edge cases where input is of (1, 1) shape)
         perturbation_mask_expanded = tuple(
             mask.view_as(input)
-            for mask, input in zip(perturbation_mask_expanded, inputs_expanded)
+            for mask, input in zip(
+                perturbation_mask_expanded, inputs_expanded, strict=True
+            )
         )
         return call_perturb_func()
 
     def _validate_inputs_and_perturbations(
-        inputs: Tuple[Tensor, ...],
-        inputs_perturbed: Tuple[Tensor, ...],
+        inputs: tuple[Tensor, ...], inputs_perturbed: tuple[Tensor, ...]
     ) -> None:
         # asserts the sizes of the perturbations and inputs
-        assert len(inputs_perturbed) == len(inputs), (
-            """The number of perturbed
+        assert len(inputs_perturbed) == len(inputs), f"""The number of perturbed
             inputs and corresponding perturbations must have the same number of
-            elements. Found number of inputs is: {} and perturbations:
-            {}"""
-        ).format(len(inputs_perturbed), len(inputs))
+            elements. Found number of inputs is: {len(inputs_perturbed)} and perturbations:
+            {len(inputs)}"""
 
         # asserts the shapes of the perturbations and perturbed inputs
-        for inputs, input_perturbed in zip(inputs, inputs_perturbed):
-            assert inputs[0].shape == input_perturbed[0].shape, (
-                """Perturbed input
+        for i, ip in zip(inputs, inputs_perturbed, strict=True):
+            assert i[0].shape == ip[0].shape, f"""Perturbed input
                 and corresponding perturbation must have the same shape and
-                dimensionality. Found perturbation shape is: {} and the input shape
-                is: {}"""
-            ).format(inputs[0].shape, input_perturbed[0].shape)
+                dimensionality. Found perturbation shape is: {i[0].shape} and the input shape
+                is: {ip[0].shape}"""
 
     def _next_effective_complexity_tensors(
-        current_n_perturbed_features: int,
-        current_n_steps: int,
-    ) -> Union[Tuple[Tensor], Tuple[Tensor, Tensor, Tensor]]:
+        current_n_perturbed_features: int, current_n_steps: int
+    ) -> list[float]:
         current_feature_indices = torch.arange(
             current_n_steps - current_n_perturbed_features, current_n_steps
         )
@@ -158,8 +159,7 @@ def eval_effective_complexity_single_sample(
         )
         inputs_perturbed = _format_tensor_into_tuples(inputs_perturbed)
         _validate_inputs_and_perturbations(
-            cast(Tuple[Tensor, ...], inputs),
-            cast(Tuple[Tensor, ...], inputs_perturbed),
+            cast(tuple[Tensor, ...], inputs), cast(tuple[Tensor, ...], inputs_perturbed)
         )
         additional_forward_args_expanded = _expand_additional_forward_args(
             additional_forward_args,
@@ -167,7 +167,7 @@ def eval_effective_complexity_single_sample(
             expansion_type=ExpansionTypes.repeat_interleave,
         )
         targets_expanded = _expand_target(
-            target,
+            target,  # type: ignore
             current_n_perturbed_features,
             expansion_type=ExpansionTypes.repeat_interleave,
         )
@@ -193,7 +193,7 @@ def eval_effective_complexity_single_sample(
         assert bsz == 1, "Batch size must be 1 for faithfulness_estimate_single_sample"
 
         # get the first input forward output
-        inputs_fwd = _run_forward(forward_func, inputs, target, additional_forward_args)
+        inputs_fwd = _run_forward(forward_func, inputs, target, additional_forward_args)  # type: ignore
         inputs_fwd_inv = (
             1.0 if torch.abs(inputs_fwd) < 1e-8 else 1.0 / torch.abs(inputs_fwd)
         )
@@ -209,7 +209,7 @@ def eval_effective_complexity_single_sample(
 
         # flatten all attributions in the input, this must be done after the feature masks are flattened as
         # feature masks may depened on attribution
-        attributions, _ = _tuple_tensors_to_tensors(attributions)
+        flat_attributions, _ = _tuple_tensors_to_tensors(attributions)
 
         # validate feature masks are increasing non-negative
         _validate_feature_mask(feature_mask_flattened)
@@ -223,7 +223,7 @@ def eval_effective_complexity_single_sample(
         # sample can be different
         reduced_attributions, n_features = (
             _reduce_tensor_with_indices_non_deterministic(
-                attributions[0], indices=feature_mask_flattened
+                flat_attributions[0], indices=feature_mask_flattened
             )
         )
 
@@ -306,22 +306,20 @@ def eval_effective_complexity_single_sample(
 def _effective_complexity(
     forward_func: Callable,
     inputs: TensorOrTupleOfTensorsGeneric,
-    attributions: Union[
-        TensorOrTupleOfTensorsGeneric, List[TensorOrTupleOfTensorsGeneric]
-    ],
+    attributions: TensorOrTupleOfTensorsGeneric,
     baselines: BaselineType = None,
-    feature_mask: TensorOrTupleOfTensorsGeneric = None,
+    feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
     additional_forward_args: Any = None,
-    target: Union[TargetType, List[TargetType]] = None,
+    target: TargetType | list[TargetType] = None,
     perturb_func: Callable = default_fixed_baseline_perturb_func(),
     n_perturbations_per_feature: int = 10,
-    max_features_processed_per_batch: Optional[int] = None,
+    max_features_processed_per_batch: int | None = None,
     percentage_feature_removal_per_step: float = 0.0,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    frozen_features: list[torch.Tensor] | None = None,
     zero_variance_threshold: float = 0.01,
     return_ratio: bool = False,
     show_progress: bool = False,
-) -> Tuple[Tensor, Tensor, Tensor]:
+) -> tuple:
     with torch.no_grad():
         # perform argument formattings
         inputs = _format_tensor_into_tuples(inputs)  # type: ignore
@@ -333,29 +331,29 @@ def _effective_complexity(
         feature_mask = _format_tensor_into_tuples(feature_mask)  # type: ignore
 
         # Make sure that inputs and corresponding attributions have matching sizes.
-        assert len(inputs) == len(attributions), (
-            """The number of tensors in the inputs and
-            attributions must match. Found number of tensors in the inputs is: {} and in the
-            attributions: {}"""
-        ).format(len(inputs), len(attributions))
+        assert len(inputs) == len(
+            attributions
+        ), f"""The number of tensors in the inputs and
+            attributions must match. Found number of tensors in the inputs is: {len(inputs)} and in the
+            attributions: {len(attributions)}"""
 
         # Make sure that inputs and corresponding attributions have matching sizes.
-        assert len(inputs) == len(attributions), (
-            """The number of tensors in the inputs and
-            attributions must match. Found number of tensors in the inputs is: {} and in the
-            attributions: {}"""
-        ).format(len(inputs), len(attributions))
+        assert len(inputs) == len(
+            attributions
+        ), f"""The number of tensors in the inputs and
+            attributions must match. Found number of tensors in the inputs is: {len(inputs)} and in the
+            attributions: {len(attributions)}"""
         if feature_mask is not None:
-            for mask, attribution in zip(feature_mask, attributions):
-                assert mask.shape == attribution.shape, (
-                    """The shape of the feature mask and the attribution
-                    must match. Found feature mask shape: {} and attribution shape: {}"""
-                ).format(mask.shape, attribution.shape)
-            for mask, input in zip(feature_mask, inputs):
-                assert mask.shape == input.shape, (
-                    """The shape of the feature mask and the input
-                    must match. Found feature mask shape: {} and input shape: {}"""
-                ).format(mask.shape, input.shape)
+            for mask, attribution in zip(feature_mask, attributions, strict=True):
+                assert (
+                    mask.shape == attribution.shape
+                ), f"""The shape of the feature mask and the attribution
+                    must match. Found feature mask shape: {mask.shape} and attribution shape: {attribution.shape}"""
+            for mask, input in zip(feature_mask, inputs, strict=True):
+                assert (
+                    mask.shape == input.shape
+                ), f"""The shape of the feature mask and the input
+                    must match. Found feature mask shape: {mask.shape} and input shape: {input.shape}"""
 
         bsz = inputs[0].size(0)
         effective_complexity_batch = []
@@ -366,7 +364,7 @@ def _effective_complexity(
                 effective_complexity_score,
                 perturbed_fwd_diffs_relative_vars,
                 n_features,
-            ) = eval_effective_complexity_single_sample(
+            ) = _eval_effective_complexity_single_sample(
                 forward_func=forward_func,
                 inputs=tuple(input[sample_idx].unsqueeze(0) for input in inputs),
                 attributions=tuple(
@@ -430,25 +428,23 @@ def _effective_complexity(
 def effective_complexity(
     forward_func: Callable,
     inputs: TensorOrTupleOfTensorsGeneric,
-    attributions: Union[
-        TensorOrTupleOfTensorsGeneric, List[TensorOrTupleOfTensorsGeneric]
-    ],
+    attributions: TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric],
     baselines: BaselineType = None,
-    feature_mask: TensorOrTupleOfTensorsGeneric = None,
+    feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
     additional_forward_args: Any = None,
-    target: Union[TargetType, List[TargetType]] = None,
+    target: TargetType | list[TargetType] = None,
     perturb_func: Callable = default_fixed_baseline_perturb_func(),
     n_perturbations_per_feature: int = 10,
-    max_features_processed_per_batch: Optional[int] = None,
+    max_features_processed_per_batch: int | None = None,
     percentage_feature_removal_per_step: float = 0.0,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    frozen_features: list[torch.Tensor] | None = None,
     zero_variance_threshold: float = 0.01,
     return_ratio: bool = False,
     is_multi_target: bool = False,
     show_progress: bool = False,
     return_intermediate_results: bool = False,
     return_dict: bool = False,
-) -> Tuple[Tensor, Tensor, Tensor]:
+) -> dict | tuple | torch.Tensor | list[torch.Tensor]:
     """
     Implementation of Effective complexity metric by Nguyen at el., 2020. This implementation
     reuses the batch-computation ideas from captum and therefore it is fully compatible with the Captum library.
@@ -708,18 +704,18 @@ def effective_complexity(
     is_attributions_list = isinstance(attributions, list)
     is_targets_list = isinstance(target, list)
     if is_multi_target:
-        assert (
-            is_attributions_list
-        ), "attributions must be a list of tensors or list of tuples of tensors"
+        assert is_attributions_list, (
+            "attributions must be a list of tensors or list of tuples of tensors"
+        )
         assert is_targets_list, "targets must be a list of targets"
-        assert all(
-            isinstance(x, (tuple, int)) for x in target
-        ), "targets must be a list of ints"
-        assert len(target) == len(attributions), (
-            """The number of targets in the targets_list and
-            attributions_list must match. Found number of targets in the targets_list is: {} and in the
-            attributions_list: {}"""
-        ).format(len(target), len(attributions))
+        assert all(isinstance(x, (tuple, int)) for x in target), (
+            "targets must be a list of ints"
+        )
+        assert len(target) == len(
+            attributions
+        ), f"""The number of targets in the targets_list and
+            attributions_list must match. Found number of targets in the targets_list is: {len(target)} and in the
+            attributions_list: {len(attributions)}"""
 
     if not is_attributions_list:
         attributions = [attributions]
@@ -729,7 +725,7 @@ def effective_complexity(
     effective_complexity_batch_list = []
     perturbed_fwd_diffs_relative_vars_batch_list = []
     n_features_batch_list = []
-    for a, t in tqdm.tqdm(zip(attributions, target)):
+    for a, t in tqdm.tqdm(zip(attributions, target, strict=True)):
         (
             effective_complexity_batch,
             perturbed_fwd_diffs_relative_vars_batch,
@@ -767,7 +763,7 @@ def effective_complexity(
     if return_intermediate_results:
         if return_dict:
             return {
-                "effective_complexity_score": effective_complexity_batch_list,
+                "score": effective_complexity_batch_list,
                 "perturbed_fwd_diffs_relative_vars_batch": perturbed_fwd_diffs_relative_vars_batch_list,
                 "n_features_batch": n_features_batch_list,
             }
@@ -779,5 +775,5 @@ def effective_complexity(
             )
     else:
         if return_dict:
-            return {"effective_complexity_score": effective_complexity_batch_list}
+            return {"score": effective_complexity_batch_list}
         return effective_complexity_batch_list

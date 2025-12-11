@@ -1,11 +1,12 @@
 import math
 
 import torch
+from captum.attr._utils.common import _format_tensor_into_tuples  # noqa
 
 from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
 
 
-def _validate_feature_mask(tensor: tuple[torch.Tensor, ...]) -> None:
+def _validate_feature_mask(tensor: torch.Tensor | tuple[torch.Tensor, ...]) -> None:
     """
     Validates the feature mask tensor. The feature mask must contain non-negative integers that are strictly increasing
     for example, [0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 4] is a valid feature mask tensor.
@@ -311,7 +312,7 @@ def _add_tensor_with_indices_non_deterministic(
 
 
 def _reduce_tensor_with_indices_non_deterministic(
-    source: torch.Tensor, indices: torch.LongTensor
+    source: torch.Tensor, indices: torch.Tensor
 ) -> tuple[torch.Tensor, int]:
     source = source.flatten()
     reduced_attributions = torch.zeros(

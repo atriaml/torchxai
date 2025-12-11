@@ -91,8 +91,12 @@ def test_complexity_sundararajan(metrics_runtime_test_configuration):
     indirect=True,
 )
 def test_complexity_sundararajan_feature_grouped(metrics_runtime_test_configuration):
-    basic_config, runtime_config, explanations = metrics_runtime_test_configuration
-    output = complexity_sundararajan_feature_grouped(attributions=explanations)
+    base_config, runtime_config, explanation_step_outputs = (
+        metrics_runtime_test_configuration
+    )
+    output = complexity_sundararajan_feature_grouped(
+        attributions=explanation_step_outputs.attributions
+    )
     _assert_tensor_almost_equal(
         output.float(), runtime_config.expected.float(), delta=runtime_config.delta
     )

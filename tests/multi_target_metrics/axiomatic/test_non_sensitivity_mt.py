@@ -1,17 +1,12 @@
-import dataclasses
 from collections.abc import Callable
 from dataclasses import field
 
 import pytest
 import torch
-from traitlets import default  # noqa
 
-from tests.utils.common import (
-    _assert_tensor_almost_equal,
-    _grid_segmenter,
-    _set_all_random_seeds,
-)
-from tests.utils.configs import TestRuntimeConfig
+from tests.utils.common import _assert_tensor_almost_equal, _set_all_random_seeds
+from tests.utils.configs import TestBaseConfig, TestRuntimeConfig
+from torchxai.data_types import MultiTargetExplanationStepOutputs
 from torchxai.metrics import monotonicity_corr_and_non_sens
 from torchxai.metrics._utils.perturbation import default_random_perturb_func
 
@@ -22,21 +17,23 @@ def _format_to_list(value):
     return value
 
 
-@dataclasses.dataclass
 class MetricTestRuntimeConfig(TestRuntimeConfig):
-    test_name: str = "compare_multi_target_to_single_target"
+    test_name: str | None = "compare_multi_target_to_single_target"
     expainer: str = "saliency"
     override_target: list[int] = field(default_factory=lambda: [0, 1, 2])
-    expected: torch.Tensor = None
-    explainer_kwargs: dict = field(default_factory=lambda: {"is_multi_target": True})
+    expected: torch.Tensor | None = None
+    explainer_kwargs: dict | None = field(
+        default_factory=lambda: {"is_multi_target": True}
+    )
     delta: float = 1e-8
     perturb_func: Callable = default_random_perturb_func()
     n_perturbations_per_feature: list[int] = field(default_factory=lambda: [10, 10, 20])
-    max_features_processed_per_batch: list[int] = field(
+    max_features_processed_per_batch: list[int | None] = field(
         default_factory=lambda: [1, None, 40]
     )
     set_image_feature_mask: bool = True
     percentage_feature_removal_per_step: float = 0.0
+    is_multi_target: bool = True
 
 
 test_configurations = [
@@ -81,37 +78,25 @@ test_configurations = [
     indirect=True,
 )
 def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
-    base_config, runtime_config, explanations = metrics_runtime_test_configuration
-
-    assert len(explanations) == len(runtime_config.override_target), (
-        "Number of explanations should be equal to the number of targets"
+    base_config, runtime_config, explanation_step_outputs = (
+        metrics_runtime_test_configuration
     )
+    base_config: TestBaseConfig
+    runtime_config: MetricTestRuntimeConfig
+    explanation_step_outputs: MultiTargetExplanationStepOutputs
 
-    if runtime_config.set_image_feature_mask:
-        base_config.feature_mask = _grid_segmenter(base_config.inputs, cell_size=32)
-        base_config.feature_mask = base_config.feature_mask.expand_as(
-            base_config.inputs
-        )
-
-    runtime_config.n_perturbations_per_feature = _format_to_list(
+    n_perturbations_per_feature = _format_to_list(
         runtime_config.n_perturbations_per_feature
     )
-    runtime_config.max_features_processed_per_batch = _format_to_list(
+    max_features_processed_per_batch = _format_to_list(
         runtime_config.max_features_processed_per_batch
     )
-    runtime_config.expected = _format_to_list(runtime_config.expected)
+    expected = _format_to_list(runtime_config.expected)
 
-    assert len(runtime_config.n_perturbations_per_feature) == len(
-        runtime_config.max_features_processed_per_batch
-    )
-    assert (
-        len(runtime_config.n_perturbations_per_feature) == len(runtime_config.expected)
-        or len(runtime_config.expected) == 1
-    )
-
+    assert len(n_perturbations_per_feature) == len(max_features_processed_per_batch)
+    assert len(n_perturbations_per_feature) == len(expected) or len(expected) == 1
     for n_perturbs, max_features in zip(
-        runtime_config.n_perturbations_per_feature,
-        runtime_config.max_features_processed_per_batch,
+        n_perturbations_per_feature, max_features_processed_per_batch, strict=True
     ):
         _set_all_random_seeds(1234)
         (
@@ -122,11 +107,11 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
             feature_group_attribution_scores_batch_list_1,
         ) = monotonicity_corr_and_non_sens(
             forward_func=base_config.model,
-            inputs=base_config.inputs,
-            attributions=explanations,
-            feature_mask=base_config.feature_mask,
-            additional_forward_args=base_config.additional_forward_args,
-            target=runtime_config.override_target,
+            inputs=explanation_step_outputs.inputs,
+            attributions=explanation_step_outputs.attributions,  # type: ignore
+            feature_mask=explanation_step_outputs.feature_masks,
+            additional_forward_args=explanation_step_outputs.additional_forward_args,
+            target=explanation_step_outputs.target,
             perturb_func=runtime_config.perturb_func,
             n_perturbations_per_feature=n_perturbs,
             max_features_processed_per_batch=max_features,
@@ -139,7 +124,11 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
         non_sensitivity_score_batch_list_2 = []
         perturbed_fwd_diffs_relative_vars_batch_list_2 = []
         feature_group_attribution_scores_batch_list_2 = []
-        for explanation, target in zip(explanations, runtime_config.override_target):
+        for explanation, target in zip(
+            explanation_step_outputs.attributions,
+            explanation_step_outputs.target,
+            strict=True,  # type: ignore
+        ):
             _set_all_random_seeds(1234)
             # for this test we take the sum of the explanations over channel dimension to match the feature dimension
             # of the feature mask
@@ -151,10 +140,10 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
                 feature_group_attribution_scores_batch,
             ) = monotonicity_corr_and_non_sens(
                 forward_func=base_config.model,
-                inputs=base_config.inputs,
+                inputs=explanation_step_outputs.inputs,
                 attributions=explanation,
-                feature_mask=base_config.feature_mask,
-                additional_forward_args=base_config.additional_forward_args,
+                feature_mask=explanation_step_outputs.feature_masks,
+                additional_forward_args=explanation_step_outputs.additional_forward_args,
                 target=target,
                 perturb_func=runtime_config.perturb_func,
                 n_perturbations_per_feature=n_perturbs,
@@ -183,7 +172,9 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
         import torch
 
         for x, y in zip(
-            non_sensitivity_score_batch_list_1, non_sensitivity_score_batch_list_2
+            non_sensitivity_score_batch_list_1,
+            non_sensitivity_score_batch_list_2,
+            strict=True,
         ):
             _assert_tensor_almost_equal(
                 x.float(), y.float(), delta=runtime_config.delta, mode="mean"
@@ -191,8 +182,9 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
         for x, y in zip(
             perturbed_fwd_diffs_relative_vars_batch_list_1,
             perturbed_fwd_diffs_relative_vars_batch_list_2,
+            strict=True,
         ):
-            for xx, yy in zip(x, y):
+            for xx, yy in zip(x, y, strict=True):
                 xx = xx / torch.max(xx)
                 yy = yy / torch.max(yy)
                 _assert_tensor_almost_equal(
@@ -201,8 +193,100 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
         for x, y in zip(
             feature_group_attribution_scores_batch_list_1,
             feature_group_attribution_scores_batch_list_2,
+            strict=True,
         ):
-            for xx, yy in zip(x, y):
+            for xx, yy in zip(x, y, strict=True):
                 _assert_tensor_almost_equal(
                     xx.float(), yy.float(), delta=runtime_config.delta, mode="mean"
                 )
+
+
+# def test_multi_target_metric(metrics_runtime_test_configuration, metric_func: partial):
+#     base_config, runtime_config, explanation_step_outputs = (
+#         metrics_runtime_test_configuration
+#     )
+#     base_config: TestBaseConfig
+#     runtime_config: MetricTestRuntimeConfig
+#     explanation_step_outputs: MultiTargetExplanationStepOutputs
+
+#     n_perturbations_per_feature = _format_to_list(
+#         runtime_config.n_perturbations_per_feature
+#     )
+#     max_features_processed_per_batch = _format_to_list(
+#         runtime_config.max_features_processed_per_batch
+#     )
+#     expected = _format_to_list(runtime_config.expected)
+
+#     assert len(n_perturbations_per_feature) == len(max_features_processed_per_batch)
+#     assert len(n_perturbations_per_feature) == len(expected) or len(expected) == 1
+#     for n_perturbs, max_features in zip(
+#         n_perturbations_per_feature, max_features_processed_per_batch, strict=True
+#     ):
+#         _set_all_random_seeds(1234)
+#         outputs_list_1 = metric_func(
+#             is_multi_target=False,
+#             n_perturbs=n_perturbs,
+#             max_features=max_features,
+#             explanation=explanation_step_outputs.attributions,
+#             target=explanation_step_outputs.target,
+#         )
+#         outputs_list_2 = []
+#         for explanation, target in zip(
+#             explanation_step_outputs.attributions,
+#             explanation_step_outputs.target,
+#             strict=True,  # type: ignore
+#         ):
+#             _set_all_random_seeds(1234)
+#             outputs = metric_func(
+#                 is_multi_target=False,
+#                 n_perturbs=n_perturbs,
+#                 max_features=max_features,
+#                 explanation=explanation,
+#                 target=target,
+#             )
+#             outputs_list_2.append(outputs)
+
+#         # list of dict to dict of list
+#         outputs_list_2 = {
+#             key: [output[key] for output in outputs_list_2] for key in outputs_list_2[0]
+#         }
+
+#         for key in list(outputs_list_1.keys()):
+#             output_1 = outputs_list_1[key]
+#             output_2 = outputs_list_2[key]
+#             assert len(output_1) == len(output_2)
+#             _assert_tensor_almost_equal(
+#                 torch.stack(output_1).float(),
+#                 torch.stack(output_2).float(),
+#                 delta=runtime_config.delta,
+#                 mode="mean",
+#             )
+
+#             for x, y in zip(
+#                 non_sensitivity_score_batch_list_1,
+#                 non_sensitivity_score_batch_list_2,
+#                 strict=True,
+#             ):
+#                 _assert_tensor_almost_equal(
+#                     x.float(), y.float(), delta=runtime_config.delta, mode="mean"
+#                 )
+#             for x, y in zip(
+#                 perturbed_fwd_diffs_relative_vars_batch_list_1,
+#                 perturbed_fwd_diffs_relative_vars_batch_list_2,
+#                 strict=True,
+#             ):
+#                 for xx, yy in zip(x, y, strict=True):
+#                     xx = xx / torch.max(xx)
+#                     yy = yy / torch.max(yy)
+#                     _assert_tensor_almost_equal(
+#                         xx.float(), yy.float(), delta=runtime_config.delta, mode="mean"
+#                     )
+#             for x, y in zip(
+#                 feature_group_attribution_scores_batch_list_1,
+#                 feature_group_attribution_scores_batch_list_2,
+#                 strict=True,
+#             ):
+#                 for xx, yy in zip(x, y, strict=True):
+#                     _assert_tensor_almost_equal(
+#                         xx.float(), yy.float(), delta=runtime_config.delta, mode="mean"
+#                     )

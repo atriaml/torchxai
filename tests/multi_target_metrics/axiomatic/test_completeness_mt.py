@@ -1,21 +1,24 @@
-from dataclasses import dataclass, field
+from dataclasses import field
 
 import pytest
 import torch  # noqa
 
 from tests.utils.common import _assert_tensor_almost_equal
-from tests.utils.configs import TestRuntimeConfig
+from tests.utils.configs import TestBaseConfig, TestRuntimeConfig
+from torchxai.data_types import MultiTargetExplanationStepOutputs
 from torchxai.metrics.axiomatic.completeness import completeness
 
 
-@dataclass
 class MetricTestRuntimeConfig(TestRuntimeConfig):
-    test_name: str = "compare_multi_target_to_single_target"
+    test_name: str | None = "compare_multi_target_to_single_target"
     explainer: str = "saliency"
     override_target: list[int] = field(default_factory=lambda: [0, 1, 2])
-    expected: torch.Tensor = None
-    explainer_kwargs: dict = field(default_factory=lambda: {"is_multi_target": True})
+    expected: torch.Tensor | None = None
+    explainer_kwargs: dict | None = field(
+        default_factory=lambda: {"is_multi_target": True}
+    )
     delta: float = 1e-8
+    is_multi_target: bool = True
 
 
 test_configurations = [
@@ -42,35 +45,40 @@ test_configurations = [
     indirect=True,
 )
 def test_completeness_multi_target(metrics_runtime_test_configuration):
-    base_config, runtime_config, explanations = metrics_runtime_test_configuration
-    assert len(explanations) == len(runtime_config.override_target), (
-        "Number of explanations should be equal to the number of targets"
+    base_config, runtime_config, explanation_step_outputs = (
+        metrics_runtime_test_configuration
     )
+    base_config: TestBaseConfig
+    runtime_config: MetricTestRuntimeConfig
+    explanation_step_outputs: MultiTargetExplanationStepOutputs
+    target = base_config.explanation_inputs.target
 
     per_target_completeness = []
-    for explanation, target in zip(explanations, runtime_config.override_target):
+    for explanation, t in zip(
+        explanation_step_outputs.attributions, target, strict=True
+    ):
         output = completeness(
             forward_func=base_config.model,
-            inputs=base_config.inputs,
+            inputs=explanation_step_outputs.inputs,
             attributions=explanation,
-            baselines=base_config.baselines,
-            additional_forward_args=base_config.additional_forward_args,
-            target=target,
+            baselines=explanation_step_outputs.metric_baselines,
+            additional_forward_args=explanation_step_outputs.additional_forward_args,
+            target=t,
         )
         per_target_completeness.append(output)
 
     multi_target_completeness_output = completeness(
         forward_func=base_config.model,
-        inputs=base_config.inputs,
-        attributions=explanations,
-        baselines=base_config.baselines,
-        additional_forward_args=base_config.additional_forward_args,
-        target=runtime_config.override_target,
+        inputs=explanation_step_outputs.inputs,
+        attributions=explanation_step_outputs.attributions,
+        baselines=explanation_step_outputs.metric_baselines,
+        additional_forward_args=explanation_step_outputs.additional_forward_args,
+        target=target,
         is_multi_target=True,
     )
 
     assert len(per_target_completeness) == len(multi_target_completeness_output)
     for output, expected in zip(
-        multi_target_completeness_output, per_target_completeness
+        multi_target_completeness_output, per_target_completeness, strict=True
     ):
         _assert_tensor_almost_equal(output, expected, delta=runtime_config.delta)

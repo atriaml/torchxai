@@ -1,7 +1,6 @@
-from typing import List, Optional, Tuple, Union
-
 import torch
 
+from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
 from torchxai.metrics._utils.common import (
     _construct_default_feature_mask,
     _reduce_tensor_with_indices_non_deterministic,
@@ -11,7 +10,7 @@ from torchxai.metrics._utils.common import (
 
 
 def _complexity_sundararajan(
-    attributions: Union[Tuple[torch.Tensor, ...], List[Tuple[torch.Tensor, ...]]],
+    attributions: TensorOrTupleOfTensorsGeneric,
     eps: float = 1e-5,
     normalize_attribution: bool = True,
 ) -> torch.Tensor:
@@ -40,12 +39,11 @@ def _complexity_sundararajan(
 
 
 def _complexity_sundararajan_feature_grouped(
-    attributions: Union[Tuple[torch.Tensor, ...], List[Tuple[torch.Tensor, ...]]],
-    feature_mask: Optional[Tuple[torch.Tensor, ...]],
+    attributions: TensorOrTupleOfTensorsGeneric,
+    feature_mask: tuple[torch.Tensor, ...] | None,
     eps: float = 1e-5,
     normalize_attribution: bool = True,
 ) -> torch.Tensor:
-
     with torch.no_grad():
 
         def complexity_sundararajan_feature_grouped_single_sample(
@@ -122,12 +120,12 @@ def _complexity_sundararajan_feature_grouped(
 
 
 def complexity_sundararajan(
-    attributions: Union[Tuple[torch.Tensor, ...], List[Tuple[torch.Tensor, ...]]],
+    attributions: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]],
     eps: float = 1e-5,
     normalize_attribution: bool = True,
     is_multi_target: bool = False,
     return_dict: bool = False,
-) -> torch.Tensor:
+) -> dict | torch.Tensor | list[torch.Tensor]:
     """
     Implementation of Complexity metric by Sundararajan at el., 2017. This implementation
     reuses the batch-computation ideas from captum and therefore it is fully compatible with the Captum library.
@@ -181,9 +179,9 @@ def complexity_sundararajan(
     """
     is_attributions_list = isinstance(attributions, list)
     if is_multi_target:
-        assert (
-            is_attributions_list
-        ), "attributions must be a list of tensors or list of tuples of tensors"
+        assert is_attributions_list, (
+            "attributions must be a list of tensors or list of tuples of tensors"
+        )
     if not is_attributions_list:
         attributions = [attributions]
     score = [
@@ -197,18 +195,18 @@ def complexity_sundararajan(
     if not is_attributions_list:
         score = score[0]
     if return_dict:
-        return {"complexity_sundararajan_score": score}
+        return {"score": score}
     return score
 
 
 def complexity_sundararajan_feature_grouped(
-    attributions: Union[Tuple[torch.Tensor, ...], List[Tuple[torch.Tensor, ...]]],
-    feature_mask: Optional[Tuple[torch.Tensor, ...]] = None,
+    attributions: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]],
+    feature_mask: tuple[torch.Tensor, ...] | None = None,
     eps: float = 1e-5,
     normalize_attribution: bool = True,
     is_multi_target: bool = False,
     return_dict: bool = False,
-) -> torch.Tensor:
+) -> dict | torch.Tensor | list[torch.Tensor]:
     """
     Implementation of Complexity metric by Sundararajan at el., 2017. This implementation
     reuses the batch-computation ideas from captum and therefore it is fully compatible with the Captum library.
@@ -287,9 +285,9 @@ def complexity_sundararajan_feature_grouped(
 
     is_attributions_list = isinstance(attributions, list)
     if is_multi_target:
-        assert (
-            is_attributions_list
-        ), "attributions must be a list of tensors or list of tuples of tensors"
+        assert is_attributions_list, (
+            "attributions must be a list of tensors or list of tuples of tensors"
+        )
     if not is_attributions_list:
         attributions = [attributions]
 
@@ -305,5 +303,5 @@ def complexity_sundararajan_feature_grouped(
     if not is_attributions_list:
         score = score[0]
     if return_dict:
-        return {"complexity_sundararajan_feature_grouped_score": score}
+        return {"score": score}
     return score

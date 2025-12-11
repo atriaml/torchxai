@@ -241,7 +241,6 @@ def completeness(
     kwargs = {
         "forward_func": forward_func,
         "inputs": inputs,
-        "attributions": attributions,
         "baselines": baselines,
         "additional_forward_args": additional_forward_args,
     }
@@ -252,7 +251,7 @@ def completeness(
         kwargs["attributions"] = attributions  # type: ignore
         kwargs["target"] = target
 
-    completeness_score = metric_func(**kwargs)
+    score = metric_func(**kwargs)
     if return_dict:
-        return {"completeness_score": completeness_score}
-    return completeness_score
+        return {"score": score}
+    return score

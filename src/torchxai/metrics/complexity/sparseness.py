@@ -1,9 +1,8 @@
-from typing import List, Optional, Tuple, Union
-
 import numpy as np
 import torch
 from torch import Tensor
 
+from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
 from torchxai.metrics._utils.common import (
     _construct_default_feature_mask,
     _reduce_tensor_with_indices_non_deterministic,
@@ -12,9 +11,7 @@ from torchxai.metrics._utils.common import (
 )
 
 
-def _sparseness(
-    attributions: Union[Tuple[Tensor, ...], List[Tuple[Tensor, ...]]],
-) -> Tensor:
+def _sparseness(attributions: TensorOrTupleOfTensorsGeneric) -> Tensor:
     with torch.no_grad():
         if not isinstance(attributions, tuple):
             attributions = (attributions,)
@@ -45,8 +42,8 @@ def _sparseness(
 
 
 def _sparseness_feature_grouped(
-    attributions: Union[Tuple[Tensor, ...], List[Tuple[Tensor, ...]]],
-    feature_mask: Optional[Tuple[torch.Tensor, ...]] = None,
+    attributions: TensorOrTupleOfTensorsGeneric,
+    feature_mask: tuple[torch.Tensor, ...] | None = None,
 ) -> Tensor:
     with torch.no_grad():
 
@@ -124,10 +121,10 @@ def _sparseness_feature_grouped(
 
 
 def sparseness(
-    attributions: Union[Tuple[Tensor, ...], List[Tuple[Tensor, ...]]],
+    attributions: tuple[Tensor, ...] | list[tuple[Tensor, ...]],
     is_multi_target: bool = False,
     return_dict: bool = False,
-) -> Tensor:
+) -> dict | torch.Tensor | list[torch.Tensor]:
     """
     Implementation of Sparseness metric by Chalasani et al., 2020. This implementation
     reuses the batch-computation ideas from captum and therefore it is fully compatible with the Captum library.
@@ -181,30 +178,25 @@ def sparseness(
     """
     is_attributions_list = isinstance(attributions, list)
     if is_multi_target:
-        assert (
-            is_attributions_list
-        ), "attributions must be a list of tensors or list of tuples of tensors"
+        assert is_attributions_list, (
+            "attributions must be a list of tensors or list of tuples of tensors"
+        )
     if not is_attributions_list:
         attributions = [attributions]
-    score = [
-        _sparseness(
-            attributions=attribution,
-        )
-        for attribution in attributions
-    ]
+    score = [_sparseness(attributions=attribution) for attribution in attributions]
     if not is_attributions_list:
         score = score[0]
     if return_dict:
-        return {"sparseness_score": score}
+        return {"score": score}
     return score
 
 
 def sparseness_feature_grouped(
-    attributions: Union[Tuple[Tensor, ...], List[Tuple[Tensor, ...]]],
-    feature_mask: Optional[Tuple[torch.Tensor, ...]] = None,
+    attributions: tuple[Tensor, ...] | list[tuple[Tensor, ...]],
+    feature_mask: tuple[torch.Tensor, ...] | None = None,
     is_multi_target: bool = False,
     return_dict: bool = False,
-) -> Tensor:
+) -> dict | torch.Tensor | list[torch.Tensor]:
     """
     Implementation of Sparseness metric by Chalasani et al., 2020. This implementation
     reuses the batch-computation ideas from captum and therefore it is fully compatible with the Captum library.
@@ -284,20 +276,17 @@ def sparseness_feature_grouped(
     """
     is_attributions_list = isinstance(attributions, list)
     if is_multi_target:
-        assert (
-            is_attributions_list
-        ), "attributions must be a list of tensors or list of tuples of tensors"
+        assert is_attributions_list, (
+            "attributions must be a list of tensors or list of tuples of tensors"
+        )
     if not is_attributions_list:
         attributions = [attributions]
     score = [
-        _sparseness_feature_grouped(
-            attributions=attribution,
-            feature_mask=feature_mask,
-        )
+        _sparseness_feature_grouped(attributions=attribution, feature_mask=feature_mask)
         for attribution in attributions
     ]
     if not is_attributions_list:
         score = score[0]
     if return_dict:
-        return {"sparseness_feature_grouped_score": score}
+        return {"score": score}
     return score
