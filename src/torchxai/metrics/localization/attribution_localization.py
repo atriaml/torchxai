@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-
-
 import torch
 from captum._utils.common import _format_output, _format_tensor_into_tuples, _is_tuple
 

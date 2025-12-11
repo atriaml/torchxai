@@ -9,14 +9,14 @@ src/torchxai/explainers/_utils.py
 src/torchxai/explainers/explainer.py
 src/torchxai/explainers/factory.py
 src/torchxai/explainers/random.py
+src/torchxai/explainers/_grad/_guided_backprop.py
+src/torchxai/explainers/_grad/_input_x_gradient.py
+src/torchxai/explainers/_grad/_saliency.py
 src/torchxai/explainers/_grad/deeplift.py
 src/torchxai/explainers/_grad/deeplift_shap.py
 src/torchxai/explainers/_grad/gradient_shap.py
-src/torchxai/explainers/_grad/guided_backprop.py
-src/torchxai/explainers/_grad/input_x_gradient.py
 src/torchxai/explainers/_grad/integrated_gradients.py
 src/torchxai/explainers/_grad/noise_tunnel.py
-src/torchxai/explainers/_grad/saliency.py
 src/torchxai/explainers/_perturbation/feature_ablation.py
 src/torchxai/explainers/_perturbation/kernel_shap.py
 src/torchxai/explainers/_perturbation/lime.py

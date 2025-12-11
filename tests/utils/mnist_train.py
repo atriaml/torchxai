@@ -114,7 +114,7 @@ def mnist_trainer(model_type: str = "linear", train_and_eval_model: bool = True)
     return TestBaseConfig(
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(inputs.size(0))],
-            explained_features=inputs,
+            inputs=inputs,
             additional_forward_args=None,
             target=target,
             baselines=train_baselines,

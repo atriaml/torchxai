@@ -1,4 +1,6 @@
+from collections import OrderedDict
 from collections.abc import Callable
+from functools import partial
 from typing import Any
 
 import torch
@@ -9,11 +11,7 @@ from captum._utils.gradient import (
 )
 from captum.attr import GradientAttribution, Saliency
 
-from torchxai.data_types.common import (
-    TargetType,
-    TensorOrTupleOfTensorsGeneric,
-    TensorOrTupleOfTensorsOrListOfTensorsGeneric,
-)
+from torchxai.data_types.common import TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.explainers._utils import (
     _compute_gradients_sequential_autograd,
     _compute_gradients_vmap_autograd,
@@ -23,6 +21,18 @@ from torchxai.explainers.explainer import Explainer
 
 
 class MultiTargetSaliency(GradientAttribution):
+    """Multi-target saliency attribution using gradients.
+
+    This class extends Captum's GradientAttribution to support computing
+    saliency attributions for multiple targets simultaneously.
+
+    Args:
+        forward_func: The forward function of the model to be explained.
+        gradient_func: Function for computing gradients. Automatically selects
+            between vmap and sequential methods based on PyTorch version.
+        grad_batch_size: Batch size for gradient computations. Defaults to 10.
+    """
+
     def __init__(
         self,
         forward_func: Callable,
@@ -40,10 +50,22 @@ class MultiTargetSaliency(GradientAttribution):
     def attribute(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        target: TargetType = None,
+        target: list[TargetType],
         abs: bool = True,
         additional_forward_args: Any = None,
     ) -> list[TensorOrTupleOfTensorsGeneric]:
+        """Compute multi-target saliency attributions.
+
+        Args:
+            inputs: Input tensors for which to compute attributions.
+            target: List of target indices for multi-target attribution.
+            abs: Whether to return absolute values of gradients. Defaults to True.
+            additional_forward_args: Additional arguments for the forward function.
+
+        Returns:
+            List of attribution tensors, one for each target in the target list.
+            Each element has the same structure as the input tensors.
+        """
         # Keeps track whether original input is a tuple or not before
         # converting it into a tuple.
         is_inputs_tuple = _is_tuple(inputs)
@@ -84,29 +106,121 @@ class MultiTargetSaliency(GradientAttribution):
 
 
 class SaliencyExplainer(Explainer):
-    """
-    A Explainer class for handling saliency attribution using Captum library.
+    """Saliency explainer for computing gradient-based attributions.
+
+    This explainer computes saliency maps using gradients of the model output
+    with respect to inputs. Supports both single-target and multi-target modes
+    with structured input/output via ExplanationInputs.
+
+    The saliency method computes the gradient of the output with respect to the input,
+    providing a measure of how much each input feature contributes to the prediction.
+    Raw gradients are returned (abs=False) to preserve sign information.
 
     Args:
-        model (torch.nn.Module): The model whose output is to be explained.
+        model: The PyTorch model whose output is to be explained.
+        multi_target: Whether to use multi-target mode. When True, can compute
+            attributions for multiple targets simultaneously. Defaults to False.
+        internal_batch_size: Batch size for internal computations. Defaults to 64.
+        grad_batch_size: Batch size for gradient computations. Defaults to 64.
+
+    Example:
+        Single-target usage:
+        >>> import torch
+        >>> from collections import OrderedDict
+        >>> from torchxai.data_types import ExplanationInputs
+        >>>
+        >>> model = torch.nn.Linear(10, 2)
+        >>> explainer = SaliencyExplainer(model)
+        >>>
+        >>> # Using ExplanationInputs (recommended)
+        >>> explanation_inputs = ExplanationInputs(
+        ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
+        ...     target=torch.tensor([0, 1]),
+        ... )
+        >>> attributions = explainer.explain(explanation_inputs)
+        >>> # Returns: OrderedDict({"input": torch.Tensor})
+        >>>
+        >>> # Using keyword arguments (also supported)
+        >>> attributions = explainer.explain(
+        ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
+        ...     target=torch.tensor([0, 1]),
+        ... )
+
+        Multi-target usage:
+        >>> explainer_mt = SaliencyExplainer(model, multi_target=True)
+        >>> explanation_inputs_mt = ExplanationInputs(
+        ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
+        ...     target=[torch.tensor([0]), torch.tensor([1])],
+        ... )
+        >>> mt_attributions = explainer_mt.explain(explanation_inputs_mt)
+        >>> # Returns: [OrderedDict({"input": torch.Tensor}), OrderedDict({"input": torch.Tensor})]
     """
 
-    def _init_explanation_fn(self) -> Callable:
-        if self._is_multi_target:
-            return MultiTargetSaliency(
+    def _init_single_target_explanation_fn(self) -> Callable:
+        """Initialize single-target saliency attribution function.
+
+        Returns:
+            Captum Saliency attribution function for single targets.
+        """
+        return partial(Saliency(self._model).attribute, abs=False)
+
+    def _init_multi_target_explanation_fn(self) -> Callable:
+        """Initialize multi-target saliency attribution function.
+
+        Returns:
+            MultiTargetSaliency attribution function for multiple targets.
+        """
+        return partial(
+            MultiTargetSaliency(
                 self._model, grad_batch_size=self._grad_batch_size
-            ).attribute
-        return Saliency(self._model).attribute
+            ).attribute,
+            abs=False,
+        )
 
     def explain(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
         target: TargetType,
         additional_forward_args: Any = None,
-    ) -> TensorOrTupleOfTensorsOrListOfTensorsGeneric:
-        return self._explanation_fn(
+    ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
+        """Compute saliency attributions for the given inputs.
+
+        This method provides a backward-compatible interface that accepts individual
+        parameters and constructs ExplanationInputs internally before calling the
+        parent class explain method.
+
+        Args:
+            inputs: Input tensors for attribution computation. Should be an OrderedDict
+                mapping feature names to tensors when used with this explainer.
+            target: Target indices for attribution computation. Can be a tensor
+                (single-target) or list of tensors (multi-target).
+            additional_forward_args: Additional arguments for model forward pass.
+
+        Returns:
+            For single-target mode: OrderedDict mapping feature names to attribution tensors.
+            For multi-target mode: List of OrderedDicts, one per target.
+
+        Note:
+            This method automatically wraps the inputs in an OrderedDict if they aren't already,
+            assuming a single feature named 'input'. For multiple features, pass inputs as
+            an OrderedDict directly.
+
+        Example:
+            >>> # Single tensor input (wrapped automatically)
+            >>> attributions = explainer.explain(
+            ...     inputs=torch.randn(2, 10), target=torch.tensor([0, 1])
+            ... )
+            >>>
+            >>> # Multiple features (use OrderedDict)
+            >>> attributions = explainer.explain(
+            ...     inputs=OrderedDict(
+            ...         {"feat1": torch.randn(2, 5), "feat2": torch.randn(2, 5)}
+            ...     ),
+            ...     target=torch.tensor([0, 1]),
+            ... )
+        """
+        return super().explain(
             inputs=inputs,
             target=target,
             additional_forward_args=additional_forward_args,
-            abs=False,
         )

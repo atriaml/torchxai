@@ -1,4 +1,5 @@
 import warnings
+from collections import OrderedDict
 from collections.abc import Callable
 from typing import Any
 
@@ -29,6 +30,23 @@ from torchxai.explainers.explainer import Explainer
 
 
 class MultiTargetGuidedBackprop(GradientAttribution):
+    """Multi-target Guided Backpropagation attribution.
+
+    This class extends Captum's GradientAttribution to support computing
+    Guided Backpropagation attributions for multiple targets simultaneously.
+
+    Guided Backpropagation modifies ReLU backward passes to only backpropagate
+    positive gradients, highlighting features that positively contribute to the prediction.
+
+    Args:
+        model: The PyTorch model instance.
+        use_relu_grad_output: If True, performs Deconvolution instead of
+            Guided Backpropagation. Defaults to False.
+        gradient_func: Function for computing gradients. Automatically selects
+            between vmap and sequential methods based on PyTorch version.
+        grad_batch_size: Batch size for gradient computations. Defaults to 10.
+    """
+
     def __init__(
         self,
         model: Module,
@@ -56,18 +74,22 @@ class MultiTargetGuidedBackprop(GradientAttribution):
             " ReLU layers."
         )
 
-    def attribute(  # type: ignore[override]
+    def attribute(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        target: TargetType = None,
+        target: list[TargetType],
         additional_forward_args: Any = None,
     ) -> list[TensorOrTupleOfTensorsGeneric]:
-        r"""
-        Computes attribution by overriding relu gradients. Based on constructor
-        flag use_relu_grad_output, performs either GuidedBackpropagation if False
-        and Deconvolution if True. This class is the parent class of both these
-        methods, more information on usage can be found in the docstrings for each
-        implementing class.
+        """Compute multi-target Guided Backpropagation attributions.
+
+        Args:
+            inputs: Input tensors for which to compute attributions.
+            target: List of target indices for multi-target attribution.
+            additional_forward_args: Additional arguments for the forward function.
+
+        Returns:
+            List of attribution tensors, one for each target in the target list.
+            Each element has the same structure as the input tensors.
         """
 
         # Keeps track whether original input is a tuple or not before
@@ -130,44 +152,111 @@ class MultiTargetGuidedBackprop(GradientAttribution):
 
 
 class GuidedBackpropExplainer(Explainer):
-    """
-    A Explainer class for handling Guided Backpropagation attribution using the Captum library.
+    """Guided Backpropagation explainer for computing modified gradient attributions.
+
+    This explainer computes attributions using Guided Backpropagation, which modifies
+    the backward pass through ReLU activations to only propagate positive gradients.
+    This technique highlights features that have a positive influence on the prediction.
+    Supports both single-target and multi-target modes with structured input/output.
+
+    The Guided Backpropagation method helps visualize which input features contribute
+    positively to the model's decision by suppressing negative gradients at ReLU layers.
 
     Args:
-        model (torch.nn.Module): The model whose output is to be explained.
+        model: The PyTorch model whose output is to be explained.
+        multi_target: Whether to use multi-target mode. When True, can compute
+            attributions for multiple targets simultaneously. Defaults to False.
+        internal_batch_size: Batch size for internal computations. Defaults to 64.
+        grad_batch_size: Batch size for gradient computations. Defaults to 64.
+
+    Example:
+        Single-target usage:
+        >>> import torch
+        >>> from collections import OrderedDict
+        >>> from torchxai.data_types import ExplanationInputs
+        >>>
+        >>> model = torch.nn.Sequential(
+        ...     torch.nn.Linear(10, 5), torch.nn.ReLU(), torch.nn.Linear(5, 2)
+        ... )
+        >>> explainer = GuidedBackpropExplainer(model)
+        >>>
+        >>> explanation_inputs = ExplanationInputs(
+        ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
+        ...     target=torch.tensor([0, 1]),
+        ... )
+        >>> attributions = explainer.explain(explanation_inputs)
+        >>> # Returns: OrderedDict({"input": torch.Tensor})
+
+        Multi-target usage:
+        >>> explainer_mt = GuidedBackpropExplainer(model, multi_target=True)
+        >>> explanation_inputs_mt = ExplanationInputs(
+        ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
+        ...     target=[torch.tensor([0]), torch.tensor([1])],
+        ... )
+        >>> mt_attributions = explainer_mt.explain(explanation_inputs_mt)
+        >>> # Returns: [OrderedDict({"input": torch.Tensor}), OrderedDict({"input": torch.Tensor})]
     """
 
-    def _init_explanation_fn(self) -> Callable:
-        """
-        Initializes the explanation function.
+    def _init_single_target_explanation_fn(self) -> Callable:
+        """Initialize single-target Guided Backpropagation attribution function.
 
         Returns:
-            Attribution: The initialized explanation function.
+            Captum GuidedBackprop attribution function for single targets.
         """
-        if self._is_multi_target:
-            return MultiTargetGuidedBackprop(
-                self._model, grad_batch_size=self._grad_batch_size
-            ).attribute
         return GuidedBackprop(self._model).attribute
+
+    def _init_multi_target_explanation_fn(self) -> Callable:
+        """Initialize multi-target Guided Backpropagation attribution function.
+
+        Returns:
+            MultiTargetGuidedBackprop attribution function for multiple targets.
+        """
+        return MultiTargetGuidedBackprop(
+            self._model, grad_batch_size=self._grad_batch_size
+        ).attribute
 
     def explain(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
         target: TargetType,
         additional_forward_args: Any = None,
-    ) -> TensorOrTupleOfTensorsGeneric:
-        """
-        Compute the Guided Backpropagation attributions for the given inputs.
+    ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
+        """Compute Guided Backpropagation attributions for the given inputs.
+
+        This method provides a backward-compatible interface that accepts individual
+        parameters and constructs ExplanationInputs internally before calling the
+        parent class explain method.
 
         Args:
-            inputs (TensorOrTupleOfTensorsGeneric): The input tensor(s) for which attributions are computed.
-            target (TargetType): The target(s) for computing attributions.
-            additional_forward_args (Any): Additional arguments to forward function.
+            inputs: Input tensors for attribution computation. Should be an OrderedDict
+                mapping feature names to tensors when used with this explainer.
+            target: Target indices for attribution computation. Can be a tensor
+                (single-target) or list of tensors (multi-target).
+            additional_forward_args: Additional arguments for model forward pass.
 
         Returns:
-            TensorOrTupleOfTensorsGeneric: The computed attributions.
+            For single-target mode: OrderedDict mapping feature names to attribution tensors.
+            For multi-target mode: List of OrderedDicts, one per target.
+
+        Note:
+            This method temporarily modifies ReLU backward hooks during computation.
+            Hooks are automatically removed after attribution computation completes.
+
+        Example:
+            >>> # Single tensor input (wrapped automatically)
+            >>> attributions = explainer.explain(
+            ...     inputs=torch.randn(2, 10), target=torch.tensor([0, 1])
+            ... )
+            >>>
+            >>> # Multiple features (use OrderedDict)
+            >>> attributions = explainer.explain(
+            ...     inputs=OrderedDict(
+            ...         {"feat1": torch.randn(2, 5), "feat2": torch.randn(2, 5)}
+            ...     ),
+            ...     target=torch.tensor([0, 1]),
+            ... )
         """
-        return self._explanation_fn(
+        return super().explain(
             inputs=inputs,
             target=target,
             additional_forward_args=additional_forward_args,

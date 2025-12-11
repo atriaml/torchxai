@@ -71,14 +71,14 @@ class ExplanationInputs(BaseModel):
         extra="forbid",
         revalidate_instances="always",
     )
-    sample_id: list[str]
-    explained_features: OrderedDict[str, torch.Tensor] | Any
+    sample_id: list[str] | None = None
+    inputs: OrderedDict[str, torch.Tensor] | Any
     additional_forward_args: tuple[Any, ...] | None = None
     baselines: OrderedDict[str, torch.Tensor] | Any | None = None
     train_baselines: OrderedDict[str, torch.Tensor] | Any | None = None
-    feature_masks: OrderedDict[str, torch.Tensor] | Any | None = None
+    feature_mask: OrderedDict[str, torch.Tensor] | Any | None = None
     target: list[torch.Tensor] | torch.Tensor | Any | None = None
-    input_layer_names: list[str] | None = None
+    frozen_features: list[torch.Tensor] | None = None
 
     @field_validator("additional_forward_args", mode="before")
     @classmethod
@@ -92,25 +92,32 @@ class ExplanationInputs(BaseModel):
         return (v,)
 
     @field_validator(
-        "baselines",
-        "train_baselines",
-        "explained_features",
-        "feature_masks",
-        mode="before",
+        "baselines", "train_baselines", "inputs", "feature_mask", mode="before"
     )
     @classmethod
     def normalize_inputs(cls, v):
         return _normalize_dictlike(v)
 
     @model_validator(mode="after")
-    def validate_explained_features(self):
-        assert isinstance(self.explained_features, OrderedDict), (
-            "explained_features must be an OrderedDict internally."
+    def validate_inputs(self):
+        assert isinstance(self.inputs, OrderedDict), (
+            "inputs must be an OrderedDict internally."
         )
-        _match_keys(self.baselines, self.explained_features)
-        _match_keys(self.train_baselines, self.explained_features)
-        _match_keys(self.feature_masks, self.explained_features)
+        _match_keys(self.baselines, self.inputs)
+        _match_keys(self.train_baselines, self.inputs)
+        _match_keys(self.feature_mask, self.inputs)
         return self
+
+    @field_validator("frozen_features", mode="before")
+    @classmethod
+    def normalize_frozen_features(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, torch.Tensor):
+            return [v]
+        if isinstance(v, (list, tuple)):
+            return list(v)
+        return [v]
 
     # ------------------------------
     # Move everything to device
@@ -120,35 +127,87 @@ class ExplanationInputs(BaseModel):
             update={
                 "baselines": _to_device(self.baselines, device),
                 "train_baselines": _to_device(self.train_baselines, device),
-                "feature_masks": _to_device(self.feature_masks, device),
-                "explained_features": _to_device(self.explained_features, device),
+                "feature_mask": _to_device(self.feature_mask, device),
+                "inputs": _to_device(self.inputs, device),
                 "additional_forward_args": _to_device(
                     self.additional_forward_args, device
                 ),
                 "target": _to_device(self.target, device),
+                "frozen_features": _to_device(self.frozen_features, device),
             }
         )
 
     @property
     def model_inputs(self) -> tuple[torch.Tensor, ...]:
-        assert isinstance(self.explained_features, OrderedDict), (
-            f"Expected OrderedDict, got {type(self.explained_features)}"
+        assert isinstance(self.inputs, OrderedDict), (
+            f"Expected OrderedDict, got {type(self.inputs)}"
         )
-        return tuple(self.explained_features.values()) + (
+        return tuple(self.inputs.values()) + (
             self.additional_forward_args
             if self.additional_forward_args is not None
             else ()
         )
 
-    def to_explainer_kwargs(self) -> dict[str, Any]:
-        return {
-            "inputs": _as_detached_tuple(self.explained_features),
-            "baselines": _as_detached_tuple(self.baselines),
-            "train_baselines": _as_detached_tuple(self.train_baselines),
-            "feature_mask": _as_detached_tuple(self.feature_masks),
-            "additional_forward_args": _as_detached_tuple(self.additional_forward_args),
-            "target": self.target,
-        }
+    def to_explanation_tuple_inputs(self) -> ExplanationTupleInputs:
+        return ExplanationTupleInputs(
+            sample_id=self.sample_id,
+            inputs=_as_detached_tuple(self.inputs),
+            baselines=_as_detached_tuple(self.baselines),
+            train_baselines=_as_detached_tuple(self.train_baselines),
+            feature_mask=_as_detached_tuple(self.feature_mask),
+            additional_forward_args=_as_detached_tuple(self.additional_forward_args),
+            target=self.target,
+            feature_keys=list(self.inputs.keys()),
+            frozen_features=self.frozen_features,
+        )
+
+
+class ExplanationTupleInputs(BaseModel):
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        validate_assignment=True,
+        frozen=True,
+        extra="forbid",
+        revalidate_instances="always",
+    )
+    feature_keys: list[str]
+    sample_id: list[str] | None = None
+    inputs: tuple[torch.Tensor, ...]
+    additional_forward_args: tuple[Any, ...] | None = None
+    baselines: tuple[torch.Tensor, ...] | Any | None = None
+    train_baselines: tuple[torch.Tensor, ...] | Any | None = None
+    feature_mask: tuple[torch.Tensor, ...] | Any | None = None
+    target: list[torch.Tensor] | torch.Tensor | Any | None = None
+    frozen_features: list[torch.Tensor] | None = None
+
+    def to_explanation_inputs(self) -> ExplanationInputs:
+        return ExplanationInputs(
+            sample_id=self.sample_id,
+            inputs=OrderedDict(
+                (self.feature_keys[i], tensor) for i, tensor in enumerate(self.inputs)
+            ),
+            baselines=OrderedDict(
+                (self.feature_keys[i], tensor)
+                for i, tensor in enumerate(self.baselines)
+            )
+            if self.baselines is not None
+            else None,
+            train_baselines=OrderedDict(
+                (self.feature_keys[i], tensor)
+                for i, tensor in enumerate(self.train_baselines)
+            )
+            if self.train_baselines is not None
+            else None,
+            feature_mask=OrderedDict(
+                (self.feature_keys[i], tensor)
+                for i, tensor in enumerate(self.feature_mask)
+            )
+            if self.feature_mask is not None
+            else None,
+            additional_forward_args=self.additional_forward_args,
+            target=self.target,
+            frozen_features=self.frozen_features,
+        )
 
 
 class ExplanationState(BaseModel):
@@ -160,7 +219,7 @@ class ExplanationState(BaseModel):
         revalidate_instances="always",
     )
     explanation_inputs: ExplanationInputs
-    model_outputs: torch.Tensor
+    model_outputs: torch.Tensor | None = None
 
     # explanations
     explanations: OrderedDict[str, torch.Tensor]
@@ -180,7 +239,7 @@ class ExplanationState(BaseModel):
 
     @model_validator(mode="after")
     def validate_all(self):
-        explained = self.explanation_inputs.explained_features
+        explained = self.explanation_inputs.inputs
         feature_keys = list(explained.keys())
 
         # ----- Validate explanations shape -----
@@ -192,7 +251,7 @@ class ExplanationState(BaseModel):
                 exp_keys = list(exp.keys())
                 if exp_keys != feature_keys:
                     raise ValueError(
-                        f"{name} must have same number of feature types as explained_features "
+                        f"{name} must have same number of feature types as inputs "
                         f"({len(exp_keys)} vs {len(feature_keys)})"
                     )
 
@@ -236,7 +295,7 @@ class MultiTargetExplanationState(ExplanationState):
 
     @model_validator(mode="after")
     def validate_all(self):
-        explained = self.explanation_inputs.explained_features
+        explained = self.explanation_inputs.inputs
         num_feature_types = len(explained)
 
         # ----- Validate explanations shape -----
@@ -253,7 +312,7 @@ class MultiTargetExplanationState(ExplanationState):
                 for exp in exp_list:
                     if len(exp) != num_feature_types:
                         raise ValueError(
-                            f"{name} must have same number of feature types as explained_features "
+                            f"{name} must have same number of feature types as inputs "
                             f"({len(exp)} vs {num_feature_types})"
                         )
 
@@ -277,53 +336,34 @@ class MetricInputs(BaseModel):
     )
     baselines: OrderedDict[str, torch.Tensor] | Any | None = None
     shift_baselines: OrderedDict[str, torch.Tensor] | Any | None = None
-    feature_masks: OrderedDict[str, torch.Tensor] | Any | None = None
+    feature_mask: OrderedDict[str, torch.Tensor] | Any | None = None
     constant_shifts: OrderedDict[str, torch.Tensor] | Any | None = None
     input_layer_names: list[str] | None = None
-    frozen_features: list[torch.Tensor] | None = None
 
     # -------------------------
     # Validators (normalize all)
     # -------------------------
 
     @field_validator(
-        "baselines",
-        "shift_baselines",
-        "feature_masks",
-        "constant_shifts",
-        mode="before",
+        "baselines", "shift_baselines", "feature_mask", "constant_shifts", mode="before"
     )
     @classmethod
     def normalize_inputs(cls, v):
         return _normalize_dictlike(v)
-
-    @field_validator("frozen_features", mode="before")
-    @classmethod
-    def normalize_frozen_features(cls, v):
-        if v is None:
-            return None
-        if isinstance(v, torch.Tensor):
-            return [v]
-        if isinstance(v, (list, tuple)):
-            return list(v)
-        return [v]
 
     # -------------------------
     # Device movement
     # -------------------------
 
     def to(self, device: str | torch.device = "cpu") -> MetricInputs:
-        print("Moving MetricInputs to device:", device)
         updates = self.model_copy(
             update={
                 "baselines": _to_device(self.baselines, device),
                 "shift_baselines": _to_device(self.shift_baselines, device),
-                "feature_masks": _to_device(self.feature_masks, device),
+                "feature_mask": _to_device(self.feature_mask, device),
                 "constant_shifts": _to_device(self.constant_shifts, device),
-                "frozen_features": _to_device(self.frozen_features, device),
             }
         )
-        print("updates", updates)
         return updates
 
 
@@ -343,9 +383,7 @@ class ExplanationStepOutputs(BaseModel):
 
     @property
     def inputs(self) -> tuple[torch.Tensor, ...]:
-        return _as_detached_tuple(
-            self.explanation_state.explanation_inputs.explained_features
-        )
+        return _as_detached_tuple(self.explanation_state.explanation_inputs.inputs)
 
     @property
     def additional_forward_args(self) -> tuple[Any, ...] | None:
@@ -354,9 +392,9 @@ class ExplanationStepOutputs(BaseModel):
         )
 
     @property
-    def feature_masks(self) -> tuple[torch.Tensor, ...] | None:
+    def feature_mask(self) -> tuple[torch.Tensor, ...] | None:
         return _as_detached_tuple(
-            self.explanation_state.explanation_inputs.feature_masks
+            self.explanation_state.explanation_inputs.feature_mask
         )
 
     @property
@@ -390,12 +428,6 @@ class ExplanationStepOutputs(BaseModel):
         if self.metric_inputs is None:
             return None
         return _as_detached_tuple(self.metric_inputs.constant_shifts)
-
-    @property
-    def frozen_features(self) -> list[torch.Tensor] | None:
-        if self.metric_inputs is None or self.metric_inputs.frozen_features is None:
-            return None
-        return [x.detach() for x in self.metric_inputs.frozen_features]
 
     @property
     def input_layer_names(self) -> list[str] | None:

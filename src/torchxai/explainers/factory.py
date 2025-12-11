@@ -2,17 +2,20 @@ from __future__ import annotations
 
 from torch import nn
 
+from torchxai.explainers._grad._deeplift import DeepLiftExplainer
+from torchxai.explainers._grad._gradient_shap import GradientShapExplainer
 from torchxai.explainers._grad._guided_backprop import GuidedBackpropExplainer
+from torchxai.explainers._grad._input_x_baseline_gradient import (
+    InputXBaselineGradientExplainer,
+)
 from torchxai.explainers._grad._input_x_gradient import InputXGradientExplainer
+from torchxai.explainers._grad._integrated_gradients import IntegratedGradientsExplainer
 from torchxai.explainers._grad._saliency import SaliencyExplainer
-from torchxai.explainers._grad.deeplift import DeepLiftExplainer
 from torchxai.explainers._grad.deeplift_shap import DeepLiftShapExplainer
-from torchxai.explainers._grad.gradient_shap import GradientShapExplainer
-from torchxai.explainers._grad.integrated_gradients import IntegratedGradientsExplainer
+from torchxai.explainers._perturbation._lime import LimeExplainer
+from torchxai.explainers._perturbation._occlusion import OcclusionExplainer
 from torchxai.explainers._perturbation.feature_ablation import FeatureAblationExplainer
 from torchxai.explainers._perturbation.kernel_shap import KernelShapExplainer
-from torchxai.explainers._perturbation.lime import LimeExplainer
-from torchxai.explainers._perturbation.occlusion import OcclusionExplainer
 from torchxai.explainers.explainer import Explainer
 from torchxai.explainers.random import RandomExplainer
 
@@ -24,6 +27,7 @@ AVAILABLE_EXPLAINERS = {
     "deep_lift_shap": DeepLiftShapExplainer,
     "gradient_shap": GradientShapExplainer,
     "input_x_gradient": InputXGradientExplainer,
+    "input_x_baseline_gradient": InputXBaselineGradientExplainer,
     "guided_backprop": GuidedBackpropExplainer,
     "feature_ablation": FeatureAblationExplainer,
     "occlusion": OcclusionExplainer,

@@ -51,6 +51,9 @@ dependencies = [
     "pydantic>=2.12.5",
     "scikit-learn>=1.8.0",
     "overrides>=7.7.0",
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.7.0",
+    "mkdocstrings[python]>=1.0.0",
 ]
 
 
@@ -162,6 +165,7 @@ xfail_strict = true         # Treat tests that are marked as xfail but pass as t
 
 [tool.uv]
 managed = true
+package = true
 
 [tool.distutils.egg_info]
 egg_base = "."

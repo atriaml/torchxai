@@ -1,20 +1,25 @@
 from typing import TypeVar
 
+# from captum._utils.typing import BaselineType, TargetType
 from torch import Tensor
 from torch.nn import Module
 
 ModuleOrModuleList = TypeVar("ModuleOrModuleList", Module, list[Module])
-TargetType = (
-    None
-    | int
-    | tuple[int, ...]
-    | Tensor
-    | list[tuple[int, ...]]
-    | list[int]
-    | list[Tensor]
-)
-BaselineType = None | Tensor | tuple[Tensor, ...]
+# TargetType = (
+#     None
+#     | int
+#     | tuple[int, ...]
+#     | Tensor
+#     | list[tuple[int, ...]]
+#     | list[int]
+#     | list[Tensor]
+# )
+TargetType = None | int | tuple[int, ...] | Tensor | list[tuple[int, ...]] | list[int]
+# BaselineType = None | Tensor | tuple[Tensor, ...]
+BaselineType = None | Tensor | int | float | tuple[Tensor | int | float, ...]
 TensorOrTupleOfTensorsGeneric = Tensor | tuple[Tensor, ...]
 TensorOrTupleOfTensorsOrListOfTensorsGeneric = (
-    Tensor | tuple[Tensor, ...] | list[Tensor]
+    Tensor | tuple[Tensor, ...] | list[Tensor] | list[tuple[Tensor, ...]]
 )
+
+TupleOfTensorsOrListOfTuplesOfTensors = tuple[Tensor, ...] | list[tuple[Tensor, ...]]

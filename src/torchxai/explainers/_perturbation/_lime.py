@@ -1,8 +1,9 @@
-#!/usr/bin/env python3
 import math
 import typing
 import warnings
+from collections import OrderedDict
 from collections.abc import Callable
+from functools import partial
 from typing import Any, Literal
 
 import torch
@@ -16,7 +17,7 @@ from captum._utils.common import (
 )
 from captum._utils.models.linear_model import SkLearnLasso
 from captum._utils.models.model import Model
-from captum.attr import Attribution, LimeBase
+from captum.attr import LimeBase
 from captum.attr._core.lime import (
     construct_feature_mask,
     default_from_interp_rep_transform,
@@ -103,6 +104,12 @@ def frozen_features_perturb_func(original_inp, **kwargs):
 
 
 class Lime(LimeBase):
+    """LIME (Local Interpretable Model-agnostic Explanations) attribution method.
+
+    This class extends Captum's LimeBase to provide LIME functionality with
+    local linear approximations using perturbed samples around the input.
+    """
+
     def __init__(
         self,
         forward_func: Callable,
@@ -183,7 +190,8 @@ class Lime(LimeBase):
                 "Attempting to construct interpretable model with > 10000 features."
                 "This can be very slow or lead to OOM issues. Please provide a feature"
                 "mask which groups input features to reduce the number of interpretable"
-                "features. "
+                "features. ",
+                stacklevel=2,
             )
 
         coefs: Tensor
@@ -197,7 +205,8 @@ class Lime(LimeBase):
                         "You are providing multiple inputs for Lime / Kernel SHAP "
                         "attributions. This trains a separate interpretable model "
                         "for each example, which can be time consuming. It is "
-                        "recommended to compute attributions for one example at a time."
+                        "recommended to compute attributions for one example at a time.",
+                        stacklevel=2,
                     )
                     output_list = []
                     for (
@@ -217,8 +226,7 @@ class Lime(LimeBase):
                         frozen_features,
                     ):
                         kwargs["frozen_features"] = curr_frozen_features
-                        coefs = super().attribute.__wrapped__(
-                            self,
+                        coefs = super().attribute(
                             inputs=curr_inps if is_inputs_tuple else curr_inps[0],
                             target=curr_target,
                             additional_forward_args=curr_additional_args,
@@ -261,8 +269,7 @@ class Lime(LimeBase):
                     "returns single value per batch!"
                 )
 
-        coefs = super().attribute.__wrapped__(
-            self,
+        coefs = super().attribute(
             inputs=inputs,
             target=target,
             additional_forward_args=additional_forward_args,
@@ -328,6 +335,12 @@ class Lime(LimeBase):
 
 
 class MultiTargetLime(MultiTargetLimeBase):
+    """Multi-target LIME attribution method.
+
+    This class extends MultiTargetLimeBase to support computing LIME attributions
+    for multiple targets simultaneously using local linear models.
+    """
+
     def __init__(
         self,
         forward_func: Callable,
@@ -359,7 +372,7 @@ class MultiTargetLime(MultiTargetLimeBase):
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
         baselines: BaselineType = None,
-        target: TargetType = None,
+        target: list[TargetType] | None = None,
         additional_forward_args: Any = None,
         feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         n_samples: int = 25,
@@ -367,7 +380,7 @@ class MultiTargetLime(MultiTargetLimeBase):
         frozen_features: list[torch.Tensor] | None = None,
         return_input_shape: bool = True,
         show_progress: bool = False,
-    ) -> TensorOrTupleOfTensorsGeneric:
+    ) -> list[TensorOrTupleOfTensorsGeneric]:
         return self._attribute_kwargs(
             inputs=inputs,
             baselines=baselines,
@@ -385,7 +398,7 @@ class MultiTargetLime(MultiTargetLimeBase):
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
         baselines: BaselineType = None,
-        target: TargetType = None,
+        target: list[TargetType] | None = None,
         additional_forward_args: Any = None,
         feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         n_samples: int = 25,
@@ -394,7 +407,7 @@ class MultiTargetLime(MultiTargetLimeBase):
         return_input_shape: bool = True,
         show_progress: bool = False,
         **kwargs,
-    ) -> TensorOrTupleOfTensorsGeneric:
+    ) -> list[TensorOrTupleOfTensorsGeneric]:
         is_inputs_tuple = _is_tuple(inputs)
         formatted_inputs, baselines = _format_input_baseline(inputs, baselines)
         bsz = formatted_inputs[0].shape[0]
@@ -408,7 +421,8 @@ class MultiTargetLime(MultiTargetLimeBase):
                 "Attempting to construct interpretable model with > 10000 features."
                 "This can be very slow or lead to OOM issues. Please provide a feature"
                 "mask which groups input features to reduce the number of interpretable"
-                "features. "
+                "features. ",
+                stacklevel=2,
             )
 
         multi_target_coefs: Tensor
@@ -418,16 +432,17 @@ class MultiTargetLime(MultiTargetLimeBase):
             )
 
             n_targets = len(target) if isinstance(target, list) else 1
-            # if the target is sent as a list of torch tensors then we need to
+
+            # if target is provided as list of torch tensors then we just convert them into list of lists
             if isinstance(target, list) and isinstance(target[0], Tensor):
+                print("target[0].shape[0]", target[0].shape[0])
                 if target[0].shape[0] > 1:
-                    assert target[0].shape[0] == bsz
+                    target = [t.tolist() for t in target]  # type: ignore
+                else:
+                    target = [t.item() for t in target]  # type: ignore
 
-                    # convert the list of tensors to multiple ids for each example
-                    target = list(zip(*target, strict=False))
-
-                    target = [item[0] for item in target]
-            elif (
+            print("target", target)
+            if (
                 isinstance(target, list)
                 and isinstance(target[0], list)
                 and isinstance(target[0][0], int)
@@ -435,7 +450,7 @@ class MultiTargetLime(MultiTargetLimeBase):
                 assert len(target[0]) == bsz
 
                 # convert the list of tensors to multiple ids for each example
-                target = list(zip(*target, strict=False))
+                target = list(zip(*target, strict=True))
             elif (
                 isinstance(target, list)
                 and isinstance(target[0], list)
@@ -444,7 +459,7 @@ class MultiTargetLime(MultiTargetLimeBase):
                 assert len(target[0]) == bsz
 
                 # convert the list of tensors to multiple ids for each example
-                target = list(zip(*target, strict=False))
+                target = list(zip(*target, strict=True))
 
             if isinstance(test_output, Tensor) and torch.numel(test_output) > n_targets:
                 if test_output.shape[0] == bsz:
@@ -452,7 +467,8 @@ class MultiTargetLime(MultiTargetLimeBase):
                         "You are providing multiple inputs for Lime / Kernel SHAP "
                         "attributions. This trains a separate interpretable model "
                         "for each example, which can be time consuming. It is "
-                        "recommended to compute attributions for one example at a time."
+                        "recommended to compute attributions for one example at a time.",
+                        stacklevel=2,
                     )
                     output_list = []
                     for (
@@ -477,8 +493,7 @@ class MultiTargetLime(MultiTargetLimeBase):
                         ):
                             curr_target = [[item] for item in curr_target[0]]
 
-                        multi_target_coefs = super().attribute.__wrapped__(
-                            self,
+                        multi_target_coefs = super().attribute(
                             inputs=curr_inps if is_inputs_tuple else curr_inps[0],
                             target=curr_target,
                             additional_forward_args=curr_additional_args,
@@ -530,8 +545,7 @@ class MultiTargetLime(MultiTargetLimeBase):
                     "returns single value per batch!"
                 )
 
-        multi_target_coefs = super().attribute.__wrapped__(
-            self,
+        multi_target_coefs = super().attribute(
             inputs=inputs,
             target=target,
             additional_forward_args=additional_forward_args,
@@ -558,24 +572,6 @@ class MultiTargetLime(MultiTargetLimeBase):
         else:
             return multi_target_coefs
 
-    @typing.overload
-    def _convert_output_shape(
-        self,
-        formatted_inp: tuple[Tensor, ...],
-        feature_mask: tuple[Tensor, ...],
-        coefs: Tensor,
-        num_interp_features: int,
-    ) -> tuple[Tensor, ...]: ...
-
-    @typing.overload
-    def _convert_output_shape(
-        self,
-        formatted_inp: tuple[Tensor, ...],
-        feature_mask: tuple[Tensor, ...],
-        coefs: Tensor,
-        num_interp_features: int,
-    ) -> Tensor: ...
-
     def _convert_output_shape(
         self,
         formatted_inp: tuple[Tensor, ...],
@@ -599,55 +595,162 @@ class MultiTargetLime(MultiTargetLimeBase):
 
 
 class LimeExplainer(Explainer):
-    """
-    A Explainer class for handling LIME (Local Interpretable Model-agnostic Explanations) using the Captum library.
+    """LIME explainer for local interpretable model-agnostic explanations.
+
+    This explainer computes attributions using LIME (Local Interpretable Model-agnostic
+    Explanations), which explains individual predictions by learning locally faithful
+    linear models around the input. LIME perturbs the input and trains a simple
+    interpretable model on the perturbed samples to approximate the model's behavior
+    locally. Supports both single-target and multi-target modes with structured input/output.
+
+    LIME is particularly useful for understanding complex models by providing locally
+    accurate explanations using interpretable linear models.
 
     Args:
-        model (torch.nn.Module): The model whose output is to be explained.
-        n_samples (int, optional): The number of perturbed samples to generate for LIME. Default is 100.
-        perturbations_per_eval (int, optional): The number of perturbations evaluated per batch. Default is 50.
+        model: The PyTorch model whose output is to be explained.
+        multi_target: Whether to use multi-target mode. When True, can compute
+            attributions for multiple targets simultaneously. Defaults to False.
+        internal_batch_size: Batch size for internal computations (perturbations
+            per evaluation). Defaults to 1.
+        n_samples: Number of perturbed samples to generate for LIME. Defaults to 100.
+        alpha: Regularization parameter for the LASSO interpretable model. Defaults to 0.01.
+        weight_attributions: Whether to weight attributions by feature group sizes
+            when using feature masks. Defaults to True.
 
-    Attributes:
-        n_samples (int): The number of perturbed samples to be used for generating attributions.
-        perturbations_per_eval (int): The number of perturbations evaluated per batch.
+    Example:
+        Single-target usage for tabular data:
+        >>> import torch
+        >>> from collections import OrderedDict
+        >>> from torchxai.data_types import ExplanationInputs
+        >>>
+        >>> model = torch.nn.Sequential(
+        ...     torch.nn.Linear(10, 5), torch.nn.ReLU(), torch.nn.Linear(5, 2)
+        ... )
+        >>> explainer = LimeExplainer(model, n_samples=200, alpha=0.01)
+        >>>
+        >>> explanation_inputs = ExplanationInputs(
+        ...     inputs=OrderedDict({"features": torch.randn(1, 10)}),
+        ...     target=torch.tensor([1]),
+        ...     baselines=OrderedDict({"features": torch.zeros(1, 10)}),
+        ... )
+        >>> attributions = explainer.explain(explanation_inputs)
+        >>> # Returns: OrderedDict({"features": torch.Tensor})
+
+        Multi-target usage:
+        >>> explainer_mt = LimeExplainer(model, multi_target=True, n_samples=200)
+        >>> explanation_inputs_mt = ExplanationInputs(
+        ...     inputs=OrderedDict({"features": torch.randn(1, 10)}),
+        ...     target=[torch.tensor([0]), torch.tensor([1])],
+        ...     baselines=OrderedDict({"features": torch.zeros(1, 10)}),
+        ... )
+        >>> mt_attributions = explainer_mt.explain(explanation_inputs_mt)
+        >>> # Returns: [OrderedDict({"features": torch.Tensor}), OrderedDict({"features": torch.Tensor})]
     """
 
     def __init__(
         self,
         model: Module,
-        is_multi_target: bool = False,
+        multi_target: bool = False,
         internal_batch_size: int = 1,
         n_samples: int = 100,
         alpha: float = 0.01,
         weight_attributions: bool = True,
+        show_progress: bool = False,
     ) -> None:
-        """
-        Initialize the LimeExplainer with the model, number of samples, and perturbations per evaluation.
+        """Initialize the LimeExplainer.
+
+        Args:
+            model: The model whose output is to be explained.
+            multi_target: Whether to use multi-target mode. Defaults to False.
+            internal_batch_size: Batch size for internal computations. Defaults to 1.
+            n_samples: Number of perturbed samples for LIME. Defaults to 100.
+            alpha: Regularization parameter for LASSO. Defaults to 0.01.
+            weight_attributions: Whether to weight attributions by feature groups. Defaults to True.
         """
         self._n_samples = n_samples
         self._alpha = alpha
         self._weight_attributions = weight_attributions
+        self._show_progress = show_progress
 
-        super().__init__(model, is_multi_target, internal_batch_size)
+        super().__init__(model, multi_target, internal_batch_size)
 
-    def _init_explanation_fn(self) -> Attribution:
-        """
-        Initializes the explanation function.
+    def _init_single_target_explanation_fn(self) -> Callable:
+        """Initialize single-target LIME attribution function.
 
         Returns:
-            Attribution: The initialized explanation function.
+            LIME attribution function for single targets.
         """
-        if self._is_multi_target:
-            return MultiTargetLime(
+        expl_func = partial(
+            Lime(
                 self._model,
                 interpretable_model=SkLearnLasso(alpha=self._alpha),
                 perturb_func=frozen_features_perturb_func,
-            )
-        return Lime(
-            self._model,
-            interpretable_model=SkLearnLasso(alpha=self._alpha),
-            perturb_func=frozen_features_perturb_func,
+            ).attribute,
+            n_samples=self._n_samples,
+            perturbations_per_eval=self._internal_batch_size,
+            show_progress=self._show_progress,
         )
+        return self._expl_fn_with_post_process(expl_func)
+
+    def _init_multi_target_explanation_fn(self) -> Callable:
+        """Initialize multi-target LIME attribution function.
+
+        Returns:
+            MultiTargetLime attribution function for multiple targets.
+        """
+
+        expl_func = partial(
+            MultiTargetLime(
+                self._model,
+                interpretable_model=SkLearnLasso(alpha=self._alpha),
+                perturb_func=frozen_features_perturb_func,
+            ).attribute,
+            n_samples=self._n_samples,
+            perturbations_per_eval=self._internal_batch_size,
+            show_progress=self._show_progress,
+        )
+
+        return self._expl_fn_with_post_process(expl_func)
+
+    def _expl_fn_with_post_process(self, expl_func: Callable) -> Callable:
+        def wrapped(
+            inputs: TensorOrTupleOfTensorsGeneric,
+            baselines: BaselineType = None,
+            target: TargetType = None,
+            additional_forward_args: Any = None,
+            feature_mask: None | Tensor | tuple[Tensor, ...] = None,
+            **kwargs,
+        ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
+            feature_mask = (
+                _expand_feature_mask_to_target(feature_mask, inputs)
+                if feature_mask is not None
+                else None
+            )
+            additional_forward_args = _format_additional_forward_args(
+                additional_forward_args
+            )
+
+            attributions = expl_func(
+                inputs=inputs,
+                baselines=baselines,
+                target=target,
+                additional_forward_args=additional_forward_args,
+                feature_mask=feature_mask,
+                **kwargs,
+            )
+
+            # Apply feature weighting if requested
+            if self._weight_attributions and feature_mask is not None:
+                if self._multi_target:
+                    attributions = [
+                        _weight_attributions(attribution, feature_mask)
+                        for attribution in attributions
+                    ]
+                else:
+                    attributions = _weight_attributions(attributions, feature_mask)
+            return attributions
+
+        return wrapped
 
     def explain(
         self,
@@ -657,43 +760,51 @@ class LimeExplainer(Explainer):
         feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         additional_forward_args: Any = None,
         frozen_features: list[torch.Tensor] | None = None,
-    ) -> TensorOrTupleOfTensorsGeneric:
-        """
-        Compute the LIME attributions for the given inputs.
+    ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
+        """Compute LIME attributions for the given inputs.
+
+        This method provides a backward-compatible interface that accepts individual
+        parameters and constructs ExplanationInputs internally before calling the
+        parent class explain method.
 
         Args:
-            inputs (TensorOrTupleOfTensorsGeneric): The input tensor(s) for which attributions are computed.
-            target (TargetType): The target(s) for computing attributions.
-            baselines (BaselineType, optional): Baselines for computing attributions. Default is None.
-            feature_masks (Union[None, Tensor, Tuple[Tensor, ...]], optional): Masks representing feature groups. Default is None.
-            additional_forward_args (Any, optional): Additional arguments to forward to the model. Default is None.
+            inputs: Input tensors for attribution computation. Should be an OrderedDict
+                mapping feature names to tensors when used with this explainer.
+            target: Target indices for attribution computation. Can be a tensor
+                (single-target) or list of tensors (multi-target).
+            baselines: Baseline tensors for perturbation (typically zeros). If None,
+                uses zero baselines matching input shape.
+            feature_mask: Masks representing feature groups for aggregation. If provided,
+                features with the same mask value are grouped together.
+            additional_forward_args: Additional arguments for model forward pass.
+            frozen_features: List of feature indices to keep unchanged during perturbation.
+                Useful for special tokens like CLS, SEP in NLP models.
 
         Returns:
-            TensorOrTupleOfTensorsGeneric: The computed attributions.
-        """
-        # Compute the attributions using Kernel SHAP
-        feature_mask = _expand_feature_mask_to_target(feature_mask, inputs)
-        additional_forward_args = _format_additional_forward_args(
-            additional_forward_args
-        )
+            For single-target mode: OrderedDict mapping feature names to attribution tensors.
+            For multi-target mode: List of OrderedDicts, one per target.
 
-        # Compute the attributions using LIME
-        attributions = self._explanation_fn.attribute(
+        Note:
+            LIME trains a local linear model on perturbed samples. The number of samples
+            and regularization strength are controlled by initialization parameters.
+
+        Example:
+            >>> # For tabular data with feature grouping
+            >>> feature_mask = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 4]])
+            >>> attributions = explainer.explain(
+            ...     inputs=OrderedDict({"features": torch.randn(1, 10)}),
+            ...     target=torch.tensor([1]),
+            ...     baselines=OrderedDict({"features": torch.zeros(1, 10)}),
+            ...     feature_mask=feature_mask,
+            ... )
+        """
+
+        # Get base attributions
+        return super().explain(
             inputs=inputs,
             target=target,
             baselines=baselines,
             feature_mask=feature_mask,
             additional_forward_args=additional_forward_args,
-            n_samples=self._n_samples,
-            perturbations_per_eval=self._internal_batch_size,
             frozen_features=frozen_features,
         )
-        if self._weight_attributions and feature_mask is not None:
-            if self._is_multi_target:
-                attributions = [
-                    _weight_attributions(attribution, feature_mask)
-                    for attribution in attributions
-                ]
-            else:
-                attributions = _weight_attributions(attributions, feature_mask)
-        return attributions

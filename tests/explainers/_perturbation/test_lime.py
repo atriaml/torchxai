@@ -117,7 +117,7 @@ test_configurations = [
             (torch.tensor([[0] * 10] * 3), torch.tensor([[0] * 10] * 3)),
             (torch.tensor([[0] * 10] * 3), torch.tensor([[0] * 10] * 3)),
         ],
-        override_target=[torch.tensor([0]), torch.tensor([1])],
+        override_target=[0, 1],
     ),
     *_make_config_for_explainer(
         target_fixture="classification_alexnet_model_config",
@@ -148,15 +148,14 @@ test_configurations = [
 def test_lime(explainer_runtime_test_configuration):
     base_config, runtime_config = explainer_runtime_test_configuration
     base_config: TestBaseConfig
-
+    print("Running test with base_config:", runtime_config.test_name)
     if runtime_config.set_image_feature_mask:
         base_config = base_config.model_copy(
             update={
                 "explanation_inputs": base_config.explanation_inputs.model_copy(
                     update={
-                        "feature_masks": _grid_segmenter(
-                            base_config.explanation_inputs.explained_features["0"],
-                            cell_size=32,
+                        "feature_mask": _grid_segmenter(
+                            base_config.explanation_inputs.inputs["0"], cell_size=32
                         )
                     }
                 )

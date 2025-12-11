@@ -1,14 +1,12 @@
-#!/usr/bin/env python3
 from collections.abc import Callable, Generator
 from typing import Any
 
 import torch
 from captum._utils.common import _format_additional_forward_args
 from captum._utils.models.linear_model import SkLearnLinearRegression
-from captum.attr import Attribution, KernelShap
+from captum.attr import Attribution
 from captum.attr._core.lime import construct_feature_mask
 from captum.attr._utils.common import _format_input_baseline
-from captum.log import log_usage
 from torch import Tensor
 from torch.distributions.categorical import Categorical
 from torch.nn import Module
@@ -18,7 +16,7 @@ from torchxai.data_types.common import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
-from torchxai.explainers._perturbation.lime import Lime, MultiTargetLime
+from torchxai.explainers._perturbation._lime import Lime, MultiTargetLime
 from torchxai.explainers._utils import (
     _expand_feature_mask_to_target,
     _weight_attributions,
@@ -86,7 +84,6 @@ class KernelShap(Lime):
         )
         self.inf_weight = 1000000.0
 
-    @log_usage()
     def attribute(  # type: ignore
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
@@ -151,8 +148,7 @@ class MultiTargetKernelShap(MultiTargetLime):
             forward_func (Callable): The forward function of the model or
                         any modification of it.
         """
-        Lime.__init__(
-            self,
+        super().__init__(
             forward_func,
             interpretable_model=SkLearnLinearRegression(),
             similarity_func=self.kernel_shap_similarity_kernel,
@@ -160,12 +156,11 @@ class MultiTargetKernelShap(MultiTargetLime):
         )
         self.inf_weight = 1000000.0
 
-    @log_usage()
     def attribute(  # type: ignore
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
         baselines: BaselineType = None,
-        target: TargetType = None,
+        target: list[TargetType] | None = None,
         additional_forward_args: Any = None,
         feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         n_samples: int = 25,
@@ -173,7 +168,7 @@ class MultiTargetKernelShap(MultiTargetLime):
         frozen_features: list[torch.Tensor] | None = None,
         return_input_shape: bool = True,
         show_progress: bool = False,
-    ) -> TensorOrTupleOfTensorsGeneric:
+    ) -> list[TensorOrTupleOfTensorsGeneric] | TensorOrTupleOfTensorsGeneric:
         formatted_inputs, baselines = _format_input_baseline(inputs, baselines)
         feature_mask, num_interp_features = construct_feature_mask(
             feature_mask, formatted_inputs

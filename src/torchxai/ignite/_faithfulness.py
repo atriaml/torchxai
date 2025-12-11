@@ -49,7 +49,7 @@ class MonotonicityCorrAndNonSensMetric(TorchXAIMetricBase):
             # this baseline is used to compute the completeness score wrt to a baseline against already computed attributions
             # these contributions may be computed wrt different explainer baselines
             baselines=output.metric_baselines,
-            feature_mask=output.feature_masks,
+            feature_mask=output.feature_mask,
             additional_forward_args=output.additional_forward_args,
             target=output.target,  # type: ignore
             max_features_processed_per_batch=self._max_features_processed_per_batch,  # type: ignore

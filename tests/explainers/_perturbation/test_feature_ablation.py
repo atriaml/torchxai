@@ -208,8 +208,7 @@ def test_feature_ablation(explainer_runtime_test_configuration):
                 "explanation_inputs": base_config.explanation_inputs.model_copy(
                     update={
                         "feature_masks": _grid_segmenter(
-                            base_config.explanation_inputs.explained_features["0"],
-                            cell_size=32,
+                            base_config.explanation_inputs.inputs["0"], cell_size=32
                         )
                     }
                 )

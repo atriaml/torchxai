@@ -1,11 +1,11 @@
-#!/usr/bin/env python3
+from collections import OrderedDict
 from collections.abc import Callable
+from functools import partial
 from typing import Any
 
 import numpy as np
 import torch
 from captum._utils.common import _format_tensor_into_tuples
-from captum.attr import Attribution, Occlusion
 from captum.attr._utils.common import (
     _format_and_verify_sliding_window_shapes,
     _format_and_verify_strides,
@@ -22,13 +22,15 @@ from torchxai.explainers._perturbation.feature_ablation import (
     FeatureAblation,
     MultiTargetFeatureAblation,
 )
-from torchxai.explainers._utils import _convert_to_tuples
 from torchxai.explainers.explainer import Explainer
 
 
 class Occlusion(FeatureAblation):
-    """
-    This implementation is exactly the same as Captum but uses a different base class.
+    """Occlusion attribution method using sliding windows.
+
+    This implementation extends FeatureAblation to provide occlusion-based
+    attributions by systematically replacing rectangular regions of the input
+    with baseline values and measuring the impact on model output.
     """
 
     def __init__(self, forward_func: Callable) -> None:
@@ -176,6 +178,13 @@ class Occlusion(FeatureAblation):
 
 
 class MultiTargetOcclusion(MultiTargetFeatureAblation):
+    """Multi-target Occlusion attribution method.
+
+    This class extends MultiTargetFeatureAblation to support computing
+    occlusion attributions for multiple targets simultaneously using
+    sliding window perturbations.
+    """
+
     def __init__(self, forward_func: Callable) -> None:
         r"""
         Args:
@@ -374,40 +383,122 @@ class MultiTargetOcclusion(MultiTargetFeatureAblation):
 
 
 class OcclusionExplainer(Explainer):
-    """
-    A Explainer class for Feature Ablation using Captum library.
+    """Occlusion explainer for computing sliding-window perturbation attributions.
+
+    This explainer computes attributions using the Occlusion method, which systematically
+    replaces rectangular regions of the input with baseline values (typically zeros)
+    and measures the resulting change in model output. This approach is particularly
+    effective for image data where spatial regions can be meaningfully occluded.
+    Supports both single-target and multi-target modes with structured input/output.
+
+    The Occlusion method provides intuitive attributions by directly measuring
+    the importance of spatial regions through systematic perturbation.
 
     Args:
-        model (torch.nn.Module): The model whose output is to be explained.
-        perturbations_per_eval (int, optional): The number of feature perturbations evaluated per batch. Default is 200.
+        model: The PyTorch model whose output is to be explained.
+        sliding_window_shapes: Shape of the occlusion window for each input tensor.
+            Can be a single tuple for all inputs or tuple of tuples for each input.
+        strides: Stride for sliding the occlusion window. Can be int, tuple, or
+            tuple of tuples. If None, defaults to sliding_window_shapes.
+        multi_target: Whether to use multi-target mode. When True, can compute
+            attributions for multiple targets simultaneously. Defaults to False.
+        internal_batch_size: Batch size for internal computations (perturbations
+            per evaluation). Defaults to 1.
 
-    Attributes:
-        attr_class (Occlusion): The class representing the Feature Ablation method.
-        perturbations_per_eval (int): Number of feature perturbations per evaluation.
+    Example:
+        Single-target usage for image data:
+        >>> import torch
+        >>> from collections import OrderedDict
+        >>> from torchxai.data_types import ExplanationInputs
+        >>>
+        >>> # CNN model for image classification
+        >>> model = torch.nn.Sequential(
+        ...     torch.nn.Conv2d(3, 16, 3),
+        ...     torch.nn.ReLU(),
+        ...     torch.nn.AdaptiveAvgPool2d(1),
+        ...     torch.nn.Flatten(),
+        ...     torch.nn.Linear(16, 10),
+        ... )
+        >>> # 8x8 sliding window with 4x4 stride
+        >>> explainer = OcclusionExplainer(
+        ...     model, sliding_window_shapes=(8, 8), strides=(4, 4)
+        ... )
+        >>>
+        >>> explanation_inputs = ExplanationInputs(
+        ...     inputs=OrderedDict({"image": torch.randn(1, 3, 32, 32)}),
+        ...     target=torch.tensor([5]),
+        ...     baselines=OrderedDict({"image": torch.zeros(1, 3, 32, 32)}),
+        ... )
+        >>> attributions = explainer.explain(explanation_inputs)
+        >>> # Returns: OrderedDict({"image": torch.Tensor})
+
+        Multi-target usage:
+        >>> explainer_mt = OcclusionExplainer(
+        ...     model, sliding_window_shapes=(8, 8), strides=(4, 4), multi_target=True
+        ... )
+        >>> explanation_inputs_mt = ExplanationInputs(
+        ...     inputs=OrderedDict({"image": torch.randn(1, 3, 32, 32)}),
+        ...     target=[torch.tensor([5]), torch.tensor([2])],
+        ...     baselines=OrderedDict({"image": torch.zeros(1, 3, 32, 32)}),
+        ... )
+        >>> mt_attributions = explainer_mt.explain(explanation_inputs_mt)
+        >>> # Returns: [OrderedDict({"image": torch.Tensor}), OrderedDict({"image": torch.Tensor})]
     """
 
     def __init__(
         self,
-        model: Module | Callable,
+        model: Module,
         sliding_window_shapes: tuple[int, ...] | tuple[tuple[int, ...], ...],
-        strides: None | int | tuple[int, ...] | tuple[int | tuple[int, ...], ...],
-        is_multi_target: bool = False,
+        strides: None
+        | int
+        | tuple[int, ...]
+        | tuple[int | tuple[int, ...], ...] = None,
+        multi_target: bool = False,
         internal_batch_size: int = 1,
+        show_progress: bool = False,
     ) -> None:
-        super().__init__(model, is_multi_target, internal_batch_size)
-        self._sliding_window_shapes = _convert_to_tuples(sliding_window_shapes)
-        self._strides = _convert_to_tuples(strides)
+        """Initialize the OcclusionExplainer.
 
-    def _init_explanation_fn(self) -> Attribution:
+        Args:
+            model: The model whose output is to be explained.
+            sliding_window_shapes: Shape of the occlusion window for each input tensor.
+            strides: Stride for sliding the occlusion window. If None, uses sliding_window_shapes.
+            multi_target: Whether to use multi-target mode. Defaults to False.
+            internal_batch_size: Batch size for internal computations. Defaults to 1.
         """
-        Initializes the explanation function.
+        self._sliding_window_shapes = sliding_window_shapes
+        self._strides = strides if strides is not None else sliding_window_shapes
+        self._show_progress = show_progress
+
+        super().__init__(model, multi_target, internal_batch_size)
+
+    def _init_single_target_explanation_fn(self) -> Callable:
+        """Initialize single-target Occlusion attribution function.
 
         Returns:
-            Attribution: The initialized explanation function.
+            Occlusion attribution function for single targets.
         """
-        if self._is_multi_target:
-            return MultiTargetOcclusion(self._model)
-        return Occlusion(self._model)
+        return partial(
+            Occlusion(self._model).attribute,
+            sliding_window_shapes=self._sliding_window_shapes,
+            strides=self._strides,
+            perturbations_per_eval=self._internal_batch_size,
+            show_progress=self._show_progress,
+        )
+
+    def _init_multi_target_explanation_fn(self) -> Callable:
+        """Initialize multi-target Occlusion attribution function.
+
+        Returns:
+            MultiTargetOcclusion attribution function for multiple targets.
+        """
+        return partial(
+            MultiTargetOcclusion(self._model).attribute,
+            sliding_window_shapes=self._sliding_window_shapes,
+            strides=self._strides,
+            perturbations_per_eval=self._internal_batch_size,
+            show_progress=self._show_progress,
+        )
 
     def explain(
         self,
@@ -415,26 +506,42 @@ class OcclusionExplainer(Explainer):
         target: TargetType,
         baselines: BaselineType = None,
         additional_forward_args: Any = None,
-    ) -> TensorOrTupleOfTensorsGeneric:
-        """
-        Compute Feature Ablation attributions for the given inputs.
+    ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
+        """Compute Occlusion attributions for the given inputs.
+
+        This method provides a backward-compatible interface that accepts individual
+        parameters and constructs ExplanationInputs internally before calling the
+        parent class explain method.
 
         Args:
-            inputs (TensorOrTupleOfTensorsGeneric): The input tensor(s) for which attributions are computed.
-            target (TargetType): The target(s) for computing attributions.
-            additional_forward_args (Any): Additional arguments to forward function.
-            baselines (BaselineType): Baselines for computing attributions.
+            inputs: Input tensors for attribution computation. Should be an OrderedDict
+                mapping feature names to tensors when used with this explainer.
+            target: Target indices for attribution computation. Can be a tensor
+                (single-target) or list of tensors (multi-target).
+            baselines: Baseline tensors for occlusion (typically zeros). If None,
+                uses zero baselines matching input shape.
+            additional_forward_args: Additional arguments for model forward pass.
 
         Returns:
-            TensorOrTupleOfTensorsGeneric: The computed attributions.
-        """
+            For single-target mode: OrderedDict mapping feature names to attribution tensors.
+            For multi-target mode: List of OrderedDicts, one per target.
 
-        return self._explanation_fn.attribute(
+        Note:
+            The sliding window and stride parameters are set during initialization.
+            Attribution values represent the importance of each spatial region
+            as measured by occlusion impact.
+
+        Example:
+            >>> # For image data with 8x8 occlusion windows
+            >>> attributions = explainer.explain(
+            ...     inputs=OrderedDict({"image": torch.randn(1, 3, 224, 224)}),
+            ...     target=torch.tensor([285]),  # ImageNet class
+            ...     baselines=OrderedDict({"image": torch.zeros(1, 3, 224, 224)}),
+            ... )
+        """
+        return super().explain(
             inputs=inputs,
             target=target,
             baselines=baselines,
             additional_forward_args=additional_forward_args,
-            sliding_window_shapes=self._sliding_window_shapes,
-            strides=self._strides,
-            perturbations_per_eval=self._internal_batch_size,
         )

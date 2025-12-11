@@ -1,0 +1,46 @@
+site_name: TorchXAI Documentation
+site_description: Explainable AI library for PyTorch
+repo_url: https://github.com/yourusername/torchxai
+repo_name: yourusername/torchxai
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - search.highlight
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]  # Add this line to set the Python path
+          options:
+            docstring_style: google
+            show_source: true
+            show_inheritance_diagram: true
+            merge_init_into_class: true
+
+nav:
+  - Home: index.md
+  - API Reference:
+    - Base Explainer: api/base_explainer.md
+    - Gradient Methods:
+      - Saliency: api/saliency.md
+      - Input × Gradient: api/input_x_gradient.md
+      - Input × Baseline Gradient: api/input_x_baseline_gradient.md
+      - Guided Backpropagation: api/guided_backprop.md
+      - DeepLIFT: api/deeplift.md
+      - DeepLIFT SHAP: api/deeplift_shap.md
+      - Integrated Gradients: api/integrated_gradients.md
+      - GradientShap: api/gradient_shap.md
+    - Perturbation Methods:
+      - Occlusion: api/occlusion.md
+      - LIME: api/lime.md
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - pymdownx.superfences

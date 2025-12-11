@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-
-
 import warnings
 from collections.abc import Callable
 

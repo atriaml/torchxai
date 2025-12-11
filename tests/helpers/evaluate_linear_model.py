@@ -1,16 +1,15 @@
-#!/usr/bin/env python3
 # (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
 # pyre-strict
 
-from typing import cast, Dict
+from typing import cast
 
 import torch
 from torch import Tensor
 
 
 # pyre-fixme[2]: Parameter must be annotated.
-def evaluate(test_data, classifier) -> Dict[str, Tensor]:
+def evaluate(test_data, classifier) -> dict[str, Tensor]:
     classifier.eval()
 
     l1_loss = 0.0

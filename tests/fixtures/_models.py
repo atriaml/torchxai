@@ -34,7 +34,7 @@ def park_function_configuration():
     yield TestBaseConfig(
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
-            explained_features=torch.tensor([[0.24, 0.48, 0.56, 0.99, 0.68, 0.86]]),
+            inputs=torch.tensor([[0.24, 0.48, 0.56, 0.99, 0.68, 0.86]]),
         ),
         model=ParkFunction(),
         n_features=6,
@@ -47,7 +47,7 @@ def basic_model_single_input_config():
         model=BasicModel2(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
-            explained_features=(torch.tensor([3.0]), torch.tensor([1.0])),
+            inputs=(torch.tensor([3.0]), torch.tensor([1.0])),
         ),
         n_features=2,
     )
@@ -59,7 +59,7 @@ def basic_model_single_batched_input_config():
         model=BasicModel2(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
-            explained_features=(torch.tensor([[3.0]]), torch.tensor([[1.0]])),
+            inputs=(torch.tensor([[3.0]]), torch.tensor([[1.0]])),
         ),
         n_features=2,
     )
@@ -71,7 +71,7 @@ def basic_model_batch_input_config():
         model=BasicModel2(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(3)],
-            explained_features=(torch.tensor([3.0] * 3), torch.tensor([1.0] * 3)),
+            inputs=(torch.tensor([3.0] * 3), torch.tensor([1.0] * 3)),
         ),
         n_features=2,
     )
@@ -83,10 +83,7 @@ def basic_model_batch_input_with_additional_forward_args_config():
         model=BasicModel4_MultiArgs(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
-            explained_features=(
-                torch.tensor([[1.5, 2.0, 3.3]]),
-                torch.tensor([[3.0, 3.5, 2.2]]),
-            ),
+            inputs=(torch.tensor([[1.5, 2.0, 3.3]]), torch.tensor([[3.0, 3.5, 2.2]])),
             additional_forward_args=(torch.tensor([[1.0, 3.0, 4.0]]),),
         ),
         n_features=6,
@@ -100,9 +97,9 @@ def classification_convnet_model_with_multiple_targets_config():
         model=BasicModel_ConvNet_One_Conv(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(20)],
-            explained_features=torch.stack(
-                [torch.arange(1, 17).float()] * 20, dim=0
-            ).view(20, 1, 4, 4),
+            inputs=torch.stack([torch.arange(1, 17).float()] * 20, dim=0).view(
+                20, 1, 4, 4
+            ),
             target=torch.tensor([1] * 20),
         ),
         n_features=(1 * 4 * 4),
@@ -114,7 +111,7 @@ def classification_multilayer_model_with_tuple_targets_config():
     yield TestBaseConfig(
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(4)],
-            explained_features=torch.arange(1.0, 13.0).view(4, 3).float(),
+            inputs=torch.arange(1.0, 13.0).view(4, 3).float(),
             additional_forward_args=(torch.arange(1, 13).view(4, 3).float(), True),
             target=[(0, 1, 1), (0, 1, 1), (1, 1, 1), (0, 1, 1)],
         ),
@@ -129,7 +126,7 @@ def classification_multilayer_model_with_baseline_and_tuple_targets_config():
         model=BasicModel_MultiLayer(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(4)],
-            explained_features=torch.arange(1.0, 13.0).view(4, 3).float(),
+            inputs=torch.arange(1.0, 13.0).view(4, 3).float(),
             additional_forward_args=(torch.arange(1, 13).view(4, 3).float(), True),
             target=[(0, 1, 1), (0, 1, 1), (1, 1, 1), (0, 1, 1)],
             baselines=torch.ones(4, 3),
@@ -144,7 +141,7 @@ def classification_sigmoid_model_single_input_single_target_config():
     yield TestBaseConfig(
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
-            explained_features=torch.tensor([[1.0] * 10]),
+            inputs=torch.tensor([[1.0] * 10]),
             target=torch.tensor([1]),
         ),
         model=SigmoidModel(10, 20, 10),
@@ -156,8 +153,7 @@ def classification_sigmoid_model_single_input_single_target_config():
 def classification_softmax_model_single_input_single_target_config():
     yield TestBaseConfig(
         explanation_inputs=ExplanationInputs(
-            sample_id=[str(i) for i in range(1)],
-            explained_features=torch.tensor([[1.0] * 10]),
+            sample_id=[str(i) for i in range(1)], inputs=torch.tensor([[1.0] * 10])
         ),
         model=SoftmaxModel(10, 20, 10),
         n_features=10,
@@ -168,8 +164,7 @@ def classification_softmax_model_single_input_single_target_config():
 def classification_softmax_model_multi_input_single_target_config():
     yield TestBaseConfig(
         explanation_inputs=ExplanationInputs(
-            sample_id=[str(i) for i in range(3)],
-            explained_features=torch.tensor([[1.0] * 10] * 3),
+            sample_id=[str(i) for i in range(3)], inputs=torch.tensor([[1.0] * 10] * 3)
         ),
         model=SoftmaxModel(10, 20, 10),
         n_features=10,
@@ -181,10 +176,7 @@ def classification_softmax_model_multi_tuple_input_single_target_config():
     yield TestBaseConfig(
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(3)],
-            explained_features=(
-                torch.tensor([[1.0] * 10] * 3),
-                torch.tensor([[-1.0] * 10] * 3),
-            ),
+            inputs=(torch.tensor([[1.0] * 10] * 3), torch.tensor([[-1.0] * 10] * 3)),
             target=torch.tensor([1]),
         ),
         model=SoftmaxModelTupleInput(10, 20, 10),
@@ -202,7 +194,7 @@ def classification_alexnet_model_single_sample_config():
     yield TestBaseConfig(
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
-            explained_features=torch.randn(1, 3, 224, 224),
+            inputs=torch.randn(1, 3, 224, 224),
             target=torch.tensor([1]),
         ),
         model=model,
@@ -220,7 +212,7 @@ def classification_alexnet_model_config():
     yield TestBaseConfig(
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(10)],
-            explained_features=torch.randn(10, 3, 224, 224),
+            inputs=torch.randn(10, 3, 224, 224),
             target=torch.tensor([1]),
         ),
         model=model,
@@ -270,9 +262,7 @@ def classification_alexnet_model_real_images_single_sample_config():
     model.zero_grad()
     yield TestBaseConfig(
         explanation_inputs=ExplanationInputs(
-            sample_id=[str(i) for i in range(1)],
-            explained_features=images,
-            target=labels,
+            sample_id=[str(i) for i in range(1)], inputs=images, target=labels
         ),
         model=model,
         n_features=(3 * 224 * 224),
@@ -330,9 +320,7 @@ def classification_alexnet_model_real_images_config():
     model.zero_grad()
     yield TestBaseConfig(
         explanation_inputs=ExplanationInputs(
-            sample_id=[str(i) for i in range(10)],
-            explained_features=images,
-            target=labels,
+            sample_id=[str(i) for i in range(10)], inputs=images, target=labels
         ),
         model=model,
         n_features=(3 * 224 * 224),
@@ -385,9 +373,9 @@ def multi_modal_sequence_sum():
         model=BasicModel7_SumMultiTensor(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
-            explained_features=inputs,
+            inputs=inputs,
             target=target,
-            feature_masks=feature_mask,
+            feature_mask=feature_mask,
             baselines=tuple(torch.zeros_like(x) for x in inputs),
         ),
         metric_inputs=MetricInputs(
@@ -445,9 +433,9 @@ def multi_modal_sequence_relu():
         model=BasicModel7_ReluMultiTensor(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
-            explained_features=inputs,
+            inputs=inputs,
             target=target,
-            feature_masks=feature_mask,
+            feature_mask=feature_mask,
             baselines=tuple(torch.zeros_like(x) for x in inputs),
         ),
         metric_inputs=MetricInputs(

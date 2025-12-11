@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import warnings
 from collections.abc import Callable
 from inspect import signature
@@ -46,7 +45,10 @@ def _generate_mask_weights(feature_mask_batch: torch.Tensor) -> torch.Tensor:
     return feature_mask_weighted_batch
 
 
-def _weight_attributions(attributions, feature_mask):
+def _weight_attributions(
+    attributions: TensorOrTupleOfTensorsGeneric,
+    feature_mask: TensorOrTupleOfTensorsGeneric,
+):
     is_inputs_tuple = _is_tuple(attributions)
     attributions = _format_tensor_into_tuples(attributions)
     feature_mask = _format_tensor_into_tuples(feature_mask)
@@ -69,7 +71,7 @@ def _weight_attributions(attributions, feature_mask):
 def _run_forward_multi_target(
     forward_func: Callable,
     inputs: Any,
-    target: TargetType,
+    target: list[TargetType] | None = None,
     additional_forward_args: Any = None,
 ) -> Tensor:
     forward_func_args = signature(forward_func).parameters
@@ -95,13 +97,16 @@ def _run_forward_multi_target(
             [_select_targets(output, single_target) for single_target in target], dim=1
         )
     else:
+        assert target is None, (
+            "Falling back to single-target mode, but target is not None."
+        )
         return _select_targets(output, target)
 
 
 def _compute_gradients_sequential_autograd(
     forward_fn: Callable,
     inputs: Tensor | tuple[Tensor, ...],
-    target: TargetType = None,
+    target: list[TargetType] | None = None,
     additional_forward_args: Any = None,
     **kwargs,
 ) -> list[tuple[Tensor, ...]]:
@@ -137,7 +142,7 @@ def _compute_gradients_sequential_autograd(
 def _compute_gradients_vmap_autograd_direct(
     forward_fn: Callable,
     inputs: Tensor | tuple[Tensor, ...],
-    target: TargetType = None,
+    target: list[TargetType] | None = None,
     additional_forward_args: Any = None,
 ) -> list[tuple[Tensor, ...]]:
     with torch.autograd.set_grad_enabled(True):  # type: ignore
@@ -178,7 +183,7 @@ def _compute_gradients_vmap_autograd_direct(
 def _compute_gradients_vmap_autograd(
     forward_fn: Callable,
     inputs: Tensor | tuple[Tensor, ...],
-    target: TargetType = None,
+    target: list[TargetType] | None = None,
     additional_forward_args: Any = None,
     grad_batch_size: int = 1,
     show_progress: bool = True,
@@ -369,9 +374,6 @@ def _expand_feature_mask_to_target(
         Tuple[torch.Tensor]: A tuple of tensors where each feature mask is expanded to match the shape of the
             corresponding input tensor.
     """
-    if feature_mask is None:
-        return feature_mask
-
     return_first_element = False
     if not isinstance(inputs, tuple):
         inputs = (inputs,)

@@ -85,12 +85,11 @@ def metrics_runtime_test_configuration_with_explanation_state(request):
             sample_id=[str(x) for x in range(batch_size)],
             explainer_inputs=ExplainerInputs(
                 model_inputs=ModelInputs(
-                    explained_features=model_inputs,
-                    additional_forward_args=additional_forward_args,
+                    inputs=model_inputs, additional_forward_args=additional_forward_args
                 ),
                 explainer_baselines=base_config.baselines,
                 metric_baselines=base_config.baselines,
-                feature_masks=base_config.feature_mask,
+                feature_mask=base_config.feature_mask,
                 input_layer_names=base_config.input_layer_names,
                 frozen_features=base_config.frozen_features,
                 train_baselines=base_config.train_baselines,

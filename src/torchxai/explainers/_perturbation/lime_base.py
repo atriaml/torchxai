@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import inspect
 import math
 import warnings
@@ -14,7 +13,6 @@ from captum._utils.common import (
 from captum._utils.models.model import Model
 from captum._utils.progress import progress
 from captum.attr import LimeBase
-from captum.log import log_usage
 from torch import Tensor
 from torch.utils.data import DataLoader, TensorDataset
 
@@ -43,7 +41,6 @@ class MultiTargetLimeBase(LimeBase):
             to_interp_rep_transform,
         )
 
-    @log_usage()
     def attribute(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
@@ -85,7 +82,8 @@ class MultiTargetLimeBase(LimeBase):
                         curr_sample = next(perturb_generator)
                     except StopIteration:
                         warnings.warn(
-                            "Generator completed prior to given n_samples iterations!"
+                            "Generator completed prior to given n_samples iterations!",
+                            stacklevel=2,
                         )
                         break
                 else:

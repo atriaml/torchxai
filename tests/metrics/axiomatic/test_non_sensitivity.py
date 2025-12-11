@@ -254,7 +254,7 @@ def test_non_sensitivity(metrics_runtime_test_configuration):
                 forward_func=base_config.model,
                 inputs=explanation_step_outputs.inputs,
                 attributions=explanation_step_outputs.attributions,
-                feature_mask=explanation_step_outputs.feature_masks,
+                feature_mask=explanation_step_outputs.feature_mask,
                 baselines=explanation_step_outputs.metric_baselines,
                 additional_forward_args=explanation_step_outputs.additional_forward_args,
                 target=explanation_step_outputs.target,

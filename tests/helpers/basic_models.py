@@ -1,8 +1,6 @@
-#!/usr/bin/env python3
-
 # pyre-strict
 
-from typing import Optional, Tuple, Union, no_type_check
+from typing import no_type_check
 
 import torch
 import torch.nn as nn
@@ -124,7 +122,7 @@ class BasicModel4_MultiArgs(nn.Module):
         # pyre-fixme[2]: Parameter must be annotated.
         input1,
         input2: Tensor,
-        additional_input1: Union[bool, float, int, Tensor],
+        additional_input1: bool | float | int | Tensor,
         additional_input2: int = 0,
     ) -> Tensor:
         relu_out1 = F.relu(input1 - 1)
@@ -188,7 +186,7 @@ class BasicModel7_ReluMultiTensor(nn.Module):
         super().__init__()
 
     def forward(self, sequence1, sequence2, sequence3, image):
-        from torch.nn.functional import relu, avg_pool2d, avg_pool1d
+        from torch.nn.functional import avg_pool1d, avg_pool2d, relu
 
         bs = image.shape[0]
         image = avg_pool2d(image, 2)
@@ -470,7 +468,7 @@ class MultiRelu(nn.Module):
         self.relu2 = nn.ReLU(inplace=inplace)
 
     @no_type_check
-    def forward(self, arg1: Tensor, arg2: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(self, arg1: Tensor, arg2: Tensor) -> tuple[Tensor, Tensor]:
         return (self.relu1(arg1), self.relu2(arg2))
 
 
@@ -499,10 +497,7 @@ class BasicModel_MultiLayer(nn.Module):
     @no_type_check
     # pyre-fixme[3]: Return type must be annotated.
     def forward(
-        self,
-        x: Tensor,
-        add_input: Optional[Tensor] = None,
-        multidim_output: bool = False,
+        self, x: Tensor, add_input: Tensor | None = None, multidim_output: bool = False
     ):
         input = x if add_input is None else x + add_input
         lin0_out = self.linear0(input)
@@ -530,12 +525,7 @@ class BasicModelBoolInput(nn.Module):
         self.mod = BasicModel_MultiLayer()
 
     # pyre-fixme[3]: Return type must be annotated.
-    def forward(
-        self,
-        x: Tensor,
-        add_input: Optional[Tensor] = None,
-        mult: float = 10.0,
-    ):
+    def forward(self, x: Tensor, add_input: Tensor | None = None, mult: float = 10.0):
         assert x.dtype is torch.bool, "Input must be boolean"
         return self.mod(x.float() * mult, add_input)
 
@@ -559,7 +549,7 @@ class BasicModel_MultiLayer_TrueMultiInput(nn.Module):
 
     @no_type_check
     def forward(
-        self, x1: Tensor, x2: Tensor, x3: Tensor, x4: Optional[Tensor] = None
+        self, x1: Tensor, x2: Tensor, x3: Tensor, x4: Tensor | None = None
     ) -> Tensor:
         a = self.m1(x1)
         if x4 is None:
@@ -585,7 +575,7 @@ class BasicModel_ConvNet_One_Conv(nn.Module):
 
     @no_type_check
     # pyre-fixme[3]: Return type must be annotated.
-    def forward(self, x: Tensor, x2: Optional[Tensor] = None):
+    def forward(self, x: Tensor, x2: Tensor | None = None):
         if x2 is not None:
             x = x + x2
         x = self.relu1(self.conv1(x))

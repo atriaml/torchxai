@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 from enum import Enum
 from typing import Any, cast
 
@@ -29,7 +28,7 @@ SUPPORTED_NOISE_TUNNEL_TYPES = list(NoiseTunnelType.__members__.keys())
 
 
 class MultiTargetNoiseTunnel(NoiseTunnel):
-    def attribute(
+    def attribute(  # type: ignore[override]
         self,
         inputs: Tensor | tuple[Tensor, ...],
         nt_type: str = "smoothgrad",
@@ -39,10 +38,8 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
         draw_baseline_from_distrib: bool = False,
         **kwargs: Any,
     ) -> (
-        Tensor
-        | tuple[Tensor, Tensor]
-        | tuple[Tensor, ...]
-        | tuple[tuple[Tensor, ...], Tensor]
+        list[TensorOrTupleOfTensorsGeneric]
+        | tuple[list[TensorOrTupleOfTensorsGeneric], list[Tensor]]
     ):
         def add_noise_to_inputs(nt_samples_partition: int) -> tuple[Tensor, ...]:
             if isinstance(stdevs, tuple):
@@ -50,6 +47,7 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
                     "The number of input tensors "
                     f"in {len(inputs)} must be equal to the number of stdevs values {len(stdevs)}"
                 )
+                stdevs_ = stdevs
             else:
                 assert isinstance(stdevs, float), (
                     f"stdevs must be type float. Given: {type(stdevs)}"
@@ -88,8 +86,8 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
             return input.repeat_interleave(nt_samples_partition, dim=0) + noise
 
         def update_sum_attribution_and_sq(
-            sum_attribution: list[Tensor],
-            sum_attribution_sq: list[Tensor],
+            sum_attribution: list[list[Tensor]],
+            sum_attribution_sq: list[list[Tensor]],
             attribution: Tensor,
             i: int,
             j: int,
@@ -119,12 +117,10 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
 
         def compute_partial_attribution(
             inputs_with_noise_partition: tuple[Tensor, ...], kwargs_partition: Any
-        ) -> tuple[tuple[Tensor, ...], bool, None | Tensor]:
+        ) -> tuple[list[tuple[Tensor, ...]], list[bool], list[Tensor]]:
             # smoothgrad_Attr(x) = 1 / n * sum(Attr(x + N(0, sigma^2))
-            # NOTE: using __wrapped__ such that it does not log the inner logs
 
-            attributions = attr_func.__wrapped__(  # type: ignore
-                self.attribution_method,  # self
+            attributions = attr_func(  # type: ignore
                 (
                     inputs_with_noise_partition
                     if is_inputs_tuple
@@ -149,7 +145,7 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
             return (
                 cast(list[tuple[Tensor, ...]], attributions),
                 cast(list[bool], is_attrib_tuple),
-                delta,
+                cast(list[Tensor], delta),
             )
 
         def expand_partial(nt_samples_partition: int, kwargs_partial: dict) -> None:
@@ -189,11 +185,11 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
             return cast(tuple[Tensor, ...], vargrad)
 
         def update_partial_attribution_and_delta(
-            multi_target_attributions_partial: tuple[Tensor, ...],
-            multi_target_delta_partial: Tensor,
-            multi_target_sum_attributions: list[Tensor],
-            multi_target_sum_attributions_sq: list[Tensor],
-            multi_target_delta_partial_list: list[Tensor],
+            multi_target_attributions_partial: list[tuple[Tensor, ...]],
+            multi_target_delta_partial: list[Tensor],
+            multi_target_sum_attributions: list[list[Tensor]],
+            multi_target_sum_attributions_sq: list[list[Tensor]],
+            multi_target_delta_partial_list: list[list[Tensor]],
             nt_samples_partial: int,
         ) -> None:
             for i, attributions_partial in enumerate(multi_target_attributions_partial):
@@ -235,10 +231,10 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
 
             attr_func = self.attribution_method.attribute
 
-            multi_target_sum_attributions: list[list[None | Tensor]] = []
-            multi_target_sum_attributions_sq: list[list[None | Tensor]] = []
+            multi_target_sum_attributions: list[list[Tensor]] = []
+            multi_target_sum_attributions_sq: list[list[Tensor]] = []
             multi_target_delta_partial_list: list[list[Tensor]] = []
-
+            multi_target_is_attrib_tuple_list: list[bool] = []
             for _ in range(nt_samples_partition):
                 inputs_with_noise = add_noise_to_inputs(nt_samples_batch_size)
                 (
@@ -259,10 +255,10 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
                     )
 
                     for target_index in range(len(multi_target_attributions_partial)):
-                        multi_target_sum_attributions[target_index] = [None] * len(
+                        multi_target_sum_attributions[target_index] = [None] * len(  # type: ignore
                             multi_target_attributions_partial[target_index]
                         )
-                        multi_target_sum_attributions_sq[target_index] = [None] * len(
+                        multi_target_sum_attributions_sq[target_index] = [None] * len(  # type: ignore
                             multi_target_attributions_partial[target_index]
                         )
 
@@ -274,7 +270,9 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
                     multi_target_delta_partial_list,
                     nt_samples_batch_size,
                 )
+                multi_target_is_attrib_tuple_list.extend(multi_target_is_attrib_tuple)
 
+            multi_target_is_attrib_tuple = multi_target_is_attrib_tuple_list[0]
             nt_samples_remaining = (
                 nt_samples - nt_samples_partition * nt_samples_batch_size
             )
@@ -332,35 +330,32 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
                     torch.cat(delta_partial_list, dim=0)
                     for delta_partial_list in multi_target_delta_partial_list
                 ]
-
         return self._apply_checks_and_return_attributions(
             multi_target_attributions,
-            multi_target_is_attrib_tuple,
+            multi_target_is_attrib_tuple_list[0],
             return_convergence_delta,
             delta,
         )
 
-    def _apply_checks_and_return_attributions(
+    def _apply_checks_and_return_attributions(  # type: ignore[override]
         self,
-        multi_target_attributions: tuple[Tensor, ...],
+        multi_target_attributions: list[tuple[Tensor, ...]],
         is_attrib_tuple: bool,
         return_convergence_delta: bool,
-        delta: None | Tensor,
-    ) -> TensorOrTupleOfTensorsGeneric | tuple[TensorOrTupleOfTensorsGeneric, Tensor]:
-        multi_target_attributions = [
+        delta: list[Tensor] | None,
+    ) -> (
+        list[TensorOrTupleOfTensorsGeneric]
+        | tuple[list[TensorOrTupleOfTensorsGeneric], list[Tensor]]
+    ):
+        multi_target_attributions_list = [
             _format_output(is_attrib_tuple, attributions)
             for attributions in multi_target_attributions
         ]
 
         ret = (
-            (multi_target_attributions, cast(list[Tensor], delta))
+            (multi_target_attributions_list, cast(list[Tensor], delta))
             if self.is_delta_supported and return_convergence_delta
-            else multi_target_attributions
-        )
-        ret = cast(
-            list[TensorOrTupleOfTensorsGeneric]
-            | tuple[list[TensorOrTupleOfTensorsGeneric], list[Tensor]],
-            ret,
+            else multi_target_attributions_list
         )
         return ret
 

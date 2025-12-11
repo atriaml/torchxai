@@ -40,7 +40,7 @@ class ComplexityEntropy(TorchXAIMetricBase):
                 dict,
                 complexity_entropy_feature_grouped(
                     attributions=output.attributions,
-                    feature_mask=output.feature_masks,
+                    feature_mask=output.feature_mask,
                     is_multi_target=is_multi_target,
                     return_dict=True,
                 ),
@@ -79,7 +79,7 @@ class ComplexitySundranajan(TorchXAIMetricBase):
                 dict,
                 complexity_sundararajan_feature_grouped(
                     attributions=output.attributions,
-                    feature_mask=output.feature_masks,
+                    feature_mask=output.feature_mask,
                     eps=self._eps,
                     normalize_attribution=self._normalize_attribution,
                     is_multi_target=is_multi_target,
@@ -118,7 +118,7 @@ class Sparseness(TorchXAIMetricBase):
                 dict,
                 sparseness_feature_grouped(
                     attributions=output.attributions,
-                    feature_mask=output.feature_masks,
+                    feature_mask=output.feature_mask,
                     is_multi_target=is_multi_target,
                     return_dict=True,
                 ),
@@ -170,7 +170,7 @@ class EffectiveComplexity(TorchXAIMetricBase):
             # this baseline is used to compute the completeness score wrt to a baseline against already computed attributions
             # these contributions may be computed wrt different explainer baselines
             baselines=output.metric_baselines,
-            feature_mask=output.feature_masks,
+            feature_mask=output.feature_mask,
             additional_forward_args=output.additional_forward_args,
             target=output.target,  # type: ignore
             perturb_func=self._perturb_func,

@@ -64,7 +64,8 @@ def run_explainer_test_with_config(
     expected = _format_to_list_if_not_list(runtime_config.expected)
     target = _format_to_list_if_not_list(base_config.explanation_inputs.target)
     assert len(target) == len(expected), (
-        "The number of targets must be equal to the number of expected outputs"
+        "The number of targets must be equal to the number of expected outputs. Found "
+        f"{target} targets and {expected} expected outputs."
     )
 
     # in the first pass we compute explanations for each target separately using single-target explainer

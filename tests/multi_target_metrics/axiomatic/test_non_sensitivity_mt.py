@@ -109,7 +109,7 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
             forward_func=base_config.model,
             inputs=explanation_step_outputs.inputs,
             attributions=explanation_step_outputs.attributions,  # type: ignore
-            feature_mask=explanation_step_outputs.feature_masks,
+            feature_mask=explanation_step_outputs.feature_mask,
             additional_forward_args=explanation_step_outputs.additional_forward_args,
             target=explanation_step_outputs.target,
             perturb_func=runtime_config.perturb_func,
@@ -142,7 +142,7 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
                 forward_func=base_config.model,
                 inputs=explanation_step_outputs.inputs,
                 attributions=explanation,
-                feature_mask=explanation_step_outputs.feature_masks,
+                feature_mask=explanation_step_outputs.feature_mask,
                 additional_forward_args=explanation_step_outputs.additional_forward_args,
                 target=target,
                 perturb_func=runtime_config.perturb_func,

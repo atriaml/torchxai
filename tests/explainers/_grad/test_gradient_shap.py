@@ -194,7 +194,7 @@ def test_gradient_shap(explainer_runtime_test_configuration):
     baselines = OrderedDict(
         {
             k: torch.randn((20, *v.shape[1:]))
-            for k, v in base_config.explanation_inputs.explained_features.items()
+            for k, v in base_config.explanation_inputs.inputs.items()
         }
     )
 

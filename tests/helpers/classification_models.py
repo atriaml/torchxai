@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # pyre-strict
 import torch
 import torch.nn as nn
