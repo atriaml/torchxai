@@ -61,6 +61,7 @@ Requires-Dist: overrides>=7.7.0
 Requires-Dist: mkdocs>=1.6.1
 Requires-Dist: mkdocs-material>=9.7.0
 Requires-Dist: mkdocstrings[python]>=1.0.0
+Requires-Dist: mkdocs-shadcn>=0.9.8
 Dynamic: license-file
 
 # TorchXAI

@@ -272,7 +272,6 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
                 )
                 multi_target_is_attrib_tuple_list.extend(multi_target_is_attrib_tuple)
 
-            multi_target_is_attrib_tuple = multi_target_is_attrib_tuple_list[0]
             nt_samples_remaining = (
                 nt_samples - nt_samples_partition * nt_samples_batch_size
             )

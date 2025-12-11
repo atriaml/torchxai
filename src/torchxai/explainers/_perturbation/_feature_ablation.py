@@ -14,7 +14,10 @@ from captum._utils.common import (
     _is_tuple,
 )
 from captum._utils.progress import progress
-from captum.attr import FeatureAblation as CaptumFeatureAblation
+from captum.attr import (
+    FeatureAblation as CaptumFeatureAblation,
+    PerturbationAttribution,
+)
 from captum.attr._utils.common import _format_input_baseline
 from torch import Tensor, dtype
 
@@ -38,6 +41,26 @@ class FeatureAblation(CaptumFeatureAblation):
     that considers the total number of elements in each feature group instead of
     just the number of overlaps, providing more accurate attribution scaling.
     """
+
+    def __init__(self, forward_func: Callable) -> None:
+        r"""
+        Args:
+
+            forward_func (Callable): The forward function of the model or
+                        any modification of it.
+        """
+        PerturbationAttribution.__init__(self, forward_func)
+        self.use_weights = False
+
+        # only used when perturbations_per_eval > 1, where the 1st dim of forward_func's
+        # output must grow as the input batch size. If forward's output is aggregated,
+        # we cannot expand the input to include more perturbations in one call.
+        # If it's False, we will force the validation by comparing the outpus of
+        # the original input and the modified input whose batch size expanded based on
+        # perturbations_per_eval. Set the flag to True if the output of the modified
+        # input grow as expected. Once it turns to True, we will assume the model's
+        # behavior stays consistent and no longer check again
+        self._is_output_shape_valid = False
 
     def attribute(
         self,
@@ -64,6 +87,7 @@ class FeatureAblation(CaptumFeatureAblation):
             isinstance(perturbations_per_eval, int) and perturbations_per_eval >= 1
         ), "Perturbations per evaluation must be an integer and at least 1."
         with torch.no_grad():
+            attr_progress = None
             if show_progress:
                 feature_counts = self._get_feature_counts(
                     inputs, feature_mask, **kwargs
@@ -86,7 +110,7 @@ class FeatureAblation(CaptumFeatureAblation):
                 self.forward_func, inputs, target, additional_forward_args
             )
 
-            if show_progress:
+            if attr_progress is not None:
                 attr_progress.update()
 
             # number of elements in the output of forward_func
@@ -110,6 +134,7 @@ class FeatureAblation(CaptumFeatureAblation):
             ]
 
             # Weights are used in cases where ablations may be overlapping.
+            weights = None
             if self.use_weights:
                 weights = [
                     torch.zeros(
@@ -151,7 +176,7 @@ class FeatureAblation(CaptumFeatureAblation):
                         current_add_args,
                     )
 
-                    if show_progress:
+                    if attr_progress is not None:
                         attr_progress.update()
 
                     # if perturbations_per_eval > 1, the output shape must grow with
@@ -200,6 +225,9 @@ class FeatureAblation(CaptumFeatureAblation):
                     eval_diff = eval_diff.to(total_attrib[i].device)
 
                     if self.use_weights:
+                        assert weights is not None, (
+                            "weights should not be None when use_weights is True"
+                        )
                         # this line is the only change from the original captum code where we multiply the weights
                         # by the total number of elements in the feature group. Note that the sum over the mask
                         # for a single sample here is the total number of elements in the feature group.
@@ -212,11 +240,14 @@ class FeatureAblation(CaptumFeatureAblation):
                         dim=0
                     )
 
-            if show_progress:
+            if attr_progress is not None:
                 attr_progress.close()
 
             # Divide total attributions by counts and return formatted attributions
             if self.use_weights:
+                assert weights is not None, (
+                    "weights should not be None when use_weights is True"
+                )
                 attrib = tuple(
                     single_attrib.float() / weight
                     for single_attrib, weight in zip(
@@ -225,8 +256,7 @@ class FeatureAblation(CaptumFeatureAblation):
                 )
             else:
                 attrib = tuple(total_attrib)
-            _result = _format_output(is_inputs_tuple, attrib)
-        return _result
+            return _format_output(is_inputs_tuple, attrib)
 
 
 class MultiTargetFeatureAblation(FeatureAblation):
@@ -260,6 +290,7 @@ class MultiTargetFeatureAblation(FeatureAblation):
             isinstance(perturbations_per_eval, int) and perturbations_per_eval >= 1
         ), "Perturbations per evaluation must be an integer and at least 1."
         with torch.no_grad():
+            attr_progress = None
             if show_progress:
                 feature_counts = self._get_feature_counts(
                     inputs, feature_mask, **kwargs
@@ -282,13 +313,13 @@ class MultiTargetFeatureAblation(FeatureAblation):
                 self.forward_func, inputs, target, additional_forward_args
             )
 
-            if show_progress:
+            if attr_progress is not None:
                 attr_progress.update()
 
             # number of elements in the output of forward_func
             # since our _strict_run_forward will always return a tensor with shape (batch_size, targets, ...)
             # the output shape is (batch_size, targets)
-            output_shape = initial_eval.shape if isinstance(initial_eval, Tensor) else 1
+            output_shape = initial_eval.shape
 
             # flatten eval outputs into 1D (n_outputs)
             # add the leading dim for n_feature_perturbed
@@ -350,7 +381,7 @@ class MultiTargetFeatureAblation(FeatureAblation):
                         current_add_args,
                     )
 
-                    if show_progress:
+                    if attr_progress is not None:
                         attr_progress.update()
 
                     # if perturbations_per_eval > 1, the output shape must grow with
@@ -426,7 +457,7 @@ class MultiTargetFeatureAblation(FeatureAblation):
                             + (inputs[i].dim() - 1) * (1,)
                         )
                     ).sum(dim=0)
-            if show_progress:
+            if attr_progress is not None:
                 attr_progress.close()
 
             if self.use_weights:
@@ -447,13 +478,14 @@ class MultiTargetFeatureAblation(FeatureAblation):
                 for single_attrib in attrib
             )
 
-            attrib = [
+            attrib_list_with_tuples = [
                 tuple(single_attrib[:, idx] for single_attrib in attrib)
                 for idx in range(output_shape[1])
             ]
 
             _result = [
-                _format_output(is_inputs_tuple, single_atrib) for single_atrib in attrib
+                _format_output(is_inputs_tuple, single_atrib)
+                for single_atrib in attrib_list_with_tuples
             ]
         return _result
 

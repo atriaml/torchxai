@@ -275,14 +275,12 @@ class Explainer(ABC):
             AssertionError: If target format doesn't match the explainer mode or batch size requirements.
         """
         if self._multi_target:
-            explanations = typing.cast(
+            return typing.cast(
                 list[OrderedDict[str, torch.Tensor]],
                 self._multi_target_forward(*args, **kwargs),
             )
-            return explanations
         else:
-            explanations = typing.cast(
+            return typing.cast(
                 OrderedDict[str, torch.Tensor],
                 self._single_target_forward(*args, **kwargs),
             )
-            return explanations

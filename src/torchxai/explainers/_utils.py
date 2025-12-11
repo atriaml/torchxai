@@ -219,7 +219,7 @@ def _compute_gradients_vmap_autograd(
 
                 for input_idx, grad in enumerate(grads):
                     multi_target_gradients[input_idx][start_idx:end_idx] = grad
-            multi_target_gradients = [
+            multi_target_gradients_list = [
                 tuple(
                     grad_per_target[idx] for grad_per_target in multi_target_gradients
                 )
@@ -229,12 +229,12 @@ def _compute_gradients_vmap_autograd(
             # this is the case where the output is of dimension [batch_size]
             # in which case there is not target to choose from
             grads = torch.autograd.grad(torch.unbind(outputs), inputs)
-            multi_target_gradients = [grads]
+            multi_target_gradients_list = [grads]
 
         del outputs
         torch.cuda.empty_cache()
 
-    return multi_target_gradients
+    return multi_target_gradients_list
 
 
 def _batch_attribution_multi_target(

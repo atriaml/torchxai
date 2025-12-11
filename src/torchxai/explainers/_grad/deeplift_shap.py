@@ -434,7 +434,7 @@ class MultiTargetDeepLiftShapBatched(MultiTargetDeepLift):
                         )
 
             # now find the average
-            multi_target_attributions = [
+            multi_target_attributions_average = [
                 tuple([x / base_bsz for x in attrib_single_target])
                 for attrib_single_target in multi_target_attributions
             ]
@@ -451,6 +451,9 @@ class MultiTargetDeepLiftShapBatched(MultiTargetDeepLift):
             )
 
             if return_convergence_delta:
+                multi_target_attributions = [
+                    tuple(x) for x in multi_target_attributions
+                ]
                 multi_target_attributions, delta = cast(
                     tuple[list[tuple[Tensor, ...]], list[Tensor]],
                     multi_target_attributions,
@@ -464,7 +467,7 @@ class MultiTargetDeepLiftShapBatched(MultiTargetDeepLift):
                     for attribution in per_target_attributions
                 )
 
-            multi_target_attributions = [
+            multi_target_attributions_average = [
                 process_per_target_attributions(per_target_attributions)
                 for per_target_attributions in multi_target_attributions
             ]
@@ -472,12 +475,12 @@ class MultiTargetDeepLiftShapBatched(MultiTargetDeepLift):
         if return_convergence_delta:
             return [
                 _format_output(is_inputs_tuple, per_target_attributions)
-                for per_target_attributions in multi_target_attributions
+                for per_target_attributions in multi_target_attributions_average
             ], delta  # type: ignore
         else:
             return [
                 _format_output(is_inputs_tuple, per_target_attributions)
-                for per_target_attributions in multi_target_attributions
+                for per_target_attributions in multi_target_attributions_average
             ]
 
     def _expand_inputs_baselines_targets(

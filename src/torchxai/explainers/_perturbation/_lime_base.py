@@ -41,10 +41,10 @@ class MultiTargetLimeBase(LimeBase):
             to_interp_rep_transform,
         )
 
-    def attribute(
+    def attribute(  # type: ignore[override]
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        target: TargetType = None,
+        target: list[TargetType] | None = None,
         additional_forward_args: Any = None,
         n_samples: int = 50,
         perturbations_per_eval: int = 1,
@@ -68,6 +68,7 @@ class MultiTargetLimeBase(LimeBase):
             if inspect.isgeneratorfunction(self.perturb_func):
                 perturb_generator = self.perturb_func(inputs, **kwargs)
 
+            attr_progress = None
             if show_progress:
                 attr_progress = progress(
                     total=math.ceil(n_samples / perturbations_per_eval),
@@ -130,12 +131,12 @@ class MultiTargetLimeBase(LimeBase):
 
                     model_out = self._evaluate_batch(
                         curr_model_inputs,
-                        expanded_target,
+                        expanded_target,  #
                         expanded_additional_args,
                         device,
                     )
 
-                    if show_progress:
+                    if attr_progress is not None:
                         attr_progress.update()
                     outputs.append(model_out)
 
@@ -155,11 +156,11 @@ class MultiTargetLimeBase(LimeBase):
                 model_out = self._evaluate_batch(
                     curr_model_inputs, expanded_target, expanded_additional_args, device
                 )
-                if show_progress:
+                if attr_progress is not None:
                     attr_progress.update()
                 outputs.append(model_out)
 
-            if show_progress:
+            if attr_progress is not None:
                 attr_progress.close()
             combined_interp_inps = torch.cat(interpretable_inps).float()
             combined_outputs = (
