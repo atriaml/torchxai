@@ -1,7 +1,6 @@
-import dataclasses
-
 import pytest
 import torch
+from pydantic import model_validator
 
 from tests.conftest import _run_metric_via_ignite
 from tests.utils.common import _assert_tensor_almost_equal, _grid_segmenter
@@ -13,26 +12,27 @@ from torchxai.metrics._utils.visualization import visualize_attribution
 from torchxai.metrics.axiomatic.input_invariance import input_invariance
 
 
-@dataclasses.dataclass
 class MetricTestRuntimeConfig_(TestRuntimeConfig):
     model_type: str = "linear"
     train_and_eval_model: bool = False
-    constant_shifts: torch.Tensor = None
-    shifted_baselines: torch.Tensor = None
-    set_baselines_to_type: str = None
+    constant_shifts: torch.Tensor | None = None
+    shifted_baselines: torch.Tensor | None = None
+    set_baselines_to_type: str | None = None
     generate_feature_mask: bool = False
     visualize: bool = False
 
-    def __post_init__(self):
-        super().__post_init__()
-        assert self.constant_shifts is not None, "constant_shifts must be provided"
-        if not isinstance(self.constant_shifts, tuple):
-            self.constant_shifts = (self.constant_shifts,)
-        if self.set_baselines_to_type is not None:
-            assert self.set_baselines_to_type in ["zero", "black"]
-
-    def __repr__(self):
-        return super().__repr__()
+    @model_validator(mode="before")
+    @classmethod
+    def validate_fields(cls, values):
+        if "constant_shifts" not in values or values["constant_shifts"] is None:
+            raise ValueError("constant_shifts must be provided")
+        if isinstance(values["constant_shifts"], torch.Tensor):
+            values["constant_shifts"] = (values["constant_shifts"],)
+        if "set_baselines_to_type" in values:
+            assert values["set_baselines_to_type"] in ["zero", "black", None], (
+                "set_baselines_to_type must be one of 'zero', 'black', or None"
+            )
+        return values
 
 
 @pytest.fixture()
@@ -194,7 +194,7 @@ test_configurations = [
 
 @pytest.mark.metrics
 @pytest.mark.parametrize(
-    "metrics_runtime_test_configuration_with_explanation_state",
+    "metrics_runtime_test_configuration",
     test_configurations,
     ids=[f"{idx}_{config.test_name}" for idx, config in enumerate(test_configurations)],
     indirect=True,

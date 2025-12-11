@@ -1,4 +1,3 @@
-import dataclasses
 import itertools
 import math
 from collections.abc import Callable
@@ -6,11 +5,9 @@ from collections.abc import Callable
 import pytest  # noqa
 import torch
 
-from tests.conftest import _run_metric_via_ignite
-from tests.utils.common import _assert_tensor_almost_equal
+from tests.utils.common import _assert_tensor_almost_equal, _run_metric_via_ignite
 from tests.utils.configs import TestRuntimeConfig
 from torchxai.ignite._axiomatic import MonotonicityCorrAndNonSensMetric
-from torchxai.ignite._utilities import ExplanationStateTransform
 from torchxai.metrics import monotonicity_corr_and_non_sens
 from torchxai.metrics._utils.perturbation import (
     default_fixed_baseline_perturb_func,
@@ -24,11 +21,10 @@ def _format_to_list(value):
     return value
 
 
-@dataclasses.dataclass
 class MetricTestRuntimeConfig_(TestRuntimeConfig):
     perturb_func: Callable = default_random_perturb_func()
-    n_perturbations_per_feature: int = 100
-    max_features_processed_per_batch: int = None
+    n_perturbations_per_feature: int | list[int | None] = 100
+    max_features_processed_per_batch: int | list[int | None] | None = None
     zero_attribution_threshold: float = 1e-5
     zero_variance_threshold: float = 1e-5
     use_percentage_attribution_threshold: bool = False
@@ -227,48 +223,42 @@ test_configurations = [
 
 @pytest.mark.metrics
 @pytest.mark.parametrize(
-    "metrics_runtime_test_configuration_with_explanation_state",
+    "metrics_runtime_test_configuration",
     test_configurations,
     ids=[f"{idx}_{config.test_name}" for idx, config in enumerate(test_configurations)],
     indirect=True,
 )
-def test_non_sensitivity(metrics_runtime_test_configuration_with_explanation_state):
-    base_config, runtime_config, model, explainer, explanation_state = (
-        metrics_runtime_test_configuration_with_explanation_state
+def test_non_sensitivity(metrics_runtime_test_configuration):
+    base_config, runtime_config, explanation_step_outputs = (
+        metrics_runtime_test_configuration
     )
-    tf = ExplanationStateTransform(state=explanation_state)
 
-    runtime_config.n_perturbations_per_feature = _format_to_list(
+    n_perturbations_per_feature = _format_to_list(
         runtime_config.n_perturbations_per_feature
     )
-    runtime_config.max_features_processed_per_batch = _format_to_list(
+    max_features_processed_per_batch = _format_to_list(
         runtime_config.max_features_processed_per_batch
     )
-    runtime_config.expected = _format_to_list(runtime_config.expected)
+    expected = _format_to_list(runtime_config.expected)
 
-    assert len(runtime_config.n_perturbations_per_feature) == len(
-        runtime_config.max_features_processed_per_batch
-    )
-    assert (
-        len(runtime_config.n_perturbations_per_feature) == len(runtime_config.expected)
-        or len(runtime_config.expected) == 1
-    )
+    assert len(n_perturbations_per_feature) == len(max_features_processed_per_batch)
+    assert len(n_perturbations_per_feature) == len(expected) or len(expected) == 1
 
     for n_perturbs, max_features, curr_expected in zip(
-        runtime_config.n_perturbations_per_feature,
-        runtime_config.max_features_processed_per_batch,
-        itertools.cycle(runtime_config.expected),
+        n_perturbations_per_feature,
+        max_features_processed_per_batch,
+        itertools.cycle(expected),
     ):
         (_, non_sensitivity_score, n_features_found, _, _) = (
             monotonicity_corr_and_non_sens(
                 forward_func=base_config.model,
-                inputs=tf.inputs,
-                attributions=tf.attributions,
-                feature_mask=tf.feature_mask,
-                baselines=tf.metric_baselines,
-                additional_forward_args=tf.additional_forward_args,
-                target=tf.target,
-                frozen_features=tf.frozen_features,
+                inputs=explanation_step_outputs.inputs,
+                attributions=explanation_step_outputs.attributions,
+                feature_mask=explanation_step_outputs.feature_masks,
+                baselines=explanation_step_outputs.metric_baselines,
+                additional_forward_args=explanation_step_outputs.additional_forward_args,
+                target=explanation_step_outputs.target,
+                frozen_features=explanation_step_outputs.frozen_features,
                 perturb_func=runtime_config.perturb_func,
                 n_perturbations_per_feature=n_perturbs,
                 max_features_processed_per_batch=max_features,
@@ -299,7 +289,7 @@ def test_non_sensitivity(metrics_runtime_test_configuration_with_explanation_sta
         # first prepare the metric
         metric = MonotonicityCorrAndNonSensMetric(
             model=base_config.model,
-            device=base_config.inputs[0].device,
+            device=runtime_config.device,
             n_perturbations_per_feature=n_perturbs,
             max_features_processed_per_batch=max_features,
             perturb_func=runtime_config.perturb_func,
@@ -311,9 +301,9 @@ def test_non_sensitivity(metrics_runtime_test_configuration_with_explanation_sta
         )
 
         # now test via the Ignite Metric interface
-        non_sensitivity_score = _run_metric_via_ignite(metric, explanation_state)[
-            "non_sensitivity_score"
-        ]
+        non_sensitivity_score = _run_metric_via_ignite(
+            metric, explanation_step_outputs
+        )["non_sensitivity_score"]
         _assert_tensor_almost_equal(
             non_sensitivity_score, curr_expected, delta=runtime_config.delta
         )

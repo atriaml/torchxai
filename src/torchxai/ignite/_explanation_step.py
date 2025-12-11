@@ -10,8 +10,10 @@ from captum.attr import Attribution
 from torchxai.data_types import (
     ExplanationInputs,
     ExplanationState,
+    ExplanationStepOutputs,
     MetricInputs,
     MultiTargetExplanationState,
+    MultiTargetExplanationStepOutputs,
 )
 from torchxai.explainers.explainer import Explainer
 
@@ -110,18 +112,25 @@ class ExplanationStep:
         )
 
     def __call__(
-        self, explanation_inputs: ExplanationInputs, metric_inputs: MetricInputs
-    ) -> ExplanationState:
+        self,
+        explanation_inputs: ExplanationInputs,
+        metric_inputs: MetricInputs | None = None,
+    ) -> ExplanationStepOutputs:
         explanation_inputs = explanation_inputs.to(self._device)
+        metric_inputs = (
+            metric_inputs.to(self._device) if metric_inputs is not None else None
+        )
         model_outputs = self._run_model_forward(explanation_inputs)
         explanation = self._run_explainer_forward(
             explainer=self._explainer, explanation_inputs=explanation_inputs
         )
-        return ExplanationState(
+        expl_state = ExplanationState(
             explanation_inputs=explanation_inputs,
-            metric_inputs=metric_inputs,
             model_outputs=model_outputs,
             explanations=explanation,
+        )
+        return ExplanationStepOutputs(
+            explanation_state=expl_state, metric_inputs=metric_inputs
         )
 
 
@@ -235,20 +244,28 @@ class MultiTargetExplanationStep(ExplanationStep):
         #     )  # shape: (batch_size, num_targets, ...)
         # return aggregated_explanations
 
-    def __call__(
-        self, explanation_inputs: ExplanationInputs, metric_inputs: MetricInputs
-    ) -> MultiTargetExplanationState:
+    def __call__(  # type: ignore
+        self,
+        explanation_inputs: ExplanationInputs,
+        metric_inputs: MetricInputs | None = None,
+    ) -> MultiTargetExplanationStepOutputs:
         assert isinstance(self._explainer, Explainer), (
             "Multi-target explainer must be an instance of Explainer."
         )
         explanation_inputs = explanation_inputs.to(self._device)
+        metric_inputs = (
+            metric_inputs.to(self._device) if metric_inputs is not None else None
+        )
         model_outputs = self._run_model_forward(explanation_inputs)
         explanation = self._run_explainer_forward(
             explainer=self._explainer, explanation_inputs=explanation_inputs
         )
-        return MultiTargetExplanationState(
+        expl_state = MultiTargetExplanationState(
             explanation_inputs=explanation_inputs,
-            metric_inputs=metric_inputs,
             model_outputs=model_outputs,
             explanations=explanation,
+        )
+
+        return MultiTargetExplanationStepOutputs(
+            explanation_state=expl_state, metric_inputs=metric_inputs
         )

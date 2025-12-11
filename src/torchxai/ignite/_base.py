@@ -11,7 +11,7 @@ from ignite.metrics.metric import reinit__is_reduced
 from ignite.utils import apply_to_tensor
 from torch.cuda.amp.autocast_mode import autocast
 
-from torchxai.data_types import ExplanationState, MultiTargetModelExplanationState
+from torchxai.data_types import ExplanationStepOutputs, MultiTargetExplanationState
 from torchxai.ignite._utilities import get_logger
 
 logger = get_logger(__name__)
@@ -41,13 +41,13 @@ class TorchXAIMetricBase(Metric):
 
     @abstractmethod
     def _update(
-        self, explanation_state: ExplanationState, is_multi_target: bool = False
+        self, output: ExplanationStepOutputs, is_multi_target: bool = False
     ) -> dict[str, torch.Tensor]:
         """Execute the metric function. Must be implemented by subclasses."""
         pass
 
     @reinit__is_reduced
-    def update(self, explanation_state: ExplanationState) -> None:
+    def update(self, output: ExplanationStepOutputs) -> None:
         """
         Update internal state with output from engine.
         output_transform must return dict with key 'metric_kwargs'.
@@ -60,9 +60,9 @@ class TorchXAIMetricBase(Metric):
         # Compute metric
         with autocast(enabled=self._with_amp):
             metric_output = self._update(
-                explanation_state=explanation_state,
+                output=output,
                 is_multi_target=isinstance(
-                    explanation_state, MultiTargetModelExplanationState
+                    output.explanation_state, MultiTargetExplanationState
                 ),
             )
 
@@ -71,11 +71,13 @@ class TorchXAIMetricBase(Metric):
 
         # store execution time per sample
         batch_exec_time = torch.tensor(end_time - start_time, requires_grad=False)
-        batch_size = len(explanation_state.sample_id)
+        batch_size = len(output.explanation_state.explanation_inputs.sample_id)
         sample_exec_time = torch.stack(
             [
                 batch_exec_time / batch_size
-                for _ in range(len(explanation_state.sample_id))
+                for _ in range(
+                    len(output.explanation_state.explanation_inputs.sample_id)
+                )
             ]
         )
 
@@ -86,8 +88,6 @@ class TorchXAIMetricBase(Metric):
 
         # Accumulate results
         self._num_examples += batch_size
-        print("metric_output", metric_output)
-        print("sample_exec_time", sample_exec_time)
         self._results.append({**metric_output, "sample_exec_time": sample_exec_time})  # type: ignore
 
     # -----------------------------------------------------------------

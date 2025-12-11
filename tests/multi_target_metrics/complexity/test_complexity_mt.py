@@ -13,8 +13,10 @@ class MetricTestRuntimeConfig(TestRuntimeConfig):
     test_name: str = "compare_multi_target_to_single_target"
     explainer: str = "saliency"
     override_target: list[int] = field(default_factory=lambda: [0, 1, 2])
-    expected: torch.Tensor = None
-    explainer_kwargs: dict = field(default_factory=lambda: {"is_multi_target": True})
+    expected: torch.Tensor | None = None
+    explainer_kwargs: dict | None = field(
+        default_factory=lambda: {"is_multi_target": True}
+    )
     delta: float = 1e-8
 
 

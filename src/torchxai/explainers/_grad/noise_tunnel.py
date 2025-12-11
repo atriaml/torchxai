@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from enum import Enum
-from typing import Any, List, Tuple, Union, cast
+from typing import Any, cast
 
 import torch
 from captum._utils.common import (
@@ -11,11 +11,11 @@ from captum._utils.common import (
     _format_tensor_into_tuples,
     _is_tuple,
 )
-from captum._utils.typing import TensorOrTupleOfTensorsGeneric
 from captum.attr._utils.common import _validate_noise_tunnel_type
 from captum.log import log_usage
 from torch import Tensor
 
+from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
 from torchxai.explainers._utils import _expand_and_update_target_multi_target
 
 
@@ -34,33 +34,29 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
     @log_usage()
     def attribute(
         self,
-        inputs: Union[Tensor, Tuple[Tensor, ...]],
+        inputs: Tensor | tuple[Tensor, ...],
         nt_type: str = "smoothgrad",
         nt_samples: int = 5,
         nt_samples_batch_size: int = None,
-        stdevs: Union[float, Tuple[float, ...]] = 1.0,
+        stdevs: float | tuple[float, ...] = 1.0,
         draw_baseline_from_distrib: bool = False,
         **kwargs: Any,
-    ) -> Union[
-        Union[
-            Tensor,
-            Tuple[Tensor, Tensor],
-            Tuple[Tensor, ...],
-            Tuple[Tuple[Tensor, ...], Tensor],
-        ]
-    ]:
-        def add_noise_to_inputs(nt_samples_partition: int) -> Tuple[Tensor, ...]:
+    ) -> (
+        Tensor
+        | tuple[Tensor, Tensor]
+        | tuple[Tensor, ...]
+        | tuple[tuple[Tensor, ...], Tensor]
+    ):
+        def add_noise_to_inputs(nt_samples_partition: int) -> tuple[Tensor, ...]:
             if isinstance(stdevs, tuple):
                 assert len(stdevs) == len(inputs), (
                     "The number of input tensors "
-                    "in {} must be equal to the number of stdevs values {}".format(
-                        len(inputs), len(stdevs)
-                    )
+                    f"in {len(inputs)} must be equal to the number of stdevs values {len(stdevs)}"
                 )
             else:
-                assert isinstance(
-                    stdevs, float
-                ), "stdevs must be type float. " "Given: {}".format(type(stdevs))
+                assert isinstance(stdevs, float), (
+                    f"stdevs must be type float. Given: {type(stdevs)}"
+                )
                 stdevs_ = (stdevs,) * len(inputs)
             return tuple(
                 (
@@ -95,8 +91,8 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
             return input.repeat_interleave(nt_samples_partition, dim=0) + noise
 
         def update_sum_attribution_and_sq(
-            sum_attribution: List[Tensor],
-            sum_attribution_sq: List[Tensor],
+            sum_attribution: list[Tensor],
+            sum_attribution_sq: list[Tensor],
             attribution: Tensor,
             i: int,
             j: int,
@@ -104,10 +100,10 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
         ) -> None:
             bsz = attribution.shape[0] // nt_samples_batch_size_inter
             attribution_shape = cast(
-                Tuple[int, ...], (bsz, nt_samples_batch_size_inter)
+                tuple[int, ...], (bsz, nt_samples_batch_size_inter)
             )
             if len(attribution.shape) > 1:
-                attribution_shape += cast(Tuple[int, ...], tuple(attribution.shape[1:]))
+                attribution_shape += cast(tuple[int, ...], tuple(attribution.shape[1:]))
 
             attribution = attribution.view(attribution_shape)
             current_attribution_sum = attribution.sum(dim=1, keepdim=False)
@@ -125,8 +121,8 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
             )
 
         def compute_partial_attribution(
-            inputs_with_noise_partition: Tuple[Tensor, ...], kwargs_partition: Any
-        ) -> Tuple[Tuple[Tensor, ...], bool, Union[None, Tensor]]:
+            inputs_with_noise_partition: tuple[Tensor, ...], kwargs_partition: Any
+        ) -> tuple[tuple[Tensor, ...], bool, None | Tensor]:
             # smoothgrad_Attr(x) = 1 / n * sum(Attr(x + N(0, sigma^2))
             # NOTE: using __wrapped__ such that it does not log the inner logs
 
@@ -154,8 +150,8 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
             ]
 
             return (
-                cast(List[Tuple[Tensor, ...]], attributions),
-                cast(List[bool], is_attrib_tuple),
+                cast(list[tuple[Tensor, ...]], attributions),
+                cast(list[bool], is_attrib_tuple),
                 delta,
             )
 
@@ -169,7 +165,7 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
             )
             _expand_and_update_target_multi_target(nt_samples_partition, kwargs_partial)
             _expand_and_update_baselines(
-                cast(Tuple[Tensor, ...], inputs),
+                cast(tuple[Tensor, ...], inputs),
                 nt_samples_partition,
                 kwargs_partial,
                 draw_baseline_from_distrib=draw_baseline_from_distrib,
@@ -177,9 +173,9 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
             _expand_and_update_feature_mask(nt_samples_partition, kwargs_partial)
 
         def compute_smoothing(
-            expected_attributions: Tuple[Union[Tensor], ...],
-            expected_attributions_sq: Tuple[Union[Tensor], ...],
-        ) -> Tuple[Tensor, ...]:
+            expected_attributions: tuple[Tensor, ...],
+            expected_attributions_sq: tuple[Tensor, ...],
+        ) -> tuple[Tensor, ...]:
             if NoiseTunnelType[nt_type] == NoiseTunnelType.smoothgrad:
                 return expected_attributions
 
@@ -193,14 +189,14 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
                 )
             )
 
-            return cast(Tuple[Tensor, ...], vargrad)
+            return cast(tuple[Tensor, ...], vargrad)
 
         def update_partial_attribution_and_delta(
-            multi_target_attributions_partial: Tuple[Tensor, ...],
+            multi_target_attributions_partial: tuple[Tensor, ...],
             multi_target_delta_partial: Tensor,
-            multi_target_sum_attributions: List[Tensor],
-            multi_target_sum_attributions_sq: List[Tensor],
-            multi_target_delta_partial_list: List[Tensor],
+            multi_target_sum_attributions: list[Tensor],
+            multi_target_sum_attributions_sq: list[Tensor],
+            multi_target_delta_partial_list: list[Tensor],
             nt_samples_partial: int,
         ) -> None:
             for i, attributions_partial in enumerate(multi_target_attributions_partial):
@@ -242,9 +238,9 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
 
             attr_func = self.attribution_method.attribute
 
-            multi_target_sum_attributions: List[List[Union[None, Tensor]]] = []
-            multi_target_sum_attributions_sq: List[List[Union[None, Tensor]]] = []
-            multi_target_delta_partial_list: List[List[Tensor]] = []
+            multi_target_sum_attributions: list[list[None | Tensor]] = []
+            multi_target_sum_attributions_sq: list[list[None | Tensor]] = []
+            multi_target_delta_partial_list: list[list[Tensor]] = []
 
             for _ in range(nt_samples_partition):
                 inputs_with_noise = add_noise_to_inputs(nt_samples_batch_size)
@@ -323,8 +319,8 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
             ]
             multi_target_attributions = [
                 compute_smoothing(
-                    cast(Tuple[Tensor, ...], expected_attributions),
-                    cast(Tuple[Tensor, ...], expected_attributions_sq),
+                    cast(tuple[Tensor, ...], expected_attributions),
+                    cast(tuple[Tensor, ...], expected_attributions_sq),
                 )
                 for expected_attributions, expected_attributions_sq in zip(
                     multi_target_expected_attributions,
@@ -348,28 +344,24 @@ class MultiTargetNoiseTunnel(NoiseTunnel):
 
     def _apply_checks_and_return_attributions(
         self,
-        multi_target_attributions: Tuple[Tensor, ...],
+        multi_target_attributions: tuple[Tensor, ...],
         is_attrib_tuple: bool,
         return_convergence_delta: bool,
-        delta: Union[None, Tensor],
-    ) -> Union[
-        TensorOrTupleOfTensorsGeneric, Tuple[TensorOrTupleOfTensorsGeneric, Tensor]
-    ]:
+        delta: None | Tensor,
+    ) -> TensorOrTupleOfTensorsGeneric | tuple[TensorOrTupleOfTensorsGeneric, Tensor]:
         multi_target_attributions = [
             _format_output(is_attrib_tuple, attributions)
             for attributions in multi_target_attributions
         ]
 
         ret = (
-            (multi_target_attributions, cast(List[Tensor], delta))
+            (multi_target_attributions, cast(list[Tensor], delta))
             if self.is_delta_supported and return_convergence_delta
             else multi_target_attributions
         )
         ret = cast(
-            Union[
-                List[TensorOrTupleOfTensorsGeneric],
-                Tuple[List[TensorOrTupleOfTensorsGeneric], List[Tensor]],
-            ],
+            list[TensorOrTupleOfTensorsGeneric]
+            | tuple[list[TensorOrTupleOfTensorsGeneric], list[Tensor]],
             ret,
         )
         return ret

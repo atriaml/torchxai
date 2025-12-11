@@ -1,16 +1,13 @@
-from typing import Tuple
-
 import torch
-from captum._utils.common import (
-    _format_tensor_into_tuples,
-)
-from captum._utils.typing import TensorOrTupleOfTensorsGeneric
+from captum._utils.common import _format_tensor_into_tuples
 from torch import Tensor
+
+from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
 
 
 def default_perturb_func(
     inputs: TensorOrTupleOfTensorsGeneric, perturb_radius: float = 0.02
-) -> Tuple[Tensor, ...]:
+) -> tuple[Tensor, ...]:
     r"""A default function for generating perturbations of `inputs`
     within perturbation radius of `perturb_radius`.
     This function samples uniformly random from the L_Infinity ball

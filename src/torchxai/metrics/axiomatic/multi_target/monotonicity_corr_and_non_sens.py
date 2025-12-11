@@ -1,5 +1,6 @@
 import inspect
-from typing import Any, Callable, List, Optional, Tuple, Union, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import numpy as np
 import scipy
@@ -14,6 +15,8 @@ from captum._utils.common import (
 )
 from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torch import Tensor
+
+from torchxai.data_types.common import TensorOrTupleOfTensorsOrListOfTensorsGeneric
 from torchxai.explainers._utils import _run_forward_multi_target
 from torchxai.metrics._utils.batching import (
     _divide_and_aggregate_metrics_n_perturbations_per_feature,
@@ -32,12 +35,12 @@ from torchxai.metrics._utils.perturbation import default_fixed_baseline_perturb_
 def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
     forward_func: Callable,
     inputs: TensorOrTupleOfTensorsGeneric,
-    attributions_list: List[TensorOrTupleOfTensorsGeneric],
+    attributions_list: list[TensorOrTupleOfTensorsGeneric],
     baselines: BaselineType = None,
     feature_mask: TensorOrTupleOfTensorsGeneric = None,
     additional_forward_args: Any = None,
-    targets_list: List[TargetType] = None,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    targets_list: list[TargetType] = None,
+    frozen_features: list[torch.Tensor] | None = None,
     perturb_func: Callable = default_fixed_baseline_perturb_func(),
     n_perturbations_per_feature: int = 10,
     max_features_processed_per_batch: int = None,
@@ -50,7 +53,7 @@ def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
 ) -> Tensor:
     def _generate_perturbations(
         current_n_perturbed_features: int, current_perturbation_mask: Tensor
-    ) -> Tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
+    ) -> tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
         r"""
         The perturbations are generated for each example
         `current_n_perturbed_features * n_perturbations_per_feature` times.
@@ -63,12 +66,12 @@ def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
         def call_perturb_func():
             r""" """
             baselines_pert = None
-            inputs_pert: Union[Tensor, Tuple[Tensor, ...]]
+            inputs_pert: Tensor | tuple[Tensor, ...]
             if len(inputs_expanded) == 1:
                 inputs_pert = inputs_expanded[0]
                 perturbation_masks = perturbation_mask_expanded[0]
                 if baselines_expanded is not None:
-                    baselines_pert = cast(Tuple, baselines_expanded)[0]
+                    baselines_pert = cast(tuple, baselines_expanded)[0]
             else:
                 inputs_pert = inputs_expanded
                 perturbation_masks = perturbation_mask_expanded
@@ -76,13 +79,12 @@ def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
 
             valid_args = inspect.signature(perturb_func).parameters.keys()
             perturb_kwargs = dict(
-                inputs=inputs_pert,
-                perturbation_masks=perturbation_masks,
+                inputs=inputs_pert, perturbation_masks=perturbation_masks
             )
             if "baselines" in valid_args:
-                assert (
-                    baselines_pert is not None
-                ), f"""The perturb_func {perturb_func} requires baselines as an argument. Please provide baselines."""
+                assert baselines_pert is not None, (
+                    f"""The perturb_func {perturb_func} requires baselines as an argument. Please provide baselines."""
+                )
                 perturb_kwargs["baselines"] = baselines_pert
             return perturb_func(**perturb_kwargs)
 
@@ -107,7 +109,7 @@ def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
                     and baseline.shape[0] == input.shape[0]
                     else baseline
                 )
-                for input, baseline in zip(inputs, cast(Tuple, baselines))
+                for input, baseline in zip(inputs, cast(tuple, baselines))
             )
 
         # repeat each perturbation mask n_perturbations_per_feature times
@@ -128,29 +130,23 @@ def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
         return call_perturb_func()
 
     def _validate_inputs_and_perturbations(
-        inputs: Tuple[Tensor, ...],
-        inputs_perturbed: Tuple[Tensor, ...],
+        inputs: tuple[Tensor, ...], inputs_perturbed: tuple[Tensor, ...]
     ) -> None:
-        assert len(inputs_perturbed) == len(inputs), (
-            """The number of perturbed
+        assert len(inputs_perturbed) == len(inputs), f"""The number of perturbed
             inputs and corresponding perturbations must have the same number of
-            elements. Found number of inputs is: {} and perturbations:
-            {}"""
-        ).format(len(inputs_perturbed), len(inputs))
+            elements. Found number of inputs is: {len(inputs_perturbed)} and perturbations:
+            {len(inputs)}"""
 
         # asserts the shapes of the perturbations and perturbed inputs
         for inputs, input_perturbed in zip(inputs, inputs_perturbed):
-            assert inputs[0].shape == input_perturbed[0].shape, (
-                """Perturbed input
+            assert inputs[0].shape == input_perturbed[0].shape, f"""Perturbed input
                 and corresponding perturbation must have the same shape and
-                dimensionality. Found perturbation shape is: {} and the input shape
-                is: {}"""
-            ).format(inputs[0].shape, input_perturbed[0].shape)
+                dimensionality. Found perturbation shape is: {inputs[0].shape} and the input shape
+                is: {input_perturbed[0].shape}"""
 
     def _next_monotonicity_corr_tensors(
-        current_n_perturbed_features: int,
-        current_n_steps: int,
-    ) -> Union[Tuple[Tensor], Tuple[Tensor, Tensor, Tensor]]:
+        current_n_perturbed_features: int, current_n_steps: int
+    ) -> tuple[Tensor] | tuple[Tensor, Tensor, Tensor]:
         current_feature_indices = torch.arange(
             current_n_steps - current_n_perturbed_features,
             current_n_steps,
@@ -162,8 +158,7 @@ def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
         )
         inputs_perturbed = _format_tensor_into_tuples(inputs_perturbed)
         _validate_inputs_and_perturbations(
-            cast(Tuple[Tensor, ...], inputs),
-            cast(Tuple[Tensor, ...], inputs_perturbed),
+            cast(tuple[Tensor, ...], inputs), cast(tuple[Tensor, ...], inputs_perturbed)
         )
         additional_forward_args_expanded = _expand_additional_forward_args(
             additional_forward_args,
@@ -330,8 +325,7 @@ def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
             # this corr should be close to 1 if the model forward variances are monotonically increasing with the attribution scores
             # this means that features that have a lower attribution score are directly correlated with lower effect on the model output
             return scipy.stats.spearmanr(
-                feature_group_attribution_scores,
-                perturbed_fwd_diffs_relative_vars,
+                feature_group_attribution_scores, perturbed_fwd_diffs_relative_vars
             )[0]
 
         # compute non-sensitivity metric
@@ -342,7 +336,7 @@ def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
             # find the indices of features that have a zero attribution score, every attribution score value less
             # than non_sens_eps is considered zero
             def find_small_scale_features(
-                values: np.ndarray, threshold: Optional[float] = None
+                values: np.ndarray, threshold: float | None = None
             ):
                 return set(list(np.argwhere(np.abs(values) < threshold).flatten()))
 
@@ -357,15 +351,13 @@ def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
             # This can be sensitive to the max value of the attribution scores but since different explanation methods
             # have different scales, it is better to use a relative threshold
             zero_attribution_features = find_small_scale_features(
-                feature_group_attribution_scores,
-                threshold=zero_attribution_threshold,
+                feature_group_attribution_scores, threshold=zero_attribution_threshold
             )
 
             # find the indices of features that have a zero model forward variance,
             # all values below the threshold are considered zero. Default threshold is set to 1%
             zero_variance_features = find_small_scale_features(
-                perturbed_fwd_diffs_relative_vars,
-                threshold=zero_variance_threshold,
+                perturbed_fwd_diffs_relative_vars, threshold=zero_variance_threshold
             )
 
             # find the symmetric difference of the zero attribution features and the zero variance features
@@ -392,8 +384,7 @@ def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
                 perturbed_fwd_diffs_relative_vars, feature_group_attribution_scores
             )
             for perturbed_fwd_diffs_relative_vars, feature_group_attribution_scores in zip(
-                perturbed_fwd_diffs_relative_vars_list,
-                chunk_reduced_attributions_list,
+                perturbed_fwd_diffs_relative_vars_list, chunk_reduced_attributions_list
             )
         ]
         non_sens_list = [
@@ -401,8 +392,7 @@ def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
                 perturbed_fwd_diffs_relative_vars, feature_group_attribution_scores
             )
             for perturbed_fwd_diffs_relative_vars, feature_group_attribution_scores in zip(
-                perturbed_fwd_diffs_relative_vars_list,
-                chunk_reduced_attributions_list,
+                perturbed_fwd_diffs_relative_vars_list, chunk_reduced_attributions_list
             )
         ]
     return (
@@ -417,12 +407,12 @@ def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
 def _multi_target_monotonicity_corr_and_non_sens(
     forward_func: Callable,
     inputs: TensorOrTupleOfTensorsGeneric,
-    attributions_list: List[TensorOrTupleOfTensorsGeneric],
+    attributions_list: list[TensorOrTupleOfTensorsGeneric],
     baselines: BaselineType = None,
     feature_mask: TensorOrTupleOfTensorsGeneric = None,
     additional_forward_args: Any = None,
-    targets_list: List[TargetType] = None,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    targets_list: list[TargetType] = None,
+    frozen_features: list[torch.Tensor] | None = None,
     perturb_func: Callable = default_fixed_baseline_perturb_func(),
     n_perturbations_per_feature: int = 10,
     max_features_processed_per_batch: int = None,
@@ -432,41 +422,45 @@ def _multi_target_monotonicity_corr_and_non_sens(
     use_percentage_attribution_threshold: bool = False,
     return_ratio: bool = True,
     show_progress: bool = False,
-) -> Tuple[Tensor, Tensor, Tensor]:
+) -> tuple[TensorOrTupleOfTensorsOrListOfTensorsGeneric, ...]:
     with torch.no_grad():
-        isinstance(
-            attributions_list, list
-        ), "attributions must be a list of tensors or list of tuples of tensors"
+        (
+            isinstance(attributions_list, list),
+            "attributions must be a list of tensors or list of tuples of tensors",
+        )
         assert isinstance(targets_list, list), "targets must be a list of targets"
-        assert all(
-            isinstance(x, (tuple, int)) for x in targets_list
-        ), "targets must be a list of ints"
-        assert len(targets_list) == len(attributions_list), (
-            """The number of targets in the targets_list and
-            attributions_list must match. Found number of targets in the targets_list is: {} and in the
-            attributions_list: {}"""
-        ).format(len(targets_list), len(attributions_list))
+        assert all(isinstance(x, (tuple, int)) for x in targets_list), (
+            "targets must be a list of ints"
+        )
+        assert len(targets_list) == len(
+            attributions_list
+        ), f"""The number of targets in the targets_list and
+            attributions_list must match. Found number of targets in the targets_list is: {len(targets_list)} and in the
+            attributions_list: {len(attributions_list)}"""
 
         # perform argument formattings
         inputs = _format_tensor_into_tuples(inputs)  # type: ignore
         additional_forward_args = _format_additional_forward_args(
             additional_forward_args
         )
-        attributions_list = [_format_tensor_into_tuples(attributions) for attributions in attributions_list]  # type: ignore
+        attributions_list = [
+            _format_tensor_into_tuples(attributions)
+            for attributions in attributions_list
+        ]  # type: ignore
         feature_mask = _format_tensor_into_tuples(feature_mask)  # type: ignore
 
         # Make sure that inputs and corresponding attributions have matching sizes.
-        assert len(inputs) == len(attributions_list[0]), (
-            """The number of tensors in the inputs and
-            attributions must match. Found number of tensors in the inputs is: {} and in the
-            attributions: {}"""
-        ).format(len(inputs), len(attributions_list[0]))
+        assert len(inputs) == len(
+            attributions_list[0]
+        ), f"""The number of tensors in the inputs and
+            attributions must match. Found number of tensors in the inputs is: {len(inputs)} and in the
+            attributions: {len(attributions_list[0])}"""
         if feature_mask is not None:
             for mask, attribution in zip(feature_mask, attributions_list[0]):
-                assert mask.shape == attribution.shape, (
-                    """The shape of the feature mask and the attribution
-                    must match. Found feature mask shape: {} and attribution shape: {}"""
-                ).format(mask.shape, attribution.shape)
+                assert (
+                    mask.shape == attribution.shape
+                ), f"""The shape of the feature mask and the attribution
+                    must match. Found feature mask shape: {mask.shape} and attribution shape: {attribution.shape}"""
 
         bsz = inputs[0].size(0)
         monotonicity_corr_list_batch = []

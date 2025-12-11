@@ -238,18 +238,21 @@ def completeness(
         >>> completeness = completeness(net, input, attribution, baselines)
     """
     metric_func = _multi_target_completeness if is_multi_target else _completeness
-    completeness_score = metric_func(
-        forward_func=forward_func,
-        inputs=inputs,
-        **(
-            dict(attributions_list=attributions)
-            if is_multi_target
-            else dict(attributions=attributions)
-        ),
-        baselines=baselines,
-        additional_forward_args=additional_forward_args,
-        **dict(targets_list=target) if is_multi_target else dict(target=target),
-    )
+    kwargs = {
+        "forward_func": forward_func,
+        "inputs": inputs,
+        "attributions": attributions,
+        "baselines": baselines,
+        "additional_forward_args": additional_forward_args,
+    }
+    if is_multi_target:
+        kwargs["attributions_list"] = attributions  # type: ignore
+        kwargs["targets_list"] = target  # type: ignore
+    else:
+        kwargs["attributions"] = attributions  # type: ignore
+        kwargs["target"] = target
+
+    completeness_score = metric_func(**kwargs)
     if return_dict:
         return {"completeness_score": completeness_score}
     return completeness_score

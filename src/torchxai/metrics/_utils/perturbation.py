@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
-from typing import List, Optional, Tuple
 
 import torch
-from captum._utils.typing import TensorOrTupleOfTensorsGeneric
+from captum._utils.common import _format_tensor_into_tuples
+
+from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
 from torchxai.metrics._utils.common import (
     _split_tensors_to_tuple_tensors,
     _tuple_tensors_to_tensors,
@@ -18,17 +19,18 @@ def default_zero_baseline_func():
     def wrapped(
         inputs: TensorOrTupleOfTensorsGeneric,
         perturbation_masks: TensorOrTupleOfTensorsGeneric,
-        baselines: Optional[TensorOrTupleOfTensorsGeneric] = None,
-    ) -> Tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
-        if not isinstance(inputs, tuple):
-            inputs = (inputs,)
-        if not isinstance(perturbation_masks, tuple):
-            perturbation_masks = (perturbation_masks,)
+        baselines: TensorOrTupleOfTensorsGeneric | None = None,
+    ) -> TensorOrTupleOfTensorsGeneric:
+        inputs = _format_tensor_into_tuples(inputs)
+        perturbation_masks = _format_tensor_into_tuples(perturbation_masks)
         assert perturbation_masks[0].dtype == torch.bool
-        perturbation_masks = tuple(
-            mask.expand_as(input) for mask, input in zip(perturbation_masks, inputs)
+        expanded_masks = tuple(
+            mask.expand_as(input)
+            for mask, input in zip(perturbation_masks, inputs, strict=True)
         )
-        return tuple(~mask * input for input, mask in zip(inputs, perturbation_masks))
+        return tuple(
+            ~mask * input for input, mask in zip(inputs, expanded_masks, strict=True)
+        )
 
     return wrapped
 
@@ -37,22 +39,22 @@ def default_fixed_baseline_perturb_func():
     def wrapped(
         inputs: TensorOrTupleOfTensorsGeneric,
         perturbation_masks: TensorOrTupleOfTensorsGeneric,
-        baselines: Optional[TensorOrTupleOfTensorsGeneric] = None,
-    ) -> Tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
-        if not isinstance(inputs, tuple):
-            inputs = (inputs,)
-        if not isinstance(perturbation_masks, tuple):
-            perturbation_masks = (perturbation_masks,)
-        if baselines is not None and not isinstance(baselines, tuple):
-            baselines = (baselines,)
+        baselines: TensorOrTupleOfTensorsGeneric,
+    ) -> TensorOrTupleOfTensorsGeneric:
+        inputs = _format_tensor_into_tuples(inputs)
+        perturbation_masks = _format_tensor_into_tuples(perturbation_masks)
+        baselines = _format_tensor_into_tuples(baselines)
         assert perturbation_masks[0].dtype == torch.bool
 
         perturbation_masks = tuple(
-            mask.expand_as(input) for mask, input in zip(perturbation_masks, inputs)
+            mask.expand_as(input)
+            for mask, input in zip(perturbation_masks, inputs, strict=True)
         )
         return tuple(
             (~mask * input + mask * baseline)
-            for input, mask, baseline in zip(inputs, perturbation_masks, baselines)
+            for input, mask, baseline in zip(
+                inputs, perturbation_masks, baselines, strict=True
+            )
         )
 
     return wrapped
@@ -62,11 +64,9 @@ def default_random_perturb_func(noise_scale: float = 0.02):
     def wrapped(
         inputs: TensorOrTupleOfTensorsGeneric,
         perturbation_masks: TensorOrTupleOfTensorsGeneric,
-    ) -> Tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
-        if not isinstance(inputs, tuple):
-            inputs = (inputs,)
-        if not isinstance(perturbation_masks, tuple):
-            perturbation_masks = (perturbation_masks,)
+    ) -> TensorOrTupleOfTensorsGeneric:
+        inputs = _format_tensor_into_tuples(inputs)
+        perturbation_masks = _format_tensor_into_tuples(perturbation_masks)
         assert perturbation_masks[0].dtype == torch.bool
 
         # generate random noise if baselines are not provided
@@ -75,12 +75,13 @@ def default_random_perturb_func(noise_scale: float = 0.02):
             for x in inputs
         )
         perturbation_masks = tuple(
-            mask.expand_as(input) for mask, input in zip(perturbation_masks, inputs)
+            mask.expand_as(input)
+            for mask, input in zip(perturbation_masks, inputs, strict=True)
         )
         perturbed_inputs = tuple(
             (~mask * input + mask * random_baseline)
             for input, mask, random_baseline in zip(
-                inputs, perturbation_masks, random_baselines
+                inputs, perturbation_masks, random_baselines, strict=True
             )
         )
         return perturbed_inputs
@@ -90,28 +91,28 @@ def default_random_perturb_func(noise_scale: float = 0.02):
 
 def default_infidelity_perturb_fn(noise_scale: float = 0.003):
     def wrapped(
-        inputs,
-        baselines=None,
-        feature_masks=None,
-        frozen_features=None,
-    ):
-        if not isinstance(inputs, tuple):
-            inputs = (inputs,)
+        inputs: TensorOrTupleOfTensorsGeneric,
+        frozen_features: list[torch.Tensor] | None = None,
+        feature_masks: tuple[torch.Tensor, ...] | None = None,
+        baselines: TensorOrTupleOfTensorsGeneric | None = None,
+    ) -> tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
+        inputs = _format_tensor_into_tuples(inputs)
         noise = tuple(torch.randn_like(x) * noise_scale for x in inputs)
         if frozen_features is not None and feature_masks is not None:
             for n_batch, feature_mask_batch in zip(
-                noise, feature_masks
+                noise, feature_masks, strict=True
             ):  # for each feature type
                 for n_sample, feature_mask_sample, frozen_features_sample in zip(
                     n_batch,
                     feature_mask_batch,
                     frozen_features,  # for each sample in batch
+                    strict=True,
                 ):
                     for (
                         feature_idx
                     ) in frozen_features_sample:  # for each frozen feature
                         n_sample[feature_mask_sample == feature_idx] = 0
-        return noise, tuple(x - n for x, n in zip(inputs, noise))
+        return noise, tuple(x - n for x, n in zip(inputs, noise, strict=True))
 
     return wrapped
 
@@ -130,12 +131,30 @@ def _feature_mask_to_perturbation_mask_n_indices(
     return perturbation_mask  # Shape: (num_features, mask.size)
 
 
+# generate all random indices for perturbations in one go
+def _generate_rand_indices(
+    feature_indices_all: torch.Tensor,
+    total_features_perturbed: int,
+    frozen_features: list[torch.Tensor] | None,
+    sample_idx: int,
+    flattened_feature_mask: torch.Tensor,
+) -> torch.Tensor:
+    rand_feature_indices = feature_indices_all[
+        torch.randperm(len(feature_indices_all), device=flattened_feature_mask.device)
+    ]
+    if frozen_features is not None:
+        valid_mask = ~torch.isin(rand_feature_indices, frozen_features[sample_idx])
+        rand_feature_indices = rand_feature_indices[valid_mask]
+
+    return rand_feature_indices[:total_features_perturbed].unsqueeze(0)
+
+
 def _generate_random_perturbation_masks(
     n_perturbations_per_sample: int,
-    feature_mask: Tuple[torch.Tensor, ...],
+    feature_mask: tuple[torch.Tensor, ...],
     percent_features_perturbed=0.1,
-    frozen_features: Optional[List[torch.Tensor]] = None,
-) -> Tuple[torch.Tensor, ...]:
+    frozen_features: list[torch.Tensor] | None = None,
+) -> tuple[torch.Tensor, ...]:
     # Start of main logic
     flattened_feature_masks, flattened_feature_mask_base_shapes = (
         _tuple_tensors_to_tensors(feature_mask)
@@ -157,23 +176,17 @@ def _generate_random_perturbation_masks(
             percent_features_perturbed * len(feature_indices_all)
         )
 
-        # generate all random indices for perturbations in one go
-        def generate_rand_indices():
-            rand_feature_indices = feature_indices_all[
-                torch.randperm(
-                    len(feature_indices_all), device=flattened_feature_mask.device
-                )
-            ]
-            if frozen_features is not None:
-                valid_mask = ~torch.isin(
-                    rand_feature_indices, frozen_features[sample_idx]
-                )
-                rand_feature_indices = rand_feature_indices[valid_mask]
-
-            return rand_feature_indices[:total_features_perturbed].unsqueeze(0)
-
         rand_indices = torch.cat(
-            [generate_rand_indices() for _ in range(n_perturbations_per_sample)],
+            [
+                _generate_rand_indices(
+                    feature_indices_all=feature_indices_all,
+                    total_features_perturbed=total_features_perturbed,
+                    frozen_features=frozen_features,
+                    sample_idx=sample_idx,
+                    flattened_feature_mask=flattened_feature_mask,
+                )
+                for _ in range(n_perturbations_per_sample)
+            ],
             dim=0,
         )
 
@@ -201,8 +214,7 @@ def _generate_random_perturbation_masks(
 
 
 def perturb_fn_drop_batched_single_output(
-    feature_mask: Tuple[torch.Tensor, ...],
-    percent_features_perturbed=0.1,
+    feature_mask: tuple[torch.Tensor, ...], percent_features_perturbed=0.1
 ):
     def wrapped(inputs, baselines):
         # to compute infidelity we take randomly set half the features to baseline
@@ -226,19 +238,18 @@ def perturb_fn_drop_batched_single_output(
             n_perturbations_per_sample=current_batch_size // total_samples,
             feature_mask=feature_mask,
             percent_features_perturbed=percent_features_perturbed,
-            device=inputs[0].device,
         )
 
         # expand the perturbation masks to the input shape
         perturbation_masks = tuple(
             perturbation_mask.expand_as(input)
-            for input, perturbation_mask in zip(inputs, perturbation_masks)
+            for input, perturbation_mask in zip(inputs, perturbation_masks, strict=True)
         )
 
         # create a copy of the input tensor
         inputs_perturbed = tuple(input.clone() for input in inputs)
         for input_perturbed, baseline, perturbation_mask in zip(
-            inputs_perturbed, baselines, perturbation_masks
+            inputs_perturbed, baselines, perturbation_masks, strict=True
         ):
             input_perturbed[perturbation_mask] = baseline[perturbation_mask]
 

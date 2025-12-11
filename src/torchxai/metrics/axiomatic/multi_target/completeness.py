@@ -1,4 +1,5 @@
-from typing import Any, Callable, List, Tuple, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import torch
 from captum._utils.common import (
@@ -8,47 +9,51 @@ from captum._utils.common import (
 )
 from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torch import Tensor
+
 from torchxai.explainers._utils import _run_forward_multi_target
 
 
 def _multi_target_completeness(
     forward_func: Callable,
     inputs: TensorOrTupleOfTensorsGeneric,
-    attributions_list: List[TensorOrTupleOfTensorsGeneric],
+    attributions_list: list[TensorOrTupleOfTensorsGeneric],
     baselines: BaselineType,
+    targets_list: list[TargetType],
     additional_forward_args: Any = None,
-    targets_list: List[TargetType] = None,
-) -> List[Tensor]:
+) -> list[Tensor]:
     with torch.no_grad():
-        isinstance(
-            attributions_list, list
-        ), "attributions must be a list of tensors or list of tuples of tensors"
+        assert isinstance(attributions_list, list), (
+            "attributions must be a list of tensors or list of tuples of tensors"
+        )
         assert isinstance(targets_list, list), "targets must be a list of targets"
-        assert all(
-            isinstance(x, (tuple, int)) for x in targets_list
-        ), "targets must be a list of ints"
-        assert len(targets_list) == len(attributions_list), (
-            """The number of targets in the targets_list and
-            attributions_list must match. Found number of targets in the targets_list is: {} and in the
-            attributions_list: {}"""
-        ).format(len(targets_list), len(attributions_list))
+        assert all(isinstance(x, (tuple, int)) for x in targets_list), (
+            "targets must be a list of ints"
+        )
+        assert len(targets_list) == len(
+            attributions_list
+        ), f"""The number of targets in the targets_list and
+            attributions_list must match. Found number of targets in the targets_list is: {len(targets_list)} and in the
+            attributions_list: {len(attributions_list)}"""
 
         inputs = _format_tensor_into_tuples(inputs)  # type: ignore
         if baselines is None:
             baselines = tuple(torch.zeros_like(inp) for inp in inputs)
         else:
-            baselines = _format_baseline(baselines, cast(Tuple[Tensor, ...], inputs))
+            baselines = _format_baseline(baselines, cast(tuple[Tensor, ...], inputs))
         additional_forward_args = _format_additional_forward_args(
             additional_forward_args
         )
-        attributions_list = [_format_tensor_into_tuples(attributions) for attributions in attributions_list]  # type: ignore
+        attributions_list = [
+            _format_tensor_into_tuples(attributions)
+            for attributions in attributions_list
+        ]  # type: ignore
 
         # Make sure that inputs and corresponding attributions have number of tuples.
-        assert len(inputs) == len(attributions_list[0]), (
-            """The number of tensors in the inputs and
-            attributions must match. Found number of tensors in the inputs is: {} and in the
-            attributions: {}"""
-        ).format(len(inputs), len(attributions_list[0]))
+        assert len(inputs) == len(
+            attributions_list[0]
+        ), f"""The number of tensors in the inputs and
+            attributions must match. Found number of tensors in the inputs is: {len(inputs)} and in the
+            attributions: {len(attributions_list[0])}"""
 
         # for this implementation the shapes of the inputs and attributions are not necessarily needed to be matched
         # for example the inputs can be of shape (batch_size, seq_length, n_features) and the attributions can be of shape
@@ -64,10 +69,7 @@ def _multi_target_completeness(
 
         # compute the forward pass on baselines
         baselines_fwd = _run_forward_multi_target(
-            forward_func,
-            baselines,
-            targets_list,
-            additional_forward_args,
+            forward_func, baselines, targets_list, additional_forward_args
         )
 
         # compute the difference between the forward pass on inputs and baselines
@@ -87,6 +89,6 @@ def _multi_target_completeness(
         return [
             torch.abs(attributions_sum - fwd_diffs)
             for attributions_sum, fwd_diffs in zip(
-                attributions_sum_list, fwd_diffs_list
+                attributions_sum_list, fwd_diffs_list, strict=True
             )
         ]

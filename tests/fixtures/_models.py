@@ -35,7 +35,6 @@ def park_function_configuration():
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
             explained_features=torch.tensor([[0.24, 0.48, 0.56, 0.99, 0.68, 0.86]]),
-            additional_forward_args=None,
         ),
         model=ParkFunction(),
         n_features=6,
@@ -49,7 +48,6 @@ def basic_model_single_input_config():
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
             explained_features=(torch.tensor([3.0]), torch.tensor([1.0])),
-            additional_forward_args=None,
         ),
         n_features=2,
     )
@@ -62,7 +60,6 @@ def basic_model_single_batched_input_config():
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
             explained_features=(torch.tensor([[3.0]]), torch.tensor([[1.0]])),
-            additional_forward_args=None,
         ),
         n_features=2,
     )
@@ -75,7 +72,6 @@ def basic_model_batch_input_config():
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(3)],
             explained_features=(torch.tensor([3.0] * 3), torch.tensor([1.0] * 3)),
-            additional_forward_args=None,
         ),
         n_features=2,
     )
@@ -91,7 +87,7 @@ def basic_model_batch_input_with_additional_forward_args_config():
                 torch.tensor([[1.5, 2.0, 3.3]]),
                 torch.tensor([[3.0, 3.5, 2.2]]),
             ),
-            additional_forward_args=torch.tensor([[1.0, 3.0, 4.0]]),
+            additional_forward_args=(torch.tensor([[1.0, 3.0, 4.0]]),),
         ),
         n_features=6,
     )
@@ -107,7 +103,6 @@ def classification_convnet_model_with_multiple_targets_config():
             explained_features=torch.stack(
                 [torch.arange(1, 17).float()] * 20, dim=0
             ).view(20, 1, 4, 4),
-            additional_forward_args=None,
             target=torch.tensor([1] * 20),
         ),
         n_features=(1 * 4 * 4),
@@ -121,6 +116,7 @@ def classification_multilayer_model_with_tuple_targets_config():
             sample_id=[str(i) for i in range(4)],
             explained_features=torch.arange(1.0, 13.0).view(4, 3).float(),
             additional_forward_args=(torch.arange(1, 13).view(4, 3).float(), True),
+            target=[(0, 1, 1), (0, 1, 1), (1, 1, 1), (0, 1, 1)],
         ),
         model=BasicModel_MultiLayer(),
         n_features=3,
@@ -130,12 +126,15 @@ def classification_multilayer_model_with_tuple_targets_config():
 @pytest.fixture()
 def classification_multilayer_model_with_baseline_and_tuple_targets_config():
     yield TestBaseConfig(
+        model=BasicModel_MultiLayer(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(4)],
             explained_features=torch.arange(1.0, 13.0).view(4, 3).float(),
             additional_forward_args=(torch.arange(1, 13).view(4, 3).float(), True),
+            target=[(0, 1, 1), (0, 1, 1), (1, 1, 1), (0, 1, 1)],
+            baselines=torch.ones(4, 3),
         ),
-        model=BasicModel_MultiLayer(),
+        metric_inputs=MetricInputs(baselines=torch.ones(4, 3)),
         n_features=3,
     )
 
@@ -146,7 +145,7 @@ def classification_sigmoid_model_single_input_single_target_config():
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
             explained_features=torch.tensor([[1.0] * 10]),
-            additional_forward_args=None,
+            target=torch.tensor([1]),
         ),
         model=SigmoidModel(10, 20, 10),
         n_features=10,
@@ -159,7 +158,6 @@ def classification_softmax_model_single_input_single_target_config():
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
             explained_features=torch.tensor([[1.0] * 10]),
-            additional_forward_args=None,
         ),
         model=SoftmaxModel(10, 20, 10),
         n_features=10,
@@ -172,7 +170,6 @@ def classification_softmax_model_multi_input_single_target_config():
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(3)],
             explained_features=torch.tensor([[1.0] * 10] * 3),
-            additional_forward_args=None,
         ),
         model=SoftmaxModel(10, 20, 10),
         n_features=10,
@@ -188,7 +185,7 @@ def classification_softmax_model_multi_tuple_input_single_target_config():
                 torch.tensor([[1.0] * 10] * 3),
                 torch.tensor([[-1.0] * 10] * 3),
             ),
-            additional_forward_args=None,
+            target=torch.tensor([1]),
         ),
         model=SoftmaxModelTupleInput(10, 20, 10),
         n_features=20,
@@ -206,7 +203,7 @@ def classification_alexnet_model_single_sample_config():
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
             explained_features=torch.randn(1, 3, 224, 224),
-            additional_forward_args=None,
+            target=torch.tensor([1]),
         ),
         model=model,
         n_features=(3 * 224 * 224),
@@ -224,7 +221,7 @@ def classification_alexnet_model_config():
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(10)],
             explained_features=torch.randn(10, 3, 224, 224),
-            additional_forward_args=None,
+            target=torch.tensor([1]),
         ),
         model=model,
         n_features=(3 * 224 * 224),
@@ -260,13 +257,13 @@ def classification_alexnet_model_real_images_single_sample_config():
             ]
         )
         image_tensor = transform(image)
-        image_tensor = image_tensor.unsqueeze(
+        image_tensor = image_tensor.unsqueeze(  # type: ignore
             0
         )  # Shape: [1, 3, 256, 256] for a batch of 1 image
         if images == []:
             images = image_tensor
         else:
-            images = torch.cat((images, image_tensor), dim=0)
+            images = torch.cat((images, image_tensor), dim=0)  # type: ignore
     labels = torch.tensor(labels)
     model = alexnet(pretrained=True)
     model.eval()
@@ -275,7 +272,7 @@ def classification_alexnet_model_real_images_single_sample_config():
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
             explained_features=images,
-            additional_forward_args=None,
+            target=labels,
         ),
         model=model,
         n_features=(3 * 224 * 224),
@@ -335,7 +332,7 @@ def classification_alexnet_model_real_images_config():
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(10)],
             explained_features=images,
-            additional_forward_args=None,
+            target=labels,
         ),
         model=model,
         n_features=(3 * 224 * 224),
@@ -389,13 +386,13 @@ def multi_modal_sequence_sum():
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
             explained_features=inputs,
-            additional_forward_args=None,
             target=target,
             feature_masks=feature_mask,
             baselines=tuple(torch.zeros_like(x) for x in inputs),
         ),
         metric_inputs=MetricInputs(
-            frozen_features=[torch.tensor([0, 1, 2, 9, 10, 11, 18, 19, 20])]
+            frozen_features=[torch.tensor([0, 1, 2, 9, 10, 11, 18, 19, 20])],
+            baselines=tuple(torch.zeros_like(x) for x in inputs),
         ),
         n_features=n_features,
     )
@@ -449,13 +446,13 @@ def multi_modal_sequence_relu():
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
             explained_features=inputs,
-            additional_forward_args=None,
             target=target,
             feature_masks=feature_mask,
             baselines=tuple(torch.zeros_like(x) for x in inputs),
         ),
         metric_inputs=MetricInputs(
-            frozen_features=[torch.tensor([0, 1, 2, 9, 10, 11, 18, 19, 20])]
+            frozen_features=[torch.tensor([0, 1, 2, 9, 10, 11, 18, 19, 20])],
+            baselines=tuple(torch.zeros_like(x) for x in inputs),
         ),
         n_features=n_features,
     )

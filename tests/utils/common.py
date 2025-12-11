@@ -5,6 +5,8 @@ import numpy as np
 import torch
 from torch import Tensor
 
+from torchxai.data_types import ExplanationStepOutputs
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
@@ -136,7 +138,9 @@ def _set_all_random_seeds(seed: int = 1234) -> None:
     torch.backends.cudnn.deterministic = True
 
 
-def _run_metric_via_ignite(metric, explanation_state):
+def _run_metric_via_ignite(
+    metric, explanation_step_outputs: ExplanationStepOutputs
+) -> dict[str, torch.Tensor]:
     """Helper function to run a metric via the Ignite Engine interface.
 
     Args:
@@ -148,8 +152,8 @@ def _run_metric_via_ignite(metric, explanation_state):
     """
     from ignite.engine import Engine
 
-    def explanation_step(engine, batch):
-        return explanation_state
+    def explanation_step(engine, batch) -> ExplanationStepOutputs:
+        return explanation_step_outputs
 
     engine = Engine(explanation_step)
     metric.attach(engine, "metric")

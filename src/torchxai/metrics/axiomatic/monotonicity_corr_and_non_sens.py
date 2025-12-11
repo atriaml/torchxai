@@ -1,5 +1,6 @@
 import inspect
-from typing import Any, Callable, List, Optional, Tuple, Union, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import numpy as np
 import scipy
@@ -13,8 +14,14 @@ from captum._utils.common import (
     _format_tensor_into_tuples,
     _run_forward,
 )
-from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torch import Tensor
+
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+    TensorOrTupleOfTensorsOrListOfTensorsGeneric,
+)
 from torchxai.metrics._utils.batching import (
     _divide_and_aggregate_metrics_n_perturbations_per_feature,
 )
@@ -37,13 +44,13 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
     inputs: TensorOrTupleOfTensorsGeneric,
     attributions: TensorOrTupleOfTensorsGeneric,
     baselines: BaselineType = None,
-    feature_mask: TensorOrTupleOfTensorsGeneric = None,
+    feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
     additional_forward_args: Any = None,
     target: TargetType = None,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    frozen_features: torch.Tensor | None = None,
     perturb_func: Callable = default_fixed_baseline_perturb_func(),
     n_perturbations_per_feature: int = 10,
-    max_features_processed_per_batch: int = None,
+    max_features_processed_per_batch: int | None = None,
     percentage_feature_removal_per_step: float = 0.0,
     zero_attribution_threshold: float = 0.01,
     zero_variance_threshold: float = 0.01,
@@ -51,10 +58,10 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
     remove_features_in_ascending_order: bool = False,
     return_ratio: bool = True,
     show_progress: bool = False,
-) -> Tensor:
+) -> Any:
     def _generate_perturbations(
         current_n_perturbed_features: int, current_perturbation_mask: Tensor
-    ) -> Tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
+    ) -> TensorOrTupleOfTensorsGeneric:
         r"""
         The perturbations are generated for each example
         `current_n_perturbed_features * n_perturbations_per_feature` times.
@@ -67,26 +74,26 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
         def call_perturb_func():
             r""" """
             baselines_pert = None
-            inputs_pert: Union[Tensor, Tuple[Tensor, ...]]
+            inputs_pert: Tensor | tuple[Tensor, ...]
             if len(inputs_expanded) == 1:
                 inputs_pert = inputs_expanded[0]
                 perturbation_masks = perturbation_mask_expanded[0]
                 if baselines_expanded is not None:
-                    baselines_pert = cast(Tuple, baselines_expanded)[0]
+                    baselines_pert = cast(tuple, baselines_expanded)[0]
             else:
                 inputs_pert = inputs_expanded
                 perturbation_masks = perturbation_mask_expanded
                 baselines_pert = baselines_expanded
 
             valid_args = inspect.signature(perturb_func).parameters.keys()
-            perturb_kwargs = dict(
-                inputs=inputs_pert,
-                perturbation_masks=perturbation_masks,
-            )
+            perturb_kwargs = {
+                "inputs": inputs_pert,
+                "perturbation_masks": perturbation_masks,
+            }
             if "baselines" in valid_args:
-                assert (
-                    baselines_pert is not None
-                ), f"""The perturb_func {perturb_func} requires baselines as an argument. Please provide baselines."""
+                assert baselines_pert is not None, (
+                    f"""The perturb_func {perturb_func} requires baselines as an argument. Please provide baselines."""
+                )
                 perturb_kwargs["baselines"] = baselines_pert
             return perturb_func(**perturb_kwargs)
 
@@ -111,7 +118,7 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
                     and baseline.shape[0] == input.shape[0]
                     else baseline
                 )
-                for input, baseline in zip(inputs, cast(Tuple, baselines))
+                for input, baseline in zip(inputs, cast(tuple, baselines), strict=True)
             )
 
         # repeat each perturbation mask n_perturbations_per_feature times
@@ -127,35 +134,31 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
         # view as input shape (this is only necessary for edge cases where input is of (1, 1) shape)
         perturbation_mask_expanded = tuple(
             mask.view_as(input)
-            for mask, input in zip(perturbation_mask_expanded, inputs_expanded)
+            for mask, input in zip(
+                perturbation_mask_expanded, inputs_expanded, strict=True
+            )
         )
         return call_perturb_func()
 
     def _validate_inputs_and_perturbations(
-        inputs: Tuple[Tensor, ...],
-        inputs_perturbed: Tuple[Tensor, ...],
+        inputs: tuple[Tensor, ...], inputs_perturbed: tuple[Tensor, ...]
     ) -> None:
         # asserts the sizes of the perturbations and inputs
-        assert len(inputs_perturbed) == len(inputs), (
-            """The number of perturbed
+        assert len(inputs_perturbed) == len(inputs), f"""The number of perturbed
             inputs and corresponding perturbations must have the same number of
-            elements. Found number of inputs is: {} and perturbations:
-            {}"""
-        ).format(len(inputs_perturbed), len(inputs))
+            elements. Found number of inputs is: {len(inputs_perturbed)} and perturbations:
+            {len(inputs)}"""
 
         # asserts the shapes of the perturbations and perturbed inputs
-        for inputs, input_perturbed in zip(inputs, inputs_perturbed):
-            assert inputs[0].shape == input_perturbed[0].shape, (
-                """Perturbed input
+        for i, ip in zip(inputs, inputs_perturbed, strict=True):
+            assert i[0].shape == ip[0].shape, f"""Perturbed input
                 and corresponding perturbation must have the same shape and
-                dimensionality. Found perturbation shape is: {} and the input shape
-                is: {}"""
-            ).format(inputs[0].shape, input_perturbed[0].shape)
+                dimensionality. Found perturbation shape is: {i[0].shape} and the input shape
+                is: {ip[0].shape}"""
 
     def _next_monotonicity_corr_tensors(
-        current_n_perturbed_features: int,
-        current_n_steps: int,
-    ) -> Union[Tuple[Tensor], Tuple[Tensor, Tensor, Tensor]]:
+        current_n_perturbed_features: int, current_n_steps: int
+    ) -> list[float]:
         current_feature_indices = torch.arange(
             current_n_steps - current_n_perturbed_features,
             current_n_steps,
@@ -167,8 +170,7 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
         )
         inputs_perturbed = _format_tensor_into_tuples(inputs_perturbed)
         _validate_inputs_and_perturbations(
-            cast(Tuple[Tensor, ...], inputs),
-            cast(Tuple[Tensor, ...], inputs_perturbed),
+            cast(tuple[Tensor, ...], inputs), cast(tuple[Tensor, ...], inputs_perturbed)
         )
         additional_forward_args_expanded = _expand_additional_forward_args(
             additional_forward_args,
@@ -176,11 +178,11 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
             expansion_type=ExpansionTypes.repeat_interleave,
         )
         targets_expanded = _expand_target(
-            target,
+            target,  # type: ignore
             current_n_perturbed_features,
             expansion_type=ExpansionTypes.repeat_interleave,
         )
-        inputs_fwd = _run_forward(forward_func, inputs, target, additional_forward_args)
+        inputs_fwd = _run_forward(forward_func, inputs, target, additional_forward_args)  # type: ignore
         inputs_fwd_inv = (
             1.0 if torch.abs(inputs_fwd) < 1e-8 else 1.0 / torch.abs(inputs_fwd)
         )
@@ -213,18 +215,18 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
 
         # flatten the feature mask
         feature_mask_flattened, flattened_mask_shape = _tuple_tensors_to_tensors(
-            feature_mask
+            feature_mask  # type: ignore
         )
 
         # validate feature masks are increasing non-negative
-        _validate_feature_mask(feature_mask_flattened)
+        _validate_feature_mask(feature_mask_flattened)  # type: ignore
 
         # remove the batch index
         feature_mask_flattened = feature_mask_flattened.squeeze()
 
         # flatten all attributions in the input, this must be done after the feature masks are flattened as
         # feature masks may depened on attribution
-        attributions, _ = _tuple_tensors_to_tensors(attributions)
+        attributions, _ = _tuple_tensors_to_tensors(attributions)  # type: ignore
 
         # in this step we reduce the attributions to the feature groups
         # here the weighted sum of the attributions is computed for each feature group
@@ -235,7 +237,8 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
         # may have the indices [0, 1, 2, 3, 4] where the 0th index of the reduced attributions corresponds to the
         # 0th index of the feature mask
         reduced_attributions, _ = _reduce_tensor_with_indices_non_deterministic(
-            attributions[0], indices=feature_mask_flattened
+            attributions[0],
+            indices=feature_mask_flattened.long(),  # type: ignore
         )
 
         # after reduction we take the absolute value of the attributions as we are interested in the
@@ -310,26 +313,25 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
         def compute_monotonocity_corr(
             perturbed_fwd_diffs_relative_vars: np.ndarray,
             feature_group_attribution_scores: np.ndarray,
-        ):
+        ) -> float:
             # find the spearman corr between the attribution scores and the model forward variances
             # this corr should be close to 1 if the model forward variances are monotonically increasing with the attribution scores
             # this means that features that have a lower attribution score are directly correlated with lower effect on the model output
             return scipy.stats.spearmanr(
-                feature_group_attribution_scores,
-                perturbed_fwd_diffs_relative_vars,
+                feature_group_attribution_scores, perturbed_fwd_diffs_relative_vars
             )[0]
 
         # compute non-sensitivity metric
         def compute_non_sens(
             perturbed_fwd_diffs_relative_vars: np.ndarray,
             feature_group_attribution_scores: np.ndarray,
-        ):
+        ) -> float:
             # find the indices of features that have a zero attribution score, every attribution score value less
             # than non_sens_eps is considered zero
             def find_small_scale_features(
-                values: np.ndarray, threshold: Optional[float] = None
+                values: np.ndarray, threshold: float | None = None
             ):
-                return set(list(np.argwhere(np.abs(values) < threshold).flatten()))
+                return set(np.argwhere(np.abs(values) < threshold).flatten())
 
             if use_percentage_attribution_threshold:
                 feature_group_attribution_scores = (
@@ -342,15 +344,13 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
             # This can be sensitive to the max value of the attribution scores but since different explanation methods
             # have different scales, it is better to use a relative threshold
             zero_attribution_features = find_small_scale_features(
-                feature_group_attribution_scores,
-                threshold=zero_attribution_threshold,
+                feature_group_attribution_scores, threshold=zero_attribution_threshold
             )
 
             # find the indices of features that have a zero model forward variance,
             # all values below the threshold are considered zero. Default threshold is set to 1%
             zero_variance_features = find_small_scale_features(
-                perturbed_fwd_diffs_relative_vars,
-                threshold=zero_variance_threshold,
+                perturbed_fwd_diffs_relative_vars, threshold=zero_variance_threshold
             )
 
             # find the symmetric difference of the zero attribution features and the zero variance features
@@ -390,20 +390,20 @@ def _monotonicity_corr_and_non_sens(
     inputs: TensorOrTupleOfTensorsGeneric,
     attributions: TensorOrTupleOfTensorsGeneric,
     baselines: BaselineType = None,
-    feature_mask: TensorOrTupleOfTensorsGeneric = None,
+    feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
     additional_forward_args: Any = None,
     target: TargetType = None,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    frozen_features: list[torch.Tensor] | None = None,
     perturb_func: Callable = default_fixed_baseline_perturb_func(),
     n_perturbations_per_feature: int = 10,
-    max_features_processed_per_batch: int = None,
+    max_features_processed_per_batch: int | None = None,
     percentage_feature_removal_per_step: float = 0.0,
     zero_attribution_threshold: float = 1e-5,
     zero_variance_threshold: float = 1e-5,
     use_percentage_attribution_threshold: bool = False,
     return_ratio: bool = True,
     show_progress: bool = False,
-) -> Tuple[Tensor, Tensor, Tensor]:
+) -> tuple[TensorOrTupleOfTensorsOrListOfTensorsGeneric, ...]:
     with torch.no_grad():
         # perform argument formattings
         inputs = _format_tensor_into_tuples(inputs)  # type: ignore
@@ -415,17 +415,17 @@ def _monotonicity_corr_and_non_sens(
         feature_mask = _format_tensor_into_tuples(feature_mask)  # type: ignore
 
         # Make sure that inputs and corresponding attributions have matching sizes.
-        assert len(inputs) == len(attributions), (
-            """The number of tensors in the inputs and
-            attributions must match. Found number of tensors in the inputs is: {} and in the
-            attributions: {}"""
-        ).format(len(inputs), len(attributions))
+        assert len(inputs) == len(
+            attributions
+        ), f"""The number of tensors in the inputs and
+            attributions must match. Found number of tensors in the inputs is: {len(inputs)} and in the
+            attributions: {len(attributions)}"""
         if feature_mask is not None:
-            for mask, attribution in zip(feature_mask, attributions):
-                assert mask.shape == attribution.shape, (
-                    """The shape of the feature mask and the attribution
-                    must match. Found feature mask shape: {} and attribution shape: {}"""
-                ).format(mask.shape, attribution.shape)
+            for mask, attribution in zip(feature_mask, attributions, strict=True):
+                assert (
+                    mask.shape == attribution.shape
+                ), f"""The shape of the feature mask and the attribution
+                    must match. Found feature mask shape: {mask.shape} and attribution shape: {attribution.shape}"""
 
         bsz = inputs[0].size(0)
         monotonicity_corr_batch = []
@@ -520,17 +520,15 @@ def _monotonicity_corr_and_non_sens(
 def monotonicity_corr_and_non_sens(
     forward_func: Callable,
     inputs: TensorOrTupleOfTensorsGeneric,
-    attributions: Union[
-        List[TensorOrTupleOfTensorsGeneric], TensorOrTupleOfTensorsGeneric
-    ],
+    attributions: list[TensorOrTupleOfTensorsGeneric] | TensorOrTupleOfTensorsGeneric,
     baselines: BaselineType = None,
-    feature_mask: TensorOrTupleOfTensorsGeneric = None,
+    feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
     additional_forward_args: Any = None,
     target: TargetType = None,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    frozen_features: list[torch.Tensor] | None = None,
     perturb_func: Callable = default_fixed_baseline_perturb_func(),
     n_perturbations_per_feature: int = 10,
-    max_features_processed_per_batch: int = None,
+    max_features_processed_per_batch: int | None = None,
     percentage_feature_removal_per_step: float = 0.0,
     zero_attribution_threshold: float = 1e-5,
     zero_variance_threshold: float = 1e-5,
@@ -540,7 +538,7 @@ def monotonicity_corr_and_non_sens(
     return_intermediate_results: bool = False,
     return_dict: bool = False,
     is_multi_target: bool = False,
-) -> Tuple[Tensor, Tensor, Tensor]:
+) -> tuple | dict:
     """
     Implementation of Monotonicity Correlation and NonSensitivity by Nguyen at el., 2020. This implementation
     reuses the batch-computation ideas from captum and therefore it is fully compatible with the Captum library.
@@ -815,35 +813,40 @@ def monotonicity_corr_and_non_sens(
         if is_multi_target
         else _monotonicity_corr_and_non_sens
     )
+
+    kwargs = {
+        "forward_func": forward_func,
+        "inputs": inputs,
+        "baselines": baselines,
+        "feature_mask": feature_mask,
+        "additional_forward_args": additional_forward_args,
+        "frozen_features": frozen_features,
+        "perturb_func": perturb_func,
+        "n_perturbations_per_feature": n_perturbations_per_feature,
+        "max_features_processed_per_batch": max_features_processed_per_batch,
+        "percentage_feature_removal_per_step": percentage_feature_removal_per_step,
+        "zero_attribution_threshold": zero_attribution_threshold,
+        "zero_variance_threshold": zero_variance_threshold,
+        "use_percentage_attribution_threshold": use_percentage_attribution_threshold,
+        "return_ratio": return_ratio,
+        "show_progress": show_progress,
+    }
+
+    if is_multi_target:
+        kwargs["attributions_list"] = attributions  # type: ignore
+        kwargs["targets_list"] = target  # type: ignore
+    else:
+        kwargs["attributions"] = attributions  # type: ignore
+        kwargs["target"] = target
+
     (
         monotonicity_corr_batch,
         non_sens_batch,
         n_features_batch,
         perturbed_fwd_diffs_relative_vars_batch,
         feature_group_attribution_scores_batch,
-    ) = metric_func(
-        forward_func=forward_func,
-        inputs=inputs,
-        **(
-            dict(attributions_list=attributions)
-            if is_multi_target
-            else dict(attributions=attributions)
-        ),
-        baselines=baselines,
-        feature_mask=feature_mask,
-        additional_forward_args=additional_forward_args,
-        **(dict(targets_list=target) if is_multi_target else dict(target=target)),
-        frozen_features=frozen_features,
-        perturb_func=perturb_func,
-        n_perturbations_per_feature=n_perturbations_per_feature,
-        max_features_processed_per_batch=max_features_processed_per_batch,
-        percentage_feature_removal_per_step=percentage_feature_removal_per_step,
-        zero_attribution_threshold=zero_attribution_threshold,
-        zero_variance_threshold=zero_variance_threshold,
-        use_percentage_attribution_threshold=use_percentage_attribution_threshold,
-        return_ratio=return_ratio,
-        show_progress=show_progress,
-    )
+    ) = metric_func(**kwargs)
+
     if return_intermediate_results:
         if return_dict:
             return {

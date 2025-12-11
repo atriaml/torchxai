@@ -3,10 +3,9 @@ from typing import Any
 
 import torch
 from captum._utils.common import _format_output, _format_tensor_into_tuples, _is_tuple
-from captum._utils.typing import TensorOrTupleOfTensorsGeneric
 from captum.attr import Attribution
-from torch import Tensor
 
+from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
 from torchxai.explainers.explainer import Explainer
 from torchxai.metrics.axiomatic.multi_target.input_invariance import (
     _multi_target_input_invariance,
@@ -23,7 +22,7 @@ def _input_invariance(
     constant_shifts: TensorOrTupleOfTensorsGeneric,
     input_layer_names: tuple[str],
     **kwargs: Any,
-) -> Tensor | list[Tensor]:
+) -> tuple[float, TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
     kwargs_copy, shifted_kwargs_copy = _prepare_kwargs_for_base_and_shifted_inputs(
         kwargs
     )
@@ -58,15 +57,18 @@ def _input_invariance(
     # create shifted inputs
     constant_shift_expanded = tuple(
         constant_shift.expand_as(input)
-        for input, constant_shift in zip(inputs, constant_shifts)
+        for input, constant_shift in zip(inputs, constant_shifts, strict=True)
     )
     shifted_inputs = tuple(
         input - constant_shift
-        for input, constant_shift in zip(inputs, constant_shift_expanded)
+        for input, constant_shift in zip(inputs, constant_shift_expanded, strict=True)
     )
 
     with torch.no_grad():
         if isinstance(explainer, Explainer):
+            assert isinstance(shifted_explainer, Explainer), (
+                "The shifted explainer must be an instance of Explainer."
+            )
             possible_args = inspect.signature(explainer.explain).parameters
             kwargs_copy = {k: v for k, v in kwargs_copy.items() if k in possible_args}
             shifted_kwargs_copy = {
@@ -77,6 +79,9 @@ def _input_invariance(
                 shifted_inputs, **shifted_kwargs_copy
             )
         elif isinstance(explainer, Attribution):
+            assert isinstance(shifted_explainer, Attribution), (
+                "The shifted explainer must be an instance of Attribution."
+            )
             possible_args = inspect.signature(explainer.attribute).parameters
             kwargs_copy = {k: v for k, v in kwargs_copy.items() if k in possible_args}
             shifted_kwargs_copy = {
@@ -91,29 +96,39 @@ def _input_invariance(
                 "Explanation function must be an instance of Attribution or FusionExplainer"
             )
 
-        # calculate the difference between the two explanations
-        input_invarance_score = sum(
-            tuple(
-                torch.tensor(
-                    [
-                        torch.mean(
-                            torch.abs(
-                                per_sample_input_expl - per_sample_shifted_input_expl
-                            )
-                        ).item()
-                        for per_sample_input_expl, per_sample_shifted_input_expl in zip(
-                            input_expl, shifted_input_expl
-                        )
-                    ],
-                    device=inputs[0].device,
-                )
-                for input_expl, shifted_input_expl in zip(
-                    inputs_expl, shifted_inputs_expl
-                )
-            )
-        )
+        # Format the explanations into tuples for consistent handling
+        inputs_expl = _format_tensor_into_tuples(inputs_expl)  # type: ignore
+        shifted_inputs_expl = _format_tensor_into_tuples(shifted_inputs_expl)  # type: ignore
 
-        return input_invarance_score, inputs_expl, shifted_inputs_expl
+        # Calculate per-sample differences for each input
+        per_input_scores = []
+        for input_expl, shifted_input_expl in zip(
+            inputs_expl, shifted_inputs_expl, strict=True
+        ):
+            per_sample_scores = []
+            for per_sample_input_expl, per_sample_shifted_input_expl in zip(
+                input_expl, shifted_input_expl, strict=True
+            ):
+                # Compute absolute difference and take mean
+                abs_diff = torch.abs(
+                    per_sample_input_expl - per_sample_shifted_input_expl
+                )
+                mean_diff = torch.mean(abs_diff).item()
+                per_sample_scores.append(mean_diff)
+
+            # Convert to tensor
+            input_score_tensor = torch.tensor(
+                per_sample_scores, device=inputs[0].device
+            )
+            per_input_scores.append(input_score_tensor)
+
+        # Sum all scores and convert to scalar
+        input_invarance_score = torch.tensor(per_input_scores).sum().item()
+        return (
+            float(input_invarance_score),
+            _format_output(_is_tuple(inputs), inputs_expl),
+            _format_output(_is_tuple(inputs), shifted_inputs_expl),
+        )
 
 
 def input_invariance(
@@ -125,7 +140,7 @@ def input_invariance(
     return_intermediate_results: bool = False,
     return_dict: bool = False,
     **kwargs: Any,
-) -> Tensor | list[Tensor]:
+) -> dict | tuple | float | list[float]:
     """
     Implementation of Input Invariance test by Kindermans et al., 2017. This implementation
     reuses the batch-computation ideas from captum and therefore it is fully compatible with the Captum library.
@@ -217,44 +232,40 @@ def input_invariance(
         >>> input_invarance_score, inputs_expl, shifted_inputs_expl = input_invarance(saliency, input, target = 3)
 
     """
-    metric_func = (
-        _multi_target_input_invariance if is_multi_target else _input_invariance
-    )
-    input_invarance_score, inputs_expl, shifted_inputs_expl = metric_func(
-        explainer=explainer,
-        inputs=inputs,
-        constant_shifts=constant_shifts,
-        input_layer_names=input_layer_names,
-        **kwargs,
-    )
-
-    # Keeps track whether original input is a tuple or not before
-    # converting it into a tuple.
-    is_inputs_tuple = _is_tuple(inputs)
+    if is_multi_target:
+        assert isinstance(explainer, Explainer), (
+            "The explainer must be an instance of Explainer."
+        )
+        assert explainer._is_multi_target, (
+            "The explainer must be a multi-target explainer."
+        )
+        input_invarance_score, inputs_expl, shifted_inputs_expl = (
+            _multi_target_input_invariance(
+                explainer=explainer,
+                inputs=inputs,
+                constant_shifts=constant_shifts,
+                input_layer_names=input_layer_names,
+                **kwargs,
+            )
+        )
+    else:
+        input_invarance_score, inputs_expl, shifted_inputs_expl = _input_invariance(
+            explainer=explainer,
+            inputs=inputs,
+            constant_shifts=constant_shifts,
+            input_layer_names=input_layer_names,
+            **kwargs,
+        )
 
     if return_intermediate_results:
         if return_dict:
             return {
                 "input_invarance_score": input_invarance_score,
-                "inputs_expl": _format_output(is_inputs_tuple, inputs_expl),
-                "shifted_inputs_expl": _format_output(
-                    is_inputs_tuple, shifted_inputs_expl
-                ),
+                "inputs_expl": inputs_expl,
+                "shifted_inputs_expl": shifted_inputs_expl,
             }
         else:
-            return (
-                input_invarance_score,
-                (
-                    _format_output(is_inputs_tuple, inputs_expl)
-                    if not isinstance(inputs_expl, list)
-                    else inputs_expl
-                ),
-                (
-                    _format_output(is_inputs_tuple, shifted_inputs_expl)
-                    if not isinstance(shifted_inputs_expl, list)
-                    else shifted_inputs_expl
-                ),
-            )
+            return (input_invarance_score, inputs_expl, shifted_inputs_expl)
     else:
         if return_dict:
             return {"input_invarance_score": input_invarance_score}

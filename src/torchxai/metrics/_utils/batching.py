@@ -2,15 +2,15 @@
 
 
 import warnings
-from typing import Callable, Optional, Tuple
+from collections.abc import Callable
 
 import torch
 from tqdm import tqdm
 
 
 def _feature_mask_to_feature_groups_and_counts(
-    feature_mask: Tuple[torch.Tensor, ...]
-) -> Tuple:
+    feature_mask: tuple[torch.Tensor, ...],
+) -> tuple:
     """This function takes a tuple of feature masks and returns the grouped feature counts and the number of grouped features.
 
     Args:
@@ -58,11 +58,11 @@ def _feature_mask_to_feature_groups_and_counts(
 
 
 def _divide_and_aggregate_metrics(
-    inputs: Tuple[torch.Tensor, ...],
+    inputs: tuple[torch.Tensor, ...],
     n_perturb_samples: int,
     metric_func: Callable,
     agg_func: Callable = torch.add,
-    max_examples_per_batch: int = None,
+    max_examples_per_batch: int | None = None,
     show_progress: bool = False,
 ) -> torch.Tensor:
     r"""
@@ -99,16 +99,15 @@ def _divide_and_aggregate_metrics(
         or max_examples_per_batch // bsz > n_perturb_samples
     ):
         warnings.warn(
-            (
-                "`max_examples_per_batch` must be at least equal to the"
-                " input batch size and at most to "
-                "`input batch size` * `n_perturb_samples`."
-                "`max_examples_per_batch` is: {} and the input batch size is: {}."
-                "This is necessary because we require that each sub-batch that is used "
-                "to compute the metrics, contains at least an instance of "
-                "the original example and doesn't exceed the number of "
-                "expanded n_perturb_samples."
-            ).format(max_examples_per_batch, bsz)
+            "`max_examples_per_batch` must be at least equal to the"
+            " input batch size and at most to "
+            "`input batch size` * `n_perturb_samples`."
+            f"`max_examples_per_batch` is: {max_examples_per_batch} and the input batch size is: {bsz}."
+            "This is necessary because we require that each sub-batch that is used "
+            "to compute the metrics, contains at least an instance of "
+            "the original example and doesn't exceed the number of "
+            "expanded n_perturb_samples.",
+            stacklevel=2,
         )
 
     max_inps_per_batch = (
@@ -152,7 +151,7 @@ def _divide_and_aggregate_metrics_n_perturbations_per_feature(
     metric_func: Callable,
     # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
     agg_func: Callable = torch.add,
-    max_features_processed_per_batch: Optional[int] = None,
+    max_features_processed_per_batch: int | None = None,
     show_progress: bool = False,
 ) -> torch.Tensor:
     r"""
@@ -180,16 +179,15 @@ def _divide_and_aggregate_metrics_n_perturbations_per_feature(
         or max_features_processed_per_batch // n_perturbations_per_feature > n_features
     ):
         warnings.warn(
-            (
-                "`max_features_processed_per_batch` must be at least equal to the"
-                " n_perturbations_per_feature and at most to "
-                "`n_perturbations_per_feature` * `n_features`."
-                "`max_features_processed_per_batch` is: {} and the input batch size is: {}."
-                "This is necessary because we require that each sub-batch that is used "
-                "to compute the metrics, contains at least an instance of "
-                "the original example and doesn't exceed the number of "
-                "expanded n_features."
-            ).format(max_features_processed_per_batch, n_perturbations_per_feature)
+            "`max_features_processed_per_batch` must be at least equal to the"
+            " n_perturbations_per_feature and at most to "
+            "`n_perturbations_per_feature` * `n_features`."
+            f"`max_features_processed_per_batch` is: {max_features_processed_per_batch} and the input batch size is: {n_perturbations_per_feature}."
+            "This is necessary because we require that each sub-batch that is used "
+            "to compute the metrics, contains at least an instance of "
+            "the original example and doesn't exceed the number of "
+            "expanded n_features.",
+            stacklevel=2,
         )
 
     max_inps_per_batch = (
@@ -237,7 +235,7 @@ def _divide_and_aggregate_metrics_n_features(
     metric_func: Callable,
     # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
     agg_func: Callable = torch.add,
-    max_features_processed_per_batch: Optional[int] = None,
+    max_features_processed_per_batch: int | None = None,
     show_progress: bool = False,
 ) -> torch.Tensor:
     r"""

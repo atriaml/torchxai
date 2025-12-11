@@ -63,7 +63,7 @@ class Explainer(ABC):
         baselines: BaselineType = None,
         feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         additional_forward_args: Any = None,
-    ) -> TensorOrTupleOfTensorsGeneric:
+    ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """
         Abstract method that computes the attribution for the given inputs.
 

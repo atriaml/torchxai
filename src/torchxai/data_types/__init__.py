@@ -8,6 +8,8 @@ from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from torchxai.ignite._utilities import _as_detached_tuple
 
+BaselineType = torch.Tensor | tuple[torch.Tensor]
+
 
 def _convert_scalar(v):
     if isinstance(v, (int, float)):
@@ -76,6 +78,7 @@ class ExplanationInputs(BaseModel):
     train_baselines: OrderedDict[str, torch.Tensor] | Any | None = None
     feature_masks: OrderedDict[str, torch.Tensor] | Any | None = None
     target: list[torch.Tensor] | torch.Tensor | Any | None = None
+    input_layer_names: list[str] | None = None
 
     @field_validator("additional_forward_args", mode="before")
     @classmethod
@@ -148,57 +151,6 @@ class ExplanationInputs(BaseModel):
         }
 
 
-class MetricInputs(BaseModel):
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True,
-        validate_assignment=True,
-        frozen=True,
-        extra="forbid",
-        revalidate_instances="always",
-    )
-    baselines: OrderedDict[str, torch.Tensor] | Any | None = None
-    shift_baselines: OrderedDict[str, torch.Tensor] | Any | None = None
-    feature_masks: OrderedDict[str, torch.Tensor] | Any | None = None
-    constant_shifts: OrderedDict[str, torch.Tensor] | Any | None = None
-    input_layer_names: list[str] | None = None
-    frozen_features: list[torch.Tensor] | None = None
-
-    # -------------------------
-    # Validators (normalize all)
-    # -------------------------
-
-    @field_validator("baselines", "feature_masks", "constant_shifts", mode="before")
-    @classmethod
-    def normalize_inputs(cls, v):
-        return _normalize_dictlike(v)
-
-    @field_validator("frozen_features", mode="before")
-    @classmethod
-    def normalize_frozen_features(cls, v):
-        if v is None:
-            return None
-        if isinstance(v, torch.Tensor):
-            return [v]
-        if isinstance(v, (list, tuple)):
-            return list(v)
-        return [v]
-
-    # -------------------------
-    # Device movement
-    # -------------------------
-
-    def to(self, device: str | torch.device = "cpu") -> MetricInputs:
-        return self.model_copy(
-            update={
-                "baselines": _to_device(self.baselines, device),
-                "shift_baselines": _to_device(self.shift_baselines, device),
-                "feature_masks": _to_device(self.feature_masks, device),
-                "constant_shifts": _to_device(self.constant_shifts, device),
-                "frozen_features": _to_device(self.frozen_features, device),
-            }
-        )
-
-
 class ExplanationState(BaseModel):
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
@@ -208,7 +160,6 @@ class ExplanationState(BaseModel):
         revalidate_instances="always",
     )
     explanation_inputs: ExplanationInputs
-    metric_inputs: MetricInputs | None = None
     model_outputs: torch.Tensor
 
     # explanations
@@ -226,24 +177,6 @@ class ExplanationState(BaseModel):
     @classmethod
     def normalize_explanations(cls, v):
         return _normalize_dictlike(v)
-
-    # -------------------------
-    # Cross-field validation
-    # -------------------------
-
-    @model_validator(mode="after")
-    def validate_input_layer_names(self):
-        if (
-            self.metric_inputs is not None
-            and self.metric_inputs.input_layer_names is not None
-        ):
-            if len(self.metric_inputs.input_layer_names) != len(
-                self.explanation_inputs.explained_features
-            ):
-                raise ValueError(
-                    "input_layer_names must match number of explained_features"
-                )
-        return self
 
     @model_validator(mode="after")
     def validate_all(self):
@@ -269,15 +202,6 @@ class ExplanationState(BaseModel):
                 f"sample_id count mismatch: got {len(self.explanation_inputs.sample_id)} "
                 f"but model_outputs batch is {self.model_outputs.shape[0]}"
             )
-
-        # ----- Validate frozen_features count -----
-        if self.metric_inputs is not None:
-            ff = self.metric_inputs.frozen_features
-            if ff is not None and len(ff) != len(self.explanation_inputs.sample_id):
-                raise ValueError(
-                    f"frozen_features must match number of samples "
-                    f"({len(ff)} vs {len(self.explanation_inputs.sample_id)})"
-                )
 
         return self
 
@@ -340,13 +264,166 @@ class MultiTargetExplanationState(ExplanationState):
                 f"but model_outputs batch is {self.model_outputs.shape[0]}"
             )
 
-        # ----- Validate frozen_features count -----
-        if self.metric_inputs is not None:
-            ff = self.metric_inputs.frozen_features
-            if ff is not None and len(ff) != len(self.explanation_inputs.sample_id):
-                raise ValueError(
-                    f"frozen_features must match number of samples "
-                    f"({len(ff)} vs {len(self.explanation_inputs.sample_id)})"
-                )
-
         return self
+
+
+class MetricInputs(BaseModel):
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        validate_assignment=True,
+        frozen=True,
+        extra="forbid",
+        revalidate_instances="always",
+    )
+    baselines: OrderedDict[str, torch.Tensor] | Any | None = None
+    shift_baselines: OrderedDict[str, torch.Tensor] | Any | None = None
+    feature_masks: OrderedDict[str, torch.Tensor] | Any | None = None
+    constant_shifts: OrderedDict[str, torch.Tensor] | Any | None = None
+    input_layer_names: list[str] | None = None
+    frozen_features: list[torch.Tensor] | None = None
+
+    # -------------------------
+    # Validators (normalize all)
+    # -------------------------
+
+    @field_validator(
+        "baselines",
+        "shift_baselines",
+        "feature_masks",
+        "constant_shifts",
+        mode="before",
+    )
+    @classmethod
+    def normalize_inputs(cls, v):
+        return _normalize_dictlike(v)
+
+    @field_validator("frozen_features", mode="before")
+    @classmethod
+    def normalize_frozen_features(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, torch.Tensor):
+            return [v]
+        if isinstance(v, (list, tuple)):
+            return list(v)
+        return [v]
+
+    # -------------------------
+    # Device movement
+    # -------------------------
+
+    def to(self, device: str | torch.device = "cpu") -> MetricInputs:
+        print("Moving MetricInputs to device:", device)
+        updates = self.model_copy(
+            update={
+                "baselines": _to_device(self.baselines, device),
+                "shift_baselines": _to_device(self.shift_baselines, device),
+                "feature_masks": _to_device(self.feature_masks, device),
+                "constant_shifts": _to_device(self.constant_shifts, device),
+                "frozen_features": _to_device(self.frozen_features, device),
+            }
+        )
+        print("updates", updates)
+        return updates
+
+
+class ExplanationStepOutputs(BaseModel):
+    explanation_state: ExplanationState
+    metric_inputs: MetricInputs | None = None
+
+    def to(self, device: str | torch.device = "cpu") -> ExplanationStepOutputs:
+        return self.model_copy(
+            update={
+                "explanation_state": self.explanation_state.to(device),
+                "metric_inputs": self.metric_inputs.to(device)
+                if self.metric_inputs is not None
+                else None,
+            }
+        )
+
+    @property
+    def inputs(self) -> tuple[torch.Tensor, ...]:
+        return _as_detached_tuple(
+            self.explanation_state.explanation_inputs.explained_features
+        )
+
+    @property
+    def additional_forward_args(self) -> tuple[Any, ...] | None:
+        return _as_detached_tuple(
+            self.explanation_state.explanation_inputs.additional_forward_args
+        )
+
+    @property
+    def feature_masks(self) -> tuple[torch.Tensor, ...] | None:
+        return _as_detached_tuple(
+            self.explanation_state.explanation_inputs.feature_masks
+        )
+
+    @property
+    def attributions(self) -> tuple[torch.Tensor, ...]:
+        return _as_detached_tuple(self.explanation_state.explanations)
+
+    @property
+    def explainer_baselines(self) -> tuple[torch.Tensor, ...] | None:
+        return _as_detached_tuple(self.explanation_state.explanation_inputs.baselines)
+
+    @property
+    def metric_baselines(self) -> tuple[torch.Tensor, ...] | None:
+        if self.metric_inputs is None:
+            return None
+        return _as_detached_tuple(self.metric_inputs.baselines)
+
+    @property
+    def metric_shift_baselines(self) -> tuple[torch.Tensor, ...] | None:
+        if self.metric_inputs is None:
+            return None
+        return _as_detached_tuple(self.metric_inputs.shift_baselines)
+
+    @property
+    def train_baselines(self) -> tuple[torch.Tensor, ...] | None:
+        return _as_detached_tuple(
+            self.explanation_state.explanation_inputs.train_baselines
+        )
+
+    @property
+    def constant_shifts(self) -> tuple[torch.Tensor, ...] | None:
+        if self.metric_inputs is None:
+            return None
+        return _as_detached_tuple(self.metric_inputs.constant_shifts)
+
+    @property
+    def frozen_features(self) -> list[torch.Tensor] | None:
+        if self.metric_inputs is None or self.metric_inputs.frozen_features is None:
+            return None
+        return [x.detach() for x in self.metric_inputs.frozen_features]
+
+    @property
+    def input_layer_names(self) -> list[str] | None:
+        if self.metric_inputs is None:
+            return None
+        return self.metric_inputs.input_layer_names
+
+    @property
+    def target(self) -> list[torch.Tensor] | torch.Tensor | None:
+        return self.explanation_state.explanation_inputs.target
+
+
+class MultiTargetExplanationStepOutputs(ExplanationStepOutputs):
+    explanation_state: MultiTargetExplanationState  # type: ignore[override]
+    metric_inputs: MetricInputs | None = None
+
+    @property
+    def attributions(self) -> list[tuple[torch.Tensor, ...]]:  # type: ignore[override]
+        # flatten list of OrderedDicts into tuple of tensors
+        attributions_list = []
+        for explanation_dict in self.explanation_state.explanations:
+            attributions_list.append(_as_detached_tuple(explanation_dict))
+        return attributions_list
+
+    @property
+    def target(self) -> list[torch.Tensor] | None:  # type: ignore[override]
+        targets = self.explanation_state.explanation_inputs.target
+        if targets is None:
+            return None
+        assert isinstance(targets, list), "targets must be a list of targets"
+        return targets

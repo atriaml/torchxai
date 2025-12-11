@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from copy import deepcopy
 from inspect import signature
-from typing import Any, Callable, List, Tuple, Union, cast
+from typing import Any, cast
 
 import torch
 from captum._utils.common import (
@@ -10,9 +11,10 @@ from captum._utils.common import (
     _format_baseline,
     _format_tensor_into_tuples,
 )
-from captum._utils.typing import TensorOrTupleOfTensorsGeneric
 from captum.metrics._utils.batching import _divide_and_aggregate_metrics
 from torch import Tensor
+
+from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
 from torchxai.explainers.explainer import Explainer
 from torchxai.metrics.robustness.utilities import default_perturb_func
 
@@ -26,8 +28,7 @@ def _multi_target_sensitivity_scores(
     norm_ord: str = "fro",
     max_examples_per_batch: int = None,
     **kwargs: Any,
-) -> List[Tensor]:
-
+) -> list[Tensor]:
     def _generate_perturbations(
         current_n_perturb_samples: int,
     ) -> TensorOrTupleOfTensorsGeneric:
@@ -39,7 +40,7 @@ def _multi_target_sensitivity_scores(
         on a batch that contains `current_n_perturb_samples` repeated instances
         per example.
         """
-        inputs_expanded: Union[Tensor, Tuple[Tensor, ...]] = tuple(
+        inputs_expanded: Tensor | tuple[Tensor, ...] = tuple(
             torch.repeat_interleave(input, current_n_perturb_samples, dim=0)
             for input in inputs
         )
@@ -79,14 +80,14 @@ def _multi_target_sensitivity_scores(
             if "baselines" in kwargs:
                 baselines = kwargs["baselines"]
                 baselines = _format_baseline(
-                    baselines, cast(Tuple[Tensor, ...], inputs)
+                    baselines, cast(tuple[Tensor, ...], inputs)
                 )
                 if (
                     isinstance(baselines[0], Tensor)
                     and baselines[0].shape == inputs[0].shape
                 ):
                     _expand_and_update_baselines(
-                        cast(Tuple[Tensor, ...], inputs),
+                        cast(tuple[Tensor, ...], inputs),
                         current_n_perturb_samples,
                         kwargs_copy,
                     )
@@ -155,14 +156,14 @@ def _multi_target_sensitivity_scores(
         "Explanation function must be an instance of "
         f"`torchxai.explainers.Explainer`. Found = {explanation_func}"
     )
-    assert (
-        explanation_func._is_multi_target
-    ), "Explanation function must be a multi-target explainer."
+    assert explanation_func._is_multi_target, (
+        "Explanation function must be a multi-target explainer."
+    )
     target = kwargs.get("target", None)
     assert isinstance(target, list), "targets must be a list of targets"
-    assert all(
-        isinstance(x, (tuple, int)) for x in target
-    ), "targets must be a list of ints"
+    assert all(isinstance(x, (tuple, int)) for x in target), (
+        "targets must be a list of ints"
+    )
 
     inputs = _format_tensor_into_tuples(inputs)  # type: ignore
 
@@ -174,7 +175,7 @@ def _multi_target_sensitivity_scores(
     with torch.no_grad():
         expl_inputs_list = explanation_func.explain(inputs, **kwargs)
         metric_scores_list = _divide_and_aggregate_metrics(
-            cast(Tuple[Tensor, ...], inputs),
+            cast(tuple[Tensor, ...], inputs),
             n_perturb_samples,
             _next_sensitivity_max,
             max_examples_per_batch=max_examples_per_batch,

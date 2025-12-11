@@ -1,4 +1,5 @@
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import torch
 from captum._utils.common import _format_output, _format_tensor_into_tuples, _is_tuple
@@ -6,10 +7,10 @@ from captum._utils.gradient import (
     apply_gradient_requirements,
     undo_gradient_requirements,
 )
-from captum._utils.typing import TargetType, TensorOrTupleOfTensorsGeneric
 from captum.attr import Attribution, InputXGradient
 from captum.log import log_usage
 
+from torchxai.data_types.common import TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.explainers._utils import (
     _compute_gradients_sequential_autograd,
     _compute_gradients_vmap_autograd,

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import warnings
+from collections.abc import Callable
 from inspect import signature
-from typing import Any, Callable, Tuple, Union
+from typing import Any
 
 import torch
 import tqdm
@@ -49,9 +50,9 @@ def _weight_attributions(attributions, feature_mask):
     attributions = _format_tensor_into_tuples(attributions)
     feature_mask = _format_tensor_into_tuples(feature_mask)
     feature_mask_weights = tuple(_generate_mask_weights(x) for x in feature_mask)
-    assert (
-        attributions[0].shape == feature_mask_weights[0].shape
-    ), "Attributions and feature mask weights must have the same shape"
+    assert attributions[0].shape == feature_mask_weights[0].shape, (
+        "Attributions and feature mask weights must have the same shape"
+    )
     weighted_attributions = tuple(
         attribution * feature_mask_weight
         for attribution, feature_mask_weight in zip(attributions, feature_mask_weights)
@@ -65,27 +66,28 @@ def _weight_attributions(attributions, feature_mask):
 def _run_forward_multi_target(
     forward_func: Callable,
     inputs: Any,
-    target: Tuple[TargetType, ...] = None,
+    target: list[TargetType],
     additional_forward_args: Any = None,
 ) -> Tensor:
     forward_func_args = signature(forward_func).parameters
     if len(forward_func_args) == 0:
         output = forward_func()
-        return output if target is None else _select_targets(output, target)
-
-    # make everything a tuple so that it is easy to unpack without
-    # using if-statements
-    inputs = _format_inputs(inputs)
-    additional_forward_args = _format_additional_forward_args(additional_forward_args)
-
-    output = forward_func(
-        *(
-            (*inputs, *additional_forward_args)
-            if additional_forward_args is not None
-            else inputs
+    else:
+        # make everything a tuple so that it is easy to unpack without
+        # using if-statements
+        inputs = _format_inputs(inputs)
+        additional_forward_args = _format_additional_forward_args(
+            additional_forward_args
         )
-    )
-    if isinstance(target, (tuple, list)):
+
+        output = forward_func(
+            *(
+                (*inputs, *additional_forward_args)
+                if additional_forward_args is not None
+                else inputs
+            )
+        )
+    if isinstance(target, list):
         return torch.stack(
             [_select_targets(output, single_target) for single_target in target], dim=1
         )
@@ -95,11 +97,11 @@ def _run_forward_multi_target(
 
 def _compute_gradients_sequential_autograd(
     forward_fn: Callable,
-    inputs: Union[Tensor, Tuple[Tensor, ...]],
-    target: Tuple[TargetType, ...] = None,
+    inputs: Tensor | tuple[Tensor, ...],
+    target: tuple[TargetType, ...] = None,
     additional_forward_args: Any = None,
     **kwargs,
-) -> Tuple[Tensor, ...]:
+) -> tuple[Tensor, ...]:
     with torch.autograd.set_grad_enabled(True):
         outputs = _run_forward_multi_target(
             forward_fn, inputs, target, additional_forward_args
@@ -123,10 +125,7 @@ def _compute_gradients_sequential_autograd(
         else:
             # this is the case where the output is of dimension [batch_size]
             # in which case there is not target to choose from
-            grads = torch.autograd.grad(
-                torch.unbind(outputs),
-                inputs,
-            )
+            grads = torch.autograd.grad(torch.unbind(outputs), inputs)
             multi_target_gradients = [grads]
 
     return multi_target_gradients
@@ -134,10 +133,10 @@ def _compute_gradients_sequential_autograd(
 
 def _compute_gradients_vmap_autograd_direct(
     forward_fn: Callable,
-    inputs: Union[Tensor, Tuple[Tensor, ...]],
-    target: Tuple[TargetType, ...] = None,
+    inputs: Tensor | tuple[Tensor, ...],
+    target: tuple[TargetType, ...] = None,
     additional_forward_args: Any = None,
-) -> Tuple[Tensor, ...]:
+) -> tuple[Tensor, ...]:
     with torch.autograd.set_grad_enabled(True):
         outputs = _run_forward_multi_target(
             forward_fn, inputs, target, additional_forward_args
@@ -165,10 +164,7 @@ def _compute_gradients_vmap_autograd_direct(
         else:
             # this is the case where the output is of dimension [batch_size]
             # in which case there is not target to choose from
-            grads = torch.autograd.grad(
-                torch.unbind(outputs),
-                inputs,
-            )
+            grads = torch.autograd.grad(torch.unbind(outputs), inputs)
             multi_target_gradients = [grads]
     return [
         tuple(grad_per_input for grad_per_input in grad_per_target)
@@ -178,12 +174,12 @@ def _compute_gradients_vmap_autograd_direct(
 
 def _compute_gradients_vmap_autograd(
     forward_fn: Callable,
-    inputs: Union[Tensor, Tuple[Tensor, ...]],
-    target: Tuple[TargetType, ...] = None,
+    inputs: Tensor | tuple[Tensor, ...],
+    target: tuple[TargetType, ...] = None,
     additional_forward_args: Any = None,
     grad_batch_size: int = 1,
     show_progress: bool = True,
-) -> Tuple[Tensor, ...]:
+) -> tuple[Tensor, ...]:
     with torch.autograd.set_grad_enabled(True):
         outputs = _run_forward_multi_target(
             forward_fn, inputs, target, additional_forward_args
@@ -224,10 +220,7 @@ def _compute_gradients_vmap_autograd(
         else:
             # this is the case where the output is of dimension [batch_size]
             # in which case there is not target to choose from
-            grads = torch.autograd.grad(
-                torch.unbind(outputs),
-                inputs,
-            )
+            grads = torch.autograd.grad(torch.unbind(outputs), inputs)
             multi_target_gradients = [grads]
 
         del outputs
@@ -321,9 +314,9 @@ def _batch_attribution_multi_target(
 
 def _verify_target_for_multi_target_impl(inputs, target):
     bsz = inputs[0].shape[0]
-    assert isinstance(
-        target, list
-    ), f"Targets must be a list of ints, list of tuples or lists of lists for batch-wise inputs."
+    assert isinstance(target, list), (
+        "Targets must be a list of ints, list of tuples or lists of lists for batch-wise inputs."
+    )
 
     # Each element in the list corresponds to a single target for the whole batch.
     # If the first element is a integer 0, then the first target is 0 for the whole batch
@@ -359,8 +352,8 @@ def _expand_and_update_target_multi_target(n_samples: int, kwargs: dict):
 
 
 def _expand_feature_mask_to_target(
-    feature_mask: Tuple[torch.Tensor], inputs: Tuple[torch.Tensor]
-) -> Tuple[torch.Tensor]:
+    feature_mask: tuple[torch.Tensor], inputs: tuple[torch.Tensor]
+) -> tuple[torch.Tensor]:
     """
     Expands each feature mask tensor to match the shape of the corresponding input tensor.
     Args:

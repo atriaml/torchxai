@@ -1,10 +1,11 @@
 import math
-from typing import Tuple
 
 import torch
 
+from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
 
-def _validate_feature_mask(tensor: Tuple[torch.Tensor, ...]) -> None:
+
+def _validate_feature_mask(tensor: tuple[torch.Tensor, ...]) -> None:
     """
     Validates the feature mask tensor. The feature mask must contain non-negative integers that are strictly increasing
     for example, [0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 4] is a valid feature mask tensor.
@@ -27,26 +28,23 @@ def _validate_feature_mask(tensor: Tuple[torch.Tensor, ...]) -> None:
     for t in flat_tensor:
         # Check if all elements are non-negative integers
         # Assert that the tensor is of an integer type
-        assert t.dtype in {
-            torch.int8,
-            torch.int16,
-            torch.int32,
-            torch.int64,
-        }, "Tensor must be of an integer dtype (torch.int8, torch.int16, torch.int32, or torch.int64)."
+        assert t.dtype in {torch.int8, torch.int16, torch.int32, torch.int64}, (
+            "Tensor must be of an integer dtype (torch.int8, torch.int16, torch.int32, or torch.int64)."
+        )
         assert torch.all(t >= 0), "tensor values must be non-negative integers"
 
         # get the unique values in the tensor
         unique_vals = torch.unique(t)
 
         diff = unique_vals[1:] - unique_vals[:-1]
-        assert torch.all(diff >= 0) and torch.all(
-            diff <= 1
-        ), "tensor values must be strictly increasing with a step of one"
+        assert torch.all(diff >= 0) and torch.all(diff <= 1), (
+            "tensor values must be strictly increasing with a step of one"
+        )
 
 
 def _construct_default_feature_mask(
-    attributions: Tuple[torch.Tensor, ...]
-) -> Tuple[torch.Tensor, ...]:
+    attributions: TensorOrTupleOfTensorsGeneric,
+) -> tuple[torch.Tensor, ...]:
     """
     Constructs feature masks from the attributions.
     Args:
@@ -137,9 +135,7 @@ def _feature_mask_to_chunked_perturbation_mask_with_attributions(
         device=feature_mask.device,
     )
     chunk_reduced_attributions = torch.zeros(
-        total_num_perturbations,
-        dtype=attributions.dtype,
-        device=attributions.device,
+        total_num_perturbations, dtype=attributions.dtype, device=attributions.device
     )
 
     chunks = torch.arange(0, n_indices, chunk_size, device=feature_mask.device)
@@ -149,8 +145,7 @@ def _feature_mask_to_chunked_perturbation_mask_with_attributions(
 
         # update the global perturbation mask
         current_mask = torch.any(
-            feature_mask.unsqueeze(0) == chunk_feature_indices.unsqueeze(1),
-            dim=0,
+            feature_mask.unsqueeze(0) == chunk_feature_indices.unsqueeze(1), dim=0
         )
         perturbation_masks[row_idx] = current_mask
         chunk_reduced_attributions[row_idx] = attributions[chunk_feature_indices].sum()
@@ -200,12 +195,11 @@ def _feature_mask_to_chunked_perturbation_mask_with_attributions_list(
 
         # update the global perturbation mask
         current_mask = torch.any(
-            feature_mask.unsqueeze(0) == chunk_feature_indices.unsqueeze(1),
-            dim=0,
+            feature_mask.unsqueeze(0) == chunk_feature_indices.unsqueeze(1), dim=0
         )
         perturbation_masks[row_idx] = current_mask
         for chunk_reduced_attributions, attributions in zip(
-            chunk_reduced_attributions_list, attributions_list
+            chunk_reduced_attributions_list, attributions_list, strict=True
         ):
             chunk_reduced_attributions[row_idx] = attributions[
                 chunk_feature_indices
@@ -244,8 +238,7 @@ def _feature_mask_to_chunked_accumulated_perturbation_mask(
 
         # update the global perturbation mask
         current_mask = torch.any(
-            feature_mask.unsqueeze(0) == chunk_feature_indices.unsqueeze(1),
-            dim=0,
+            feature_mask.unsqueeze(0) == chunk_feature_indices.unsqueeze(1), dim=0
         )
 
         # perform OR operation with the previous mask as we need to accumulate features in case of effective
@@ -260,8 +253,8 @@ def _feature_mask_to_chunked_accumulated_perturbation_mask(
 
 
 def _format_tensor_tuple_feature_dim(
-    tuple_tensors: Tuple[torch.Tensor],
-) -> Tuple[torch.Tensor]:
+    tuple_tensors: tuple[torch.Tensor],
+) -> tuple[torch.Tensor, ...]:
     return tuple(_format_tensor_feature_dim(x) for x in tuple_tensors)
 
 
@@ -274,8 +267,8 @@ def _format_tensor_feature_dim(tensor: torch.Tensor) -> torch.Tensor:
 
 
 def _tuple_tensors_to_tensors(
-    tuple_tensors: Tuple[torch.Tensor],
-) -> torch.Tensor:
+    tuple_tensors: tuple[torch.Tensor, ...],
+) -> tuple[torch.Tensor, tuple[torch.Size, ...]]:
     # first dimension is always batch size
     # if there is no feature dim add it to the tensor, this could be a tensor with a single feature
     if not isinstance(tuple_tensors, tuple):
@@ -289,8 +282,8 @@ def _tuple_tensors_to_tensors(
 
 
 def _split_tensors_to_tuple_tensors(
-    tensor: Tuple[torch.Tensor], shapes
-) -> torch.Tensor:
+    tensor: torch.Tensor, shapes
+) -> tuple[torch.Tensor, ...]:
     import numpy as np
 
     assert len(tensor.shape) == 2
@@ -311,31 +304,23 @@ def _add_tensor_with_indices_non_deterministic(
 ) -> torch.Tensor:
     source = source.flatten()
     reduced_attributions = torch.zeros(
-        indices.max() + 1, dtype=source.dtype, device=source.device
+        (indices.max() + 1).tolist(), dtype=source.dtype, device=source.device
     )
-    reduced_attributions.index_add_(
-        0,
-        indices,
-        source,
-    )
+    reduced_attributions.index_add_(0, indices, source)
     return reduced_attributions
 
 
 def _reduce_tensor_with_indices_non_deterministic(
-    source: torch.Tensor, indices: torch.Tensor
-) -> torch.Tensor:
+    source: torch.Tensor, indices: torch.LongTensor
+) -> tuple[torch.Tensor, int]:
     source = source.flatten()
     reduced_attributions = torch.zeros(
-        indices.max() + 1, dtype=source.dtype, device=source.device
+        (indices.max() + 1).tolist(), dtype=source.dtype, device=source.device
     )
     reduced_attributions.index_reduce_(
-        0,
-        indices,
-        source,
-        reduce="mean",
-        include_self=False,
+        0, indices, source, reduce="mean", include_self=False
     )
-    n_features = (indices.max() + 1).item()
+    n_features = int((indices.max() + 1).item())
 
     # Since we take the mean over the features, we now scale each feature by the minimum possible feature
     # set size. This will effectively sum the attributions of each feature with a weight of 1 if the feature groups are of all same sizes.
@@ -347,14 +332,14 @@ def _reduce_tensor_with_indices_non_deterministic(
 
 def _reduce_tensor_with_indices(
     source: torch.Tensor, indices: torch.Tensor
-) -> torch.Tensor:
+) -> tuple[torch.Tensor, int]:
     source = source.flatten()
     reduced_attributions = torch.zeros(
-        indices.max() + 1, dtype=source.dtype, device=source.device
+        (indices.max() + 1).tolist(), dtype=source.dtype, device=source.device
     )
     for i in range(reduced_attributions.shape[0]):
         reduced_attributions[i] = source[indices == i].sum()
-    n_features = (indices.max() + 1).item()
+    n_features = int((indices.max() + 1).item())
     return reduced_attributions, n_features
 
 
@@ -362,10 +347,7 @@ def _draw_perturbated_inputs(perturbed_inputs):
     import matplotlib.pyplot as plt
 
     fig, axes = plt.subplots(figsize=(20, 10))
-    axes.matshow(
-        perturbed_inputs[:, :100, 0].cpu().numpy() == 0,
-        cmap="viridis",
-    )
+    axes.matshow(perturbed_inputs[:, :100, 0].cpu().numpy() == 0, cmap="viridis")
     plt.xticks(range(1, 54))
     plt.yticks(range(1, 24))
     plt.tick_params(axis="x", bottom=False)
@@ -398,20 +380,14 @@ def _draw_perturbated_inputs_with_splits(perturbed_inputs, inputs_shape):
 
     # Create a subplot that spans across all columns
     ax_full_span = fig.add_subplot(gs[0, :])  # First row, all columns
-    ax_full_span.matshow(
-        perturbed_inputs[:, :, 0].cpu().numpy() == 0,
-        cmap="viridis",
-    )
+    ax_full_span.matshow(perturbed_inputs[:, :, 0].cpu().numpy() == 0, cmap="viridis")
     ax_full_span.set_axis_off()
     ax_full_span.set_axis_off()
 
     # Create subplots for each split input
     for idx, splitted_perturbed_input in enumerate(splitted_perturbed_inputs):
         ax = fig.add_subplot(gs[1, idx])  # Second row, each column
-        ax.matshow(
-            splitted_perturbed_input[:, :, 0].cpu().numpy() == 0,
-            cmap="viridis",
-        )
+        ax.matshow(splitted_perturbed_input[:, :, 0].cpu().numpy() == 0, cmap="viridis")
         ax.set_axis_off()
     plt.tight_layout()
     plt.show()
@@ -441,9 +417,6 @@ def _draw_perturbated_inputs_sequences_images(perturbed_inputs):
                 normalize=True,
             )
             ax = fig.add_subplot(axes[idx])
-            ax.imshow(
-                combined_image.permute(1, 2, 0).numpy(),
-                cmap="viridis",
-            )
+            ax.imshow(combined_image.permute(1, 2, 0).numpy(), cmap="viridis")
     plt.tight_layout()
     plt.show()

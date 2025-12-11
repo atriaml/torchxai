@@ -1,11 +1,10 @@
 from typing import Any
 
-import pandas as pd
 import torch
 from captum._utils.common import _format_tensor_into_tuples
-from captum._utils.typing import TargetType, TensorOrTupleOfTensorsGeneric
 from captum.attr import Attribution
 
+from torchxai.data_types.common import TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.explainers.explainer import Explainer
 
 

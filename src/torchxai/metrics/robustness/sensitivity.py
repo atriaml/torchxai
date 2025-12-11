@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from copy import deepcopy
 from inspect import signature
-from typing import Any, Callable, List, Tuple, Union, cast
+from typing import Any, cast
 
 import torch
 from captum._utils.common import (
@@ -11,10 +12,11 @@ from captum._utils.common import (
     _format_baseline,
     _format_tensor_into_tuples,
 )
-from captum._utils.typing import TensorOrTupleOfTensorsGeneric
 from captum.attr import Attribution
 from captum.metrics._utils.batching import _divide_and_aggregate_metrics
 from torch import Tensor
+
+from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
 from torchxai.explainers.explainer import Explainer
 from torchxai.metrics.robustness.multi_target.sensitivity import (
     _multi_target_sensitivity_scores,
@@ -32,7 +34,7 @@ def _sensitivity_scores(
     max_examples_per_batch: int = None,
     is_multi_target: bool = False,
     **kwargs: Any,
-) -> Union[Tensor, List[Tensor]]:
+) -> Tensor | list[Tensor]:
     if is_multi_target:
         return _multi_target_sensitivity_scores(
             explainer,
@@ -56,7 +58,7 @@ def _sensitivity_scores(
         on a batch that contains `current_n_perturb_samples` repeated instances
         per example.
         """
-        inputs_expanded: Union[Tensor, Tuple[Tensor, ...]] = tuple(
+        inputs_expanded: Tensor | tuple[Tensor, ...] = tuple(
             torch.repeat_interleave(input, current_n_perturb_samples, dim=0)
             for input in inputs
         )
@@ -92,14 +94,14 @@ def _sensitivity_scores(
             if "baselines" in kwargs:
                 baselines = kwargs["baselines"]
                 baselines = _format_baseline(
-                    baselines, cast(Tuple[Tensor, ...], inputs)
+                    baselines, cast(tuple[Tensor, ...], inputs)
                 )
                 if (
                     isinstance(baselines[0], Tensor)
                     and baselines[0].shape == inputs[0].shape
                 ):
                     _expand_and_update_baselines(
-                        cast(Tuple[Tensor, ...], inputs),
+                        cast(tuple[Tensor, ...], inputs),
                         current_n_perturb_samples,
                         kwargs_copy,
                     )
@@ -162,7 +164,7 @@ def _sensitivity_scores(
     with torch.no_grad():
         expl_inputs = explanation_func(inputs, **kwargs)
         scores = _divide_and_aggregate_metrics(
-            cast(Tuple[Tensor, ...], inputs),
+            cast(tuple[Tensor, ...], inputs),
             n_perturb_samples,
             _next_sensitivity_max,
             max_examples_per_batch=max_examples_per_batch,
@@ -172,7 +174,7 @@ def _sensitivity_scores(
 
 
 def sensitivity_max_and_avg(
-    explainer: Union[Explainer, Attribution],
+    explainer: Explainer | Attribution,
     inputs: TensorOrTupleOfTensorsGeneric,
     perturb_func: Callable = default_perturb_func,
     perturb_radius: float = 0.02,
@@ -182,7 +184,7 @@ def sensitivity_max_and_avg(
     is_multi_target: bool = False,
     return_dict: bool = False,
     **kwargs: Any,
-) -> Tuple[Tensor, Tensor]:
+) -> tuple[Tensor, Tensor]:
     r"""
     This is a modified version of the captum `captum.metric.sensitivity_max` (see: from captum.metrics import sensitivity_max)
     function that repeats the feature masks when performing perturbations. This function returns the sensitivity

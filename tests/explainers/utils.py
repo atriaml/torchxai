@@ -98,7 +98,7 @@ def run_explainer_test_with_config(
             else:
                 _compare_explanation_per_target(
                     multi_target_explanations_2[0],
-                    explanations,
+                    explanations,  # type: ignore
                     delta=runtime_config.delta,
                     visualize=runtime_config.visualize,
                 )
@@ -111,7 +111,9 @@ def run_explainer_test_with_config(
         )
 
         for multi_target_explanation, single_target_explanation in zip(
-            multi_target_explanations, single_target_explanations, strict=True
+            multi_target_explanations,  # type: ignore
+            single_target_explanations,
+            strict=True,
         ):
             # target explanation in the list should match the single target explanations at the same index
             _compare_explanation_per_target(
@@ -130,7 +132,9 @@ def run_single_test(
     _set_all_random_seeds(1234)
 
     explainer = ExplainerFactory.create(
-        runtime_config.explainer, base_config.model, **runtime_config.explainer_kwargs
+        runtime_config.explainer,
+        base_config.model,
+        **(runtime_config.explainer_kwargs or {}),
     )
     if is_multi_target:
         explanation_step = MultiTargetExplanationStep(
@@ -144,7 +148,7 @@ def run_single_test(
             use_captum_explainer=runtime_config.use_captum_explainer,
         )
     if runtime_config.throws_exception:
-        with pytest.raises(Exception) as e_info:
+        with pytest.raises(Exception) as _:
             explanation_step(
                 explanation_inputs=base_config.explanation_inputs,
                 metric_inputs=base_config.metric_inputs,
@@ -154,7 +158,7 @@ def run_single_test(
     explanations = explanation_step(
         explanation_inputs=base_config.explanation_inputs,
         metric_inputs=base_config.metric_inputs,
-    ).explanations_as_tuple
+    ).explanation_state.explanations_as_tuple
 
     has_expected = (
         runtime_config.expected is not None
@@ -182,6 +186,8 @@ def run_single_test(
                 )
         else:
             _compare_explanation_per_target(
-                explanations, runtime_config.expected, delta=runtime_config.delta
+                explanations,
+                runtime_config.expected,  # type: ignore
+                delta=runtime_config.delta,  # type: ignore
             )
     return explanations

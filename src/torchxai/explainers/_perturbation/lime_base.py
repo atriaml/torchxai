@@ -2,7 +2,8 @@
 import inspect
 import math
 import warnings
-from typing import Any, Callable, List, Optional, Tuple, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import torch
 from captum._utils.common import (
@@ -12,12 +13,12 @@ from captum._utils.common import (
 )
 from captum._utils.models.model import Model
 from captum._utils.progress import progress
-from captum._utils.typing import TargetType, TensorOrTupleOfTensorsGeneric
 from captum.attr import LimeBase
 from captum.log import log_usage
 from torch import Tensor
 from torch.utils.data import DataLoader, TensorDataset
 
+from torchxai.data_types.common import TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.explainers._utils import _run_forward_multi_target
 
 
@@ -29,8 +30,8 @@ class MultiTargetLimeBase(LimeBase):
         similarity_func: Callable,
         perturb_func: Callable,
         perturb_interpretable_space: bool,
-        from_interp_rep_transform: Optional[Callable],
-        to_interp_rep_transform: Optional[Callable],
+        from_interp_rep_transform: Callable | None,
+        to_interp_rep_transform: Callable | None,
     ) -> None:
         super().__init__(
             forward_func,
@@ -154,10 +155,7 @@ class MultiTargetLimeBase(LimeBase):
                     expanded_target = _expand_target(target, len(curr_model_inputs))
 
                 model_out = self._evaluate_batch(
-                    curr_model_inputs,
-                    expanded_target,
-                    expanded_additional_args,
-                    device,
+                    curr_model_inputs, expanded_target, expanded_additional_args, device
                 )
                 if show_progress:
                     attr_progress.update()
@@ -191,8 +189,8 @@ class MultiTargetLimeBase(LimeBase):
 
     def _evaluate_batch(
         self,
-        curr_model_inputs: List[TensorOrTupleOfTensorsGeneric],
-        expanded_target: Tuple[TargetType, ...],
+        curr_model_inputs: list[TensorOrTupleOfTensorsGeneric],
+        expanded_target: tuple[TargetType, ...],
         expanded_additional_args: Any,
         device: torch.device,
     ):

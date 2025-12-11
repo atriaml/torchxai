@@ -38,8 +38,8 @@ class TestRuntimeConfig(BaseModel):
         extra="forbid",
         revalidate_instances="always",
     )
-    test_name: str
-    explainer: str
+    test_name: str | None = None
+    explainer: str = "integrated_gradients"
     target_fixture: str | None = None
     explainer_kwargs: dict | None = Field(default_factory=dict)
     use_captum_explainer: bool = False
