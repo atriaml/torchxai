@@ -18,23 +18,27 @@ TorchXAI provides various explainable AI methods for PyTorch models.
 
 ### Perturbation-Based Methods
 
+- **[Feature Ablation](feature_ablation.md)** - Systematic feature removal attribution methods
 - **[Occlusion](occlusion.md)** - Sliding-window perturbation attribution methods
 - **[LIME](lime.md)** - Local interpretable model-agnostic explanations
+- **[Kernel SHAP](kernel_shap.md)** - Shapley value computation using LIME framework
 
 ## Method Comparison
 
-| Method | Type | Requires Baseline | Multiple Baselines | Feature Groups | Best For |
-|--------|------|------------------|-------------------|---------------|----------|
-| Saliency | Gradient | ❌ | ❌ | ❌ | Quick gradient analysis |
-| Input × Gradient | Gradient | ❌ | ❌ | ❌ | Input-scaled importance |
-| Input × Baseline Gradient | Gradient | ✅ | ❌ | ❌ | Baseline-relative importance |
-| Guided Backpropagation | Gradient | ❌ | ❌ | ❌ | Positive contributions |
-| DeepLIFT | Gradient | ✅ | ❌ | ❌ | Non-linear models |
-| DeepLIFT SHAP | Gradient | ✅ | ✅ | ❌ | Theoretically grounded |
-| Integrated Gradients | Gradient | ✅ | ❌ | ❌ | Path independence |
-| GradientShap | Gradient | ✅ | ✅ | ❌ | Robust Shapley values |
-| Occlusion | Perturbation | ✅ | ❌ | ❌ | Spatial/visual data |
-| LIME | Perturbation | ✅ | ❌ | ✅ | Local explanations, tabular data |
+| Method | Type | Requires Baseline | Multiple Baselines | Feature Groups | Theory | Best For |
+|--------|------|------------------|-------------------|---------------|--------|----------|
+| Saliency | Gradient | ❌ | ❌ | ❌ | Gradient | Quick analysis |
+| Input × Gradient | Gradient | ❌ | ❌ | ❌ | Gradient | Input-scaled importance |
+| Input × Baseline Gradient | Gradient | ✅ | ❌ | ❌ | Gradient | Baseline-relative |
+| Guided Backpropagation | Gradient | ❌ | ❌ | ❌ | Modified gradient | Positive contributions |
+| DeepLIFT | Gradient | ✅ | ❌ | ❌ | Axiom-based | Non-linear models |
+| DeepLIFT SHAP | Gradient | ✅ | ✅ | ❌ | Shapley + DeepLIFT | Training baselines |
+| Integrated Gradients | Gradient | ✅ | ❌ | ❌ | Path integration | Path independence |
+| GradientShap | Gradient | ✅ | ✅ | ❌ | Shapley + Gradients | Robust Shapley |
+| Feature Ablation | Perturbation | ✅ | ❌ | ✅ | Direct measurement | Feature groups |
+| Occlusion | Perturbation | ✅ | ❌ | ❌ | Direct measurement | Spatial/visual data |
+| LIME | Perturbation | ✅ | ❌ | ✅ | Local linear | Local explanations |
+| Kernel SHAP | Perturbation | ✅ | ❌ | ✅ | Shapley theory | Shapley values |
 
 ## Quick Example
 
@@ -45,7 +49,10 @@ from torchxai.explainers._grad import (
     DeepLiftExplainer, DeepLiftShapExplainer,
     IntegratedGradientsExplainer, GradientShapExplainer
 )
-from torchxai.explainers._perturbation import OcclusionExplainer, LimeExplainer
+from torchxai.explainers._perturbation import (
+    FeatureAblationExplainer, OcclusionExplainer, 
+    LimeExplainer, KernelShapExplainer
+)
 import torch
 from collections import OrderedDict
 from torchxai.data_types import ExplanationInputs
@@ -75,6 +82,11 @@ gradient_explainers = {
 
 # Perturbation explainers
 perturbation_explainers = {
+    "feature_ablation": FeatureAblationExplainer(
+        tabular_model,
+        internal_batch_size=32,
+        weight_attributions=True
+    ),
     "occlusion": OcclusionExplainer(
         image_model, 
         sliding_window_shapes=(8, 8), 
@@ -86,6 +98,11 @@ perturbation_explainers = {
         n_samples=200,
         alpha=0.01,
         internal_batch_size=50
+    ),
+    "kernel_shap": KernelShapExplainer(
+        tabular_model,
+        n_samples=500,
+        internal_batch_size=50
     )
 }
 
@@ -94,7 +111,7 @@ tabular_inputs = OrderedDict({"features": torch.randn(1, 10)})
 image_inputs = OrderedDict({"image": torch.randn(1, 3, 32, 32)})
 target = torch.tensor([1])
 
-# Feature mask for LIME (group features)
+# Feature mask for grouping (perturbation methods)
 feature_mask = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 4]])
 
 # Different input configurations
@@ -111,7 +128,7 @@ image_occlusion_inputs = ExplanationInputs(
     inputs=image_inputs, target=torch.tensor([5]),
     baselines=OrderedDict({"image": torch.zeros(1, 3, 32, 32)})
 )
-lime_inputs = ExplanationInputs(
+grouped_inputs = ExplanationInputs(
     inputs=tabular_inputs, target=target,
     baselines=OrderedDict({"features": torch.zeros(1, 10)}),
     feature_mask=feature_mask
@@ -130,6 +147,13 @@ for name, explainer in gradient_explainers.items():
         results[name] = explainer.explain(simple_inputs)
 
 # Perturbation methods
+results["feature_ablation"] = perturbation_explainers["feature_ablation"].explain(grouped_inputs)
 results["occlusion"] = perturbation_explainers["occlusion"].explain(image_occlusion_inputs)
-results["lime"] = perturbation_explainers["lime"].explain(lime_inputs)
+results["lime"] = perturbation_explainers["lime"].explain(grouped_inputs)
+results["kernel_shap"] = perturbation_explainers["kernel_shap"].explain(grouped_inputs)
+
+# Compare direct methods vs approximation methods
+print("Feature Ablation (direct):", results["feature_ablation"]["features"].sum())
+print("Kernel SHAP (Shapley approximation):", results["kernel_shap"]["features"].sum())
+print("LIME (local linear):", results["lime"]["features"].sum())
 ```

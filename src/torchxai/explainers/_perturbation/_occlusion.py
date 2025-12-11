@@ -18,7 +18,7 @@ from torchxai.data_types.common import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
-from torchxai.explainers._perturbation.feature_ablation import (
+from torchxai.explainers._perturbation._feature_ablation import (
     FeatureAblation,
     MultiTargetFeatureAblation,
 )

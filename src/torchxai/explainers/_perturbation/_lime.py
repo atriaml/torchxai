@@ -33,7 +33,7 @@ from torchxai.data_types.common import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
-from torchxai.explainers._perturbation.lime_base import MultiTargetLimeBase
+from torchxai.explainers._perturbation._lime_base import MultiTargetLimeBase
 from torchxai.explainers._utils import (
     _expand_feature_mask_to_target,
     _run_forward_multi_target,
@@ -435,13 +435,11 @@ class MultiTargetLime(MultiTargetLimeBase):
 
             # if target is provided as list of torch tensors then we just convert them into list of lists
             if isinstance(target, list) and isinstance(target[0], Tensor):
-                print("target[0].shape[0]", target[0].shape[0])
                 if target[0].shape[0] > 1:
                     target = [t.tolist() for t in target]  # type: ignore
                 else:
                     target = [t.item() for t in target]  # type: ignore
 
-            print("target", target)
             if (
                 isinstance(target, list)
                 and isinstance(target[0], list)

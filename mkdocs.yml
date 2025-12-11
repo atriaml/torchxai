@@ -37,8 +37,10 @@ nav:
       - Integrated Gradients: api/integrated_gradients.md
       - GradientShap: api/gradient_shap.md
     - Perturbation Methods:
+      - Feature Ablation: api/feature_ablation.md
       - Occlusion: api/occlusion.md
       - LIME: api/lime.md
+      - Kernel SHAP: api/kernel_shap.md
 
 markdown_extensions:
   - admonition

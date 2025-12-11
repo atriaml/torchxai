@@ -12,10 +12,10 @@ from torchxai.explainers._grad._input_x_gradient import InputXGradientExplainer
 from torchxai.explainers._grad._integrated_gradients import IntegratedGradientsExplainer
 from torchxai.explainers._grad._saliency import SaliencyExplainer
 from torchxai.explainers._grad.deeplift_shap import DeepLiftShapExplainer
+from torchxai.explainers._perturbation._feature_ablation import FeatureAblationExplainer
+from torchxai.explainers._perturbation._kernel_shap import KernelShapExplainer
 from torchxai.explainers._perturbation._lime import LimeExplainer
 from torchxai.explainers._perturbation._occlusion import OcclusionExplainer
-from torchxai.explainers._perturbation.feature_ablation import FeatureAblationExplainer
-from torchxai.explainers._perturbation.kernel_shap import KernelShapExplainer
 from torchxai.explainers.explainer import Explainer
 from torchxai.explainers.random import RandomExplainer
 

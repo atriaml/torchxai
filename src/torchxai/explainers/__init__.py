@@ -8,8 +8,8 @@ from torchxai.explainers._grad._integrated_gradients import IntegratedGradientsE
 from torchxai.explainers._grad._saliency import SaliencyExplainer  # noqa
 
 # _perturbation
-from torchxai.explainers._perturbation.feature_ablation import FeatureAblationExplainer  # noqa
-from torchxai.explainers._perturbation.kernel_shap import KernelShapExplainer  # noqa
+from torchxai.explainers._perturbation._feature_ablation import FeatureAblationExplainer  # noqa
+from torchxai.explainers._perturbation._kernel_shap import KernelShapExplainer  # noqa
 from torchxai.explainers._perturbation._lime import LimeExplainer  # noqa
 from torchxai.explainers._perturbation._occlusion import OcclusionExplainer  # noqa
 from torchxai.explainers.explainer import Explainer  # noqa

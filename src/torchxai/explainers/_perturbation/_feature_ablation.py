@@ -1,5 +1,7 @@
 import math
+from collections import OrderedDict
 from collections.abc import Callable
+from functools import partial
 from typing import Any, cast
 
 import torch
@@ -12,7 +14,7 @@ from captum._utils.common import (
     _is_tuple,
 )
 from captum._utils.progress import progress
-from captum.attr import Attribution, FeatureAblation as CaptumFeatureAblation
+from captum.attr import FeatureAblation as CaptumFeatureAblation
 from captum.attr._utils.common import _format_input_baseline
 from torch import Tensor, dtype
 
@@ -30,9 +32,11 @@ from torchxai.explainers.explainer import Explainer
 
 
 class FeatureAblation(CaptumFeatureAblation):
-    """
-    This implementation is exactly as Captum except for how the weights are multiplied. We weight each output
-    with respect to the total number of elements in each feature group instead of just the number of overlaps
+    """Feature Ablation attribution method.
+
+    This implementation extends Captum's FeatureAblation with improved weighting
+    that considers the total number of elements in each feature group instead of
+    just the number of overlaps, providing more accurate attribution scaling.
     """
 
     def attribute(
@@ -226,6 +230,13 @@ class FeatureAblation(CaptumFeatureAblation):
 
 
 class MultiTargetFeatureAblation(FeatureAblation):
+    """Multi-target Feature Ablation attribution method.
+
+    This class extends FeatureAblation to support computing feature ablation
+    attributions for multiple targets simultaneously by systematically removing
+    features and measuring the impact on each target.
+    """
+
     def attribute(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
@@ -604,38 +615,147 @@ class MultiTargetFeatureAblation(FeatureAblation):
 
 
 class FeatureAblationExplainer(Explainer):
-    """
-    A Explainer class for Feature Ablation using Captum library.
+    """Feature Ablation explainer for computing systematic feature removal attributions.
+
+    This explainer computes attributions using Feature Ablation, which systematically
+    removes features or feature groups and measures the resulting change in model output.
+    This direct approach provides intuitive explanations by showing exactly how much
+    each feature contributes to the prediction. The method supports feature grouping
+    through masks, allowing for hierarchical ablation studies. Supports both single-target
+    and multi-target modes with structured input/output.
+
+    Feature Ablation provides the most direct measure of feature importance through
+    systematic removal and impact measurement.
 
     Args:
-        model (torch.nn.Module): The model whose output is to be explained.
-        perturbations_per_eval (int, optional): The number of feature perturbations evaluated per batch. Default is 200.
+        model: The PyTorch model whose output is to be explained.
+        multi_target: Whether to use multi-target mode. When True, can compute
+            attributions for multiple targets simultaneously. Defaults to False.
+        internal_batch_size: Batch size for internal computations (perturbations
+            per evaluation). Defaults to 64.
+        weight_attributions: Whether to weight attributions by feature group sizes
+            when using feature masks. Defaults to False.
 
-    Attributes:
-        attr_class (FeatureAblation): The class representing the Feature Ablation method.
-        perturbations_per_eval (int): Number of feature perturbations per evaluation.
+    Example:
+        Single-target usage for tabular data:
+        >>> import torch
+        >>> from collections import OrderedDict
+        >>> from torchxai.data_types import ExplanationInputs
+        >>>
+        >>> model = torch.nn.Sequential(
+        ...     torch.nn.Linear(10, 5), torch.nn.ReLU(), torch.nn.Linear(5, 2)
+        ... )
+        >>> explainer = FeatureAblationExplainer(model, internal_batch_size=32)
+        >>>
+        >>> explanation_inputs = ExplanationInputs(
+        ...     inputs=OrderedDict({"features": torch.randn(2, 10)}),
+        ...     target=torch.tensor([0, 1]),
+        ...     baselines=OrderedDict({"features": torch.zeros(2, 10)}),
+        ... )
+        >>> attributions = explainer.explain(explanation_inputs)
+        >>> # Returns: OrderedDict({"features": torch.Tensor})
+
+        Multi-target usage with feature grouping:
+        >>> explainer_mt = FeatureAblationExplainer(
+        ...     model, multi_target=True, weight_attributions=True
+        ... )
+        >>> feature_mask = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 4]])
+        >>> explanation_inputs_mt = ExplanationInputs(
+        ...     inputs=OrderedDict({"features": torch.randn(2, 10)}),
+        ...     target=[torch.tensor([0, 1]), torch.tensor([1, 0])],
+        ...     baselines=OrderedDict({"features": torch.zeros(2, 10)}),
+        ...     feature_mask=feature_mask,
+        ... )
+        >>> mt_attributions = explainer_mt.explain(explanation_inputs_mt)
+        >>> # Returns: [OrderedDict({"features": torch.Tensor}), OrderedDict({"features": torch.Tensor})]
     """
 
     def __init__(
         self,
         model: torch.nn.Module | Callable,
-        is_multi_target: bool = False,
+        multi_target: bool = False,
         internal_batch_size: int = 64,
         weight_attributions: bool = False,
+        show_progress: bool = False,
     ) -> None:
-        super().__init__(model, is_multi_target, internal_batch_size)
-        self._weight_attributions = weight_attributions
+        """Initialize the FeatureAblationExplainer.
 
-    def _init_explanation_fn(self) -> Attribution:
+        Args:
+            model: The model whose output is to be explained.
+            multi_target: Whether to use multi-target mode. Defaults to False.
+            internal_batch_size: Batch size for internal computations. Defaults to 64.
+            weight_attributions: Whether to weight attributions by feature groups. Defaults to False.
         """
-        Initializes the explanation function.
+        self._weight_attributions = weight_attributions
+        self._show_progress = show_progress
+
+        super().__init__(model, multi_target, internal_batch_size)
+
+    def _init_single_target_explanation_fn(self) -> Callable:
+        """Initialize single-target Feature Ablation attribution function.
 
         Returns:
-            Attribution: The initialized explanation function.
+            FeatureAblation attribution function for single targets.
         """
-        if self._is_multi_target:
-            return MultiTargetFeatureAblation(self._model)
-        return FeatureAblation(self._model)
+        expl_func = partial(
+            FeatureAblation(self._model).attribute,
+            perturbations_per_eval=self._internal_batch_size,
+            show_progress=self._show_progress,
+        )
+        return self._expl_fn_with_post_process(expl_func)
+
+    def _init_multi_target_explanation_fn(self) -> Callable:
+        """Initialize multi-target Feature Ablation attribution function.
+
+        Returns:
+            MultiTargetFeatureAblation attribution function for multiple targets.
+        """
+        expl_func = partial(
+            MultiTargetFeatureAblation(self._model).attribute,
+            perturbations_per_eval=self._internal_batch_size,
+            show_progress=self._show_progress,
+        )
+        return self._expl_fn_with_post_process(expl_func)
+
+    def _expl_fn_with_post_process(self, expl_func: Callable) -> Callable:
+        def wrapped(
+            inputs: TensorOrTupleOfTensorsGeneric,
+            baselines: BaselineType = None,
+            target: TargetType = None,
+            additional_forward_args: Any = None,
+            feature_mask: None | Tensor | tuple[Tensor, ...] = None,
+            **kwargs,
+        ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
+            feature_mask = (
+                _expand_feature_mask_to_target(feature_mask, inputs)
+                if feature_mask is not None
+                else None
+            )
+            additional_forward_args = _format_additional_forward_args(
+                additional_forward_args
+            )
+
+            attributions = expl_func(
+                inputs=inputs,
+                baselines=baselines,
+                target=target,
+                additional_forward_args=additional_forward_args,
+                feature_mask=feature_mask,
+                **kwargs,
+            )
+
+            # Apply feature weighting if requested
+            if self._weight_attributions and feature_mask is not None:
+                if self._multi_target:
+                    attributions = [
+                        _weight_attributions(attribution, feature_mask)
+                        for attribution in attributions
+                    ]
+                else:
+                    attributions = _weight_attributions(attributions, feature_mask)
+            return attributions
+
+        return wrapped
 
     def explain(
         self,
@@ -644,36 +764,47 @@ class FeatureAblationExplainer(Explainer):
         baselines: BaselineType = None,
         feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         additional_forward_args: Any = None,
-    ) -> TensorOrTupleOfTensorsGeneric:
-        """
-        Compute Feature Ablation attributions for the given inputs.
+    ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
+        """Compute Feature Ablation attributions for the given inputs.
+
+        This method provides a backward-compatible interface that accepts individual
+        parameters and constructs ExplanationInputs internally before calling the
+        parent class explain method.
 
         Args:
-            inputs (TensorOrTupleOfTensorsGeneric): The input tensor(s) for which attributions are computed.
-            target (TargetType): The target(s) for computing attributions.
-            additional_forward_args (Any): Additional arguments to forward function.
-            baselines (BaselineType): Baselines for computing attributions.
-            feature_mask (Union[None, Tensor, Tuple[Tensor, ...]], optional): Masks representing feature groups.
+            inputs: Input tensors for attribution computation. Should be an OrderedDict
+                mapping feature names to tensors when used with this explainer.
+            target: Target indices for attribution computation. Can be a tensor
+                (single-target) or list of tensors (multi-target).
+            baselines: Baseline tensors for ablation (typically zeros). If None,
+                uses zero baselines matching input shape.
+            feature_mask: Masks representing feature groups for ablation. Features
+                with the same mask value are ablated together as a group.
+            additional_forward_args: Additional arguments for model forward pass.
 
         Returns:
-            TensorOrTupleOfTensorsGeneric: The computed attributions.
+            For single-target mode: OrderedDict mapping feature names to attribution tensors.
+            For multi-target mode: List of OrderedDicts, one per target.
+
+        Note:
+            Feature Ablation directly measures feature importance through systematic removal.
+            The internal_batch_size parameter controls how many features are ablated
+            simultaneously for computational efficiency.
+
+        Example:
+            >>> # For tabular data with feature grouping
+            >>> feature_mask = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 4]])
+            >>> attributions = explainer.explain(
+            ...     inputs=OrderedDict({"features": torch.randn(1, 10)}),
+            ...     target=torch.tensor([1]),
+            ...     baselines=OrderedDict({"features": torch.zeros(1, 10)}),
+            ...     feature_mask=feature_mask,
+            ... )
         """
-        feature_mask = _expand_feature_mask_to_target(feature_mask, inputs)
-        attributions = self._explanation_fn.attribute(
+        return super().explain(
             inputs=inputs,
             target=target,
             baselines=baselines,
             feature_mask=feature_mask,
             additional_forward_args=additional_forward_args,
-            perturbations_per_eval=self._internal_batch_size,
         )
-
-        if self._weight_attributions and feature_mask is not None:
-            if self._is_multi_target:
-                attributions = [
-                    _weight_attributions(attribution, feature_mask)
-                    for attribution in attributions
-                ]
-            else:
-                attributions = _weight_attributions(attributions, feature_mask)
-        return attributions

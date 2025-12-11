@@ -1,10 +1,11 @@
+from collections import OrderedDict
 from collections.abc import Callable, Generator
+from functools import partial
 from typing import Any
 
 import torch
 from captum._utils.common import _format_additional_forward_args
 from captum._utils.models.linear_model import SkLearnLinearRegression
-from captum.attr import Attribution
 from captum.attr._core.lime import construct_feature_mask
 from captum.attr._utils.common import _format_input_baseline
 from torch import Tensor
@@ -56,16 +57,11 @@ def kernel_shap_frozen_features_perturb_generator(
 
 
 class KernelShap(Lime):
-    r"""
-    Kernel SHAP is a method that uses the LIME framework to compute
-    Shapley Values. Setting the loss function, weighting kernel and
-    regularization terms appropriately in the LIME framework allows
-    theoretically obtaining Shapley Values more efficiently than
-    directly computing Shapley Values.
+    """Kernel SHAP attribution method using LIME framework.
 
-    More information regarding this method and proof of equivalence
-    can be found in the original paper here:
-    https://arxiv.org/abs/1705.07874
+    Kernel SHAP is a method that uses the LIME framework to compute Shapley Values
+    by setting appropriate loss functions, weighting kernels and regularization terms
+    to theoretically obtain Shapley Values more efficiently than direct computation.
     """
 
     def __init__(self, forward_func: Callable) -> None:
@@ -141,6 +137,12 @@ class KernelShap(Lime):
 
 
 class MultiTargetKernelShap(MultiTargetLime):
+    """Multi-target Kernel SHAP attribution method.
+
+    This class extends MultiTargetLime to support computing Kernel SHAP attributions
+    for multiple targets simultaneously using the LIME framework with SHAP weighting.
+    """
+
     def __init__(self, forward_func: Callable) -> None:
         r"""
         Args:
@@ -213,45 +215,146 @@ class MultiTargetKernelShap(MultiTargetLime):
 
 
 class KernelShapExplainer(Explainer):
-    """
-    A Explainer class for handling Kernel SHAP (SHapley Additive exPlanations) using the Captum library.
+    """Kernel SHAP explainer for computing Shapley values using LIME framework.
+
+    This explainer computes attributions using Kernel SHAP, which uses the LIME framework
+    with specific weighting and sampling strategies to efficiently compute Shapley values.
+    Kernel SHAP provides theoretically grounded explanations that satisfy Shapley value
+    axioms (efficiency, symmetry, dummy, additivity) while being more computationally
+    efficient than direct Shapley value computation. Supports both single-target and
+    multi-target modes with structured input/output.
+
+    Kernel SHAP is particularly effective for tabular data and provides globally
+    consistent explanations across different inputs.
 
     Args:
-        model (torch.nn.Module): The model whose output is to be explained.
-        n_samples (int, optional): The number of samples to use for Kernel SHAP. Default is 100.
-        perturbations_per_eval (int, optional): The number of perturbations evaluated per batch. Default is 50.
+        model: The PyTorch model whose output is to be explained.
+        multi_target: Whether to use multi-target mode. When True, can compute
+            attributions for multiple targets simultaneously. Defaults to False.
+        internal_batch_size: Batch size for internal computations (perturbations
+            per evaluation). Defaults to 1.
+        n_samples: Number of coalition samples for Shapley value estimation.
+            Defaults to 100.
+        weight_attributions: Whether to weight attributions by feature group sizes
+            when using feature masks. Defaults to True.
 
-    Attributes:
-        n_samples (int): The number of samples to use for Kernel SHAP.
-        perturbations_per_eval (int): The number of perturbations evaluated per batch.
+    Example:
+        Single-target usage for tabular data:
+        >>> import torch
+        >>> from collections import OrderedDict
+        >>> from torchxai.data_types import ExplanationInputs
+        >>>
+        >>> model = torch.nn.Sequential(
+        ...     torch.nn.Linear(10, 5), torch.nn.ReLU(), torch.nn.Linear(5, 2)
+        ... )
+        >>> explainer = KernelShapExplainer(model, n_samples=500)
+        >>>
+        >>> explanation_inputs = ExplanationInputs(
+        ...     inputs=OrderedDict({"features": torch.randn(1, 10)}),
+        ...     target=torch.tensor([1]),
+        ...     baselines=OrderedDict({"features": torch.zeros(1, 10)}),
+        ... )
+        >>> attributions = explainer.explain(explanation_inputs)
+        >>> # Returns: OrderedDict({"features": torch.Tensor})
+
+        Multi-target usage:
+        >>> explainer_mt = KernelShapExplainer(model, multi_target=True, n_samples=500)
+        >>> explanation_inputs_mt = ExplanationInputs(
+        ...     inputs=OrderedDict({"features": torch.randn(1, 10)}),
+        ...     target=[torch.tensor([0]), torch.tensor([1])],
+        ...     baselines=OrderedDict({"features": torch.zeros(1, 10)}),
+        ... )
+        >>> mt_attributions = explainer_mt.explain(explanation_inputs_mt)
+        >>> # Returns: [OrderedDict({"features": torch.Tensor}), OrderedDict({"features": torch.Tensor})]
     """
 
     def __init__(
         self,
         model: Module,
-        is_multi_target: bool = False,
+        multi_target: bool = False,
         internal_batch_size: int = 1,
         n_samples: int = 100,
         weight_attributions: bool = True,
     ) -> None:
-        """
-        Initialize the KernelShapExplainer with the model, number of samples, and perturbations per evaluation.
+        """Initialize the KernelShapExplainer.
+
+        Args:
+            model: The model whose output is to be explained.
+            multi_target: Whether to use multi-target mode. Defaults to False.
+            internal_batch_size: Batch size for internal computations. Defaults to 1.
+            n_samples: Number of coalition samples for Shapley estimation. Defaults to 100.
+            weight_attributions: Whether to weight attributions by feature groups. Defaults to True.
         """
         self._n_samples = n_samples
         self._weight_attributions = weight_attributions
 
-        super().__init__(model, is_multi_target, internal_batch_size)
+        super().__init__(model, multi_target, internal_batch_size)
 
-    def _init_explanation_fn(self) -> Attribution:
-        """
-        Initializes the explanation function.
+    def _init_single_target_explanation_fn(self) -> Callable:
+        """Initialize single-target Kernel SHAP attribution function.
 
         Returns:
-            Attribution: The initialized explanation function.
+            KernelShap attribution function for single targets.
         """
-        if self._is_multi_target:
-            return MultiTargetKernelShap(self._model)
-        return KernelShap(self._model)
+        expl_func = partial(
+            KernelShap(self._model).attribute,
+            n_samples=self._n_samples,
+            perturbations_per_eval=self._internal_batch_size,
+        )
+        return self._expl_fn_with_post_process(expl_func)
+
+    def _init_multi_target_explanation_fn(self) -> Callable:
+        """Initialize multi-target Kernel SHAP attribution function.
+
+        Returns:
+            MultiTargetKernelShap attribution function for multiple targets.
+        """
+        expl_func = partial(
+            MultiTargetKernelShap(self._model).attribute,
+            n_samples=self._n_samples,
+            perturbations_per_eval=self._internal_batch_size,
+        )
+        return self._expl_fn_with_post_process(expl_func)
+
+    def _expl_fn_with_post_process(self, expl_func: Callable) -> Callable:
+        def wrapped(
+            inputs: TensorOrTupleOfTensorsGeneric,
+            baselines: BaselineType = None,
+            target: TargetType = None,
+            additional_forward_args: Any = None,
+            feature_mask: None | Tensor | tuple[Tensor, ...] = None,
+            **kwargs,
+        ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
+            feature_mask = (
+                _expand_feature_mask_to_target(feature_mask, inputs)
+                if feature_mask is not None
+                else None
+            )
+            additional_forward_args = _format_additional_forward_args(
+                additional_forward_args
+            )
+
+            attributions = expl_func(
+                inputs=inputs,
+                baselines=baselines,
+                target=target,
+                additional_forward_args=additional_forward_args,
+                feature_mask=feature_mask,
+                **kwargs,
+            )
+
+            # Apply feature weighting if requested
+            if self._weight_attributions and feature_mask is not None:
+                if self._multi_target:
+                    attributions = [
+                        _weight_attributions(attribution, feature_mask)
+                        for attribution in attributions
+                    ]
+                else:
+                    attributions = _weight_attributions(attributions, feature_mask)
+            return attributions
+
+        return wrapped
 
     def explain(
         self,
@@ -261,43 +364,50 @@ class KernelShapExplainer(Explainer):
         feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         additional_forward_args: Any = None,
         frozen_features: list[torch.Tensor] | None = None,
-    ) -> TensorOrTupleOfTensorsGeneric:
-        """
-        Compute the Kernel SHAP attributions for the given inputs.
+    ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
+        """Compute Kernel SHAP attributions for the given inputs.
+
+        This method provides a backward-compatible interface that accepts individual
+        parameters and constructs ExplanationInputs internally before calling the
+        parent class explain method.
 
         Args:
-            inputs (TensorOrTupleOfTensorsGeneric): The input tensor(s) for which attributions are computed.
-            target (TargetType): The target(s) for computing attributions.
-            baselines (BaselineType, optional): Baselines for computing attributions. Default is None.
-            feature_mask (Union[None, Tensor, Tuple[Tensor, ...]], optional): Masks representing feature groups. Default is None.
-            additional_forward_args (Any, optional): Additional arguments to forward to the model. Default is None.
-            weight_attributions (bool, optional): Whether to weight the attributions by the feature masks. Default is True.
+            inputs: Input tensors for attribution computation. Should be an OrderedDict
+                mapping feature names to tensors when used with this explainer.
+            target: Target indices for attribution computation. Can be a tensor
+                (single-target) or list of tensors (multi-target).
+            baselines: Baseline tensors for coalition sampling (typically zeros).
+                If None, uses zero baselines matching input shape.
+            feature_mask: Masks representing feature groups for aggregation. Features
+                with the same mask value are treated as a single coalition member.
+            additional_forward_args: Additional arguments for model forward pass.
+            frozen_features: List of feature indices to keep unchanged during perturbation.
+                Useful for special tokens like CLS, SEP in NLP models.
 
         Returns:
-            TensorOrTupleOfTensorsGeneric: The computed attributions.
+            For single-target mode: OrderedDict mapping feature names to attribution tensors.
+            For multi-target mode: List of OrderedDicts, one per target.
+
+        Note:
+            Kernel SHAP uses coalition sampling with SHAP-specific weighting to estimate
+            Shapley values. The number of samples significantly affects accuracy and
+            computation time. More samples provide better Shapley value approximations.
+
+        Example:
+            >>> # For tabular data with feature grouping
+            >>> feature_mask = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 4]])
+            >>> attributions = explainer.explain(
+            ...     inputs=OrderedDict({"features": torch.randn(1, 10)}),
+            ...     target=torch.tensor([1]),
+            ...     baselines=OrderedDict({"features": torch.zeros(1, 10)}),
+            ...     feature_mask=feature_mask,
+            ... )
         """
-        # Compute the attributions using Kernel SHAP
-        feature_mask = _expand_feature_mask_to_target(feature_mask, inputs)
-        additional_forward_args = _format_additional_forward_args(
-            additional_forward_args
-        )
-        attributions = self._explanation_fn.attribute(
+        return super().explain(
             inputs=inputs,
             target=target,
             baselines=baselines,
             feature_mask=feature_mask,
             additional_forward_args=additional_forward_args,
-            n_samples=self._n_samples,
-            perturbations_per_eval=self._internal_batch_size,
             frozen_features=frozen_features,
         )
-
-        if self._weight_attributions and feature_mask is not None:
-            if self._is_multi_target:
-                attributions = [
-                    _weight_attributions(attribution, feature_mask)
-                    for attribution in attributions
-                ]
-            else:
-                attributions = _weight_attributions(attributions, feature_mask)
-        return attributions
