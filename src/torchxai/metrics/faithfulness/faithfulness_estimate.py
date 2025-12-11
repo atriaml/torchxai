@@ -1,4 +1,5 @@
-from typing import Any, Callable, List, Optional, Tuple, Union, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import numpy as np
 import scipy
@@ -13,8 +14,13 @@ from captum._utils.common import (
     _format_tensor_into_tuples,
     _run_forward,
 )
-from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torch import Tensor
+
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.metrics._utils.batching import _divide_and_aggregate_metrics_n_features
 from torchxai.metrics._utils.common import (
     _construct_default_feature_mask,
@@ -28,21 +34,20 @@ from torchxai.metrics._utils.common import (
 
 def eval_faithfulness_estimate_single_sample(
     forward_func: Callable,
-    inputs: TensorOrTupleOfTensorsGeneric,
-    attributions: TensorOrTupleOfTensorsGeneric,
-    baselines: BaselineType,
-    feature_mask: TensorOrTupleOfTensorsGeneric = None,
+    inputs: tuple[Tensor, ...],
+    attributions: tuple[Tensor, ...],
+    baselines: tuple[Tensor, ...],
+    feature_mask: tuple[Tensor, ...] | None = None,
     additional_forward_args: Any = None,
     target: TargetType = None,
-    max_features_processed_per_batch: int = None,
+    max_features_processed_per_batch: int | None = None,
     percentage_feature_removal_per_step: float = 0.0,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    frozen_features: torch.Tensor | None = None,
     show_progress: bool = False,
-) -> Tensor:
+) -> tuple:
     def _next_faithfulness_estimate_tensors(
-        current_n_perturbed_features: int,
-        current_n_steps: int,
-    ) -> Union[Tuple[Tensor], Tuple[Tensor, Tensor, Tensor]]:
+        current_n_perturbed_features: int, current_n_steps: int
+    ) -> tuple:
         # get the indices of features that will be perturbed in the current iteration
         # for example if we do 1 by 1 perturbation, then the first iteration will perturb the first feature
         # the second iteration will perturb both the first and second feature and so on
@@ -52,18 +57,18 @@ def eval_faithfulness_estimate_single_sample(
         current_perturbation_masks = perturbation_masks[current_feature_indices]
 
         # perturb inputs
-        inputs_expanded = inputs.repeat(
-            current_n_perturbed_features, *tuple([1] * len(inputs.shape[1:]))
+        inputs_expanded = inputs_flat.repeat(
+            current_n_perturbed_features, *tuple([1] * len(inputs_flat.shape[1:]))
         )
-        baselines_expanded = baselines.repeat(
-            current_n_perturbed_features, *tuple([1] * len(baselines.shape[1:]))
+        baselines_expanded = baselines_flat.repeat(
+            current_n_perturbed_features, *tuple([1] * len(baselines_flat.shape[1:]))
         )
         inputs_perturbed = (
             inputs_expanded * ~current_perturbation_masks
             + baselines_expanded * current_perturbation_masks
         )
         targets_expanded = _expand_target(
-            target,
+            target,  # type: ignore
             current_n_perturbed_features,
             expansion_type=ExpansionTypes.repeat_interleave,
         )
@@ -92,20 +97,20 @@ def eval_faithfulness_estimate_single_sample(
         return (list(inputs_perturbed_fwd_diff.detach().cpu().numpy()),)
 
     def _agg_faithfulness_estimate_tensors(agg_tensors, tensors):
-        return tuple(agg_t + t for agg_t, t in zip(agg_tensors, tensors))
+        return tuple(agg_t + t for agg_t, t in zip(agg_tensors, tensors, strict=True))
 
     bsz = inputs[0].size(0)
     assert bsz == 1, "Batch size must be 1 for faithfulness_estimate_single_sample"
 
     # get the first input forward output
-    inputs_fwd = _run_forward(forward_func, inputs, target, additional_forward_args)
+    inputs_fwd = _run_forward(forward_func, inputs, target, additional_forward_args)  # type: ignore
 
     # flatten all inputs and baseline features in the input
-    inputs, inputs_shape = _tuple_tensors_to_tensors(inputs)
-    baselines, baselines_shape = _tuple_tensors_to_tensors(baselines)
-    assert (
-        inputs_shape == baselines_shape
-    ), "Inputs and baselines must have the same shape"
+    inputs_flat, inputs_shape = _tuple_tensors_to_tensors(inputs)
+    baselines_flat, baselines_shape = _tuple_tensors_to_tensors(baselines)
+    assert inputs_shape == baselines_shape, (
+        "Inputs and baselines must have the same shape"
+    )
 
     # flatten all feature masks in the input
     if feature_mask is None:
@@ -120,7 +125,7 @@ def eval_faithfulness_estimate_single_sample(
 
     # flatten all attributions in the input, this must be done after the feature masks are flattened as
     # feature masks may depened on attribution
-    attributions, _ = _tuple_tensors_to_tensors(attributions)
+    attributions_flat, _ = _tuple_tensors_to_tensors(attributions)
 
     # in this step we reduce the attributions to the feature groups
     # here the weighted sum of the attributions is computed for each feature group
@@ -131,7 +136,7 @@ def eval_faithfulness_estimate_single_sample(
     # may have the indices [0, 1, 2, 3, 4] where the 0th index of the reduced attributions corresponds to the
     # 0th index of the feature mask
     reduced_attributions, _ = _reduce_tensor_with_indices(
-        attributions[0], indices=feature_mask_flattened
+        attributions_flat[0], indices=feature_mask_flattened
     )
 
     # get the gathererd-attributions sorted in descending order of their importance
@@ -175,21 +180,19 @@ def eval_faithfulness_estimate_single_sample(
 def faithfulness_estimate(
     forward_func: Callable,
     inputs: TensorOrTupleOfTensorsGeneric,
-    attributions: Union[
-        List[TensorOrTupleOfTensorsGeneric], TensorOrTupleOfTensorsGeneric
-    ],
+    attributions: list[TensorOrTupleOfTensorsGeneric] | TensorOrTupleOfTensorsGeneric,
     baselines: BaselineType = None,
-    feature_mask: TensorOrTupleOfTensorsGeneric = None,
+    feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
     additional_forward_args: Any = None,
     target: TargetType = None,
-    max_features_processed_per_batch: Optional[int] = None,
+    max_features_processed_per_batch: int | None = None,
     percentage_feature_removal_per_step: float = 0.0,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    frozen_features: list[torch.Tensor] | None = None,
     is_multi_target: bool = False,
     show_progress: bool = False,
     return_intermediate_results: bool = False,
     return_dict: bool = False,
-) -> Tuple[Tensor, Tensor, Tensor]:
+) -> dict | tuple | torch.Tensor | list[torch.Tensor]:
     """
     Implementation of Faithfulness Estimate by Alvares-Melis at el., 2018a and 2018b. This implementation
     reuses the batch-computation ideas from captum and therefore it is fully compatible with the Captum library.
@@ -385,23 +388,23 @@ def faithfulness_estimate(
         # the order of importance of features can be different, we cannot batch the computation across targets.
         attributions_list = attributions
         targets_list = target
-        isinstance(
-            attributions_list, list
-        ), "attributions must be a list of tensors or list of tuples of tensors"
+        assert isinstance(attributions_list, list), (
+            "attributions must be a list of tensors or list of tuples of tensors"
+        )
         assert isinstance(targets_list, list), "targets must be a list of targets"
-        assert all(
-            isinstance(x, (tuple, int)) for x in targets_list
-        ), "targets must be a list of ints"
-        assert len(targets_list) == len(attributions_list), (
-            """The number of targets in the targets_list and
-            attributions_list must match. Found number of targets in the targets_list is: {} and in the
-            attributions_list: {}"""
-        ).format(len(targets_list), len(attributions_list))
+        assert all(isinstance(x, (tuple, int)) for x in targets_list), (
+            "targets must be a list of ints"
+        )
+        assert len(targets_list) == len(
+            attributions_list
+        ), f"""The number of targets in the targets_list and
+            attributions_list must match. Found number of targets in the targets_list is: {len(targets_list)} and in the
+            attributions_list: {len(attributions_list)}"""
 
         faithfulness_estimate_batch_list = []
         attributions_sum_perturbed_batch_list = []
         inputs_perturbed_fwd_diffs_batch_list = []
-        for attributions, target in zip(attributions_list, targets_list):
+        for attributions, target in zip(attributions_list, targets_list, strict=True):
             (
                 faithfulness_estimate_batch,
                 attributions_sum_perturbed_batch,
@@ -447,35 +450,40 @@ def faithfulness_estimate(
                 return {"faithfulness_estimate_score": faithfulness_estimate_batch_list}
             return faithfulness_estimate_batch_list
 
+    assert not isinstance(attributions, list), (
+        "attributions must be a single tensor or a tuple of tensors"
+    )
+    assert not isinstance(target, list), (
+        "targets must be a single target or a tuple of targets"
+    )
+
     # perform argument formattings
     inputs = _format_tensor_into_tuples(inputs)  # type: ignore
     if baselines is None:
         baselines = tuple(torch.zeros_like(inp) for inp in inputs)
     else:
-        baselines = _format_baseline(baselines, cast(Tuple[Tensor, ...], inputs))
+        baselines = cast(tuple[Tensor, ...], _format_baseline(baselines, inputs))
     additional_forward_args = _format_additional_forward_args(additional_forward_args)
     attributions = _format_tensor_into_tuples(attributions)  # type: ignore
     feature_mask = _format_tensor_into_tuples(feature_mask)  # type: ignore
 
     # Make sure that inputs and corresponding attributions have matching sizes.
-    assert len(inputs) == len(attributions), (
-        """The number of tensors in the inputs and
-        attributions must match. Found number of tensors in the inputs is: {} and in the
-        attributions: {}"""
-    ).format(len(inputs), len(attributions))
+    assert len(inputs) == len(attributions), f"""The number of tensors in the inputs and
+        attributions must match. Found number of tensors in the inputs is: {len(inputs)} and in the
+        attributions: {len(attributions)}"""
     if feature_mask is not None:
-        assert len(feature_mask) == len(feature_mask), (
-            """The number of tensors in the inputs and
-            feature_masks must match. Found number of tensors in the inputs is: {} and in the
-            attributions: {}"""
-        ).format(len(feature_mask), len(feature_mask))
-        for input, attribution, mask in zip(inputs, attributions, feature_mask):
-            assert input.shape == mask.shape == attribution.shape, (
+        assert len(feature_mask) == len(
+            feature_mask
+        ), f"""The number of tensors in the inputs and
+            feature_masks must match. Found number of tensors in the inputs is: {len(feature_mask)} and in the
+            attributions: {len(feature_mask)}"""
+        for input, attribution, mask in zip(
+            inputs, attributions, feature_mask, strict=True
+        ):
+            assert input.shape == mask.shape == attribution.shape, f"""
+                The shape of the input, attribution and feature mask must match. Found shapes are: input {input.shape}
+                attribution {attribution.shape} and feature mask {mask.shape}
                 """
-                The shape of the input, attribution and feature mask must match. Found shapes are: input {}
-                attribution {} and feature mask {}
-                """
-            ).format(input.shape, attribution.shape, mask.shape)
 
     bsz = inputs[0].size(0)
     faithfulness_estimate_batch = []
@@ -497,8 +505,6 @@ def faithfulness_estimate(
             ),
             baselines=(
                 tuple(baseline[sample_idx].unsqueeze(0) for baseline in baselines)
-                if baselines is not None
-                else None
             ),
             additional_forward_args=(
                 tuple(

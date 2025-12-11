@@ -1,5 +1,6 @@
 from collections import OrderedDict
-from typing import Any, Callable, List, Optional, Tuple, Union, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 import torch
 import tqdm
@@ -14,6 +15,7 @@ from captum._utils.common import (
 )
 from captum._utils.typing import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torch import Tensor
+
 from torchxai.metrics._utils.batching import (
     _divide_and_aggregate_metrics_n_perturbations_per_feature,
 )
@@ -112,17 +114,17 @@ def eval_aopcs_single_sample(
     feature_mask: TensorOrTupleOfTensorsGeneric = None,
     additional_forward_args: Any = None,
     target: TargetType = None,
-    max_features_processed_per_batch: Optional[int] = None,
+    max_features_processed_per_batch: int | None = None,
     total_feature_bins: int = 100,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    frozen_features: list[torch.Tensor] | None = None,
     n_random_perms: int = 10,
-    seed: Optional[int] = None,
+    seed: int | None = None,
     show_progress: bool = False,
 ) -> Tensor:
     def _generate_perturbations(
         current_n_perturbed_features: int,
         current_perturbation_mask: TensorOrTupleOfTensorsGeneric,
-    ) -> Tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
+    ) -> tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
         # repeat each current_n_perturbed_features times
         inputs_expanded = tuple(
             input.repeat(
@@ -152,7 +154,7 @@ def eval_aopcs_single_sample(
     def _generate_baseline_perturbations(
         current_n_perturbed_features: int,
         current_perturbation_mask: TensorOrTupleOfTensorsGeneric,
-    ) -> Tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
+    ) -> tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
         # repeat each current_n_perturbed_features times
         inputs_expanded = tuple(
             input.repeat(
@@ -188,9 +190,8 @@ def eval_aopcs_single_sample(
         )
 
     def _next_aopc_tensors(
-        current_n_perturbed_features: int,
-        current_n_steps: int,
-    ) -> Union[Tuple[Tensor], Tuple[Tensor, Tensor, Tensor]]:
+        current_n_perturbed_features: int, current_n_steps: int
+    ) -> tuple[Tensor] | tuple[Tensor, Tensor, Tensor]:
         # get the indices of features that will be perturbed in the current iteration
         # for example if we do 1 by 1 perturbation, then the first iteration will perturb the first feature
         # the second iteration will perturb both the first and second feature and so on
@@ -225,12 +226,10 @@ def eval_aopcs_single_sample(
             -1, curr_perturbation_mask.shape[-1]
         )
         inputs_perturbed = _generate_perturbations(
-            current_n_perturbed_features,
-            curr_perturbation_mask,
+            current_n_perturbed_features, curr_perturbation_mask
         )
         baselines_perturbed = _generate_baseline_perturbations(
-            current_n_perturbed_features,
-            curr_perturbation_mask,
+            current_n_perturbed_features, curr_perturbation_mask
         )
         targets_expanded = _expand_target(
             target,
@@ -355,7 +354,7 @@ def eval_aopcs_single_sample(
                             n_percentage_features_per_step=1 / total_feature_bins,
                         )
                         for rand_perm_idx in range(n_random_perms)
-                    ],
+                    ]
                 )
             else:
                 global_perturbation_masks_per_order[key] = (
@@ -409,11 +408,11 @@ def _aopc(
     feature_mask: TensorOrTupleOfTensorsGeneric = None,
     additional_forward_args: Any = None,
     target: TargetType = None,
-    max_features_processed_per_batch: Optional[int] = None,
+    max_features_processed_per_batch: int | None = None,
     total_feature_bins: int = 100,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    frozen_features: list[torch.Tensor] | None = None,
     n_random_perms: int = 10,
-    seed: Optional[int] = None,
+    seed: int | None = None,
     show_progress: bool = False,
 ) -> Any:
     # perform argument formattings
@@ -421,30 +420,26 @@ def _aopc(
     if baselines is None:
         baselines = tuple(torch.zeros_like(inp) for inp in inputs)
     else:
-        baselines = _format_baseline(baselines, cast(Tuple[Tensor, ...], inputs))
+        baselines = _format_baseline(baselines, cast(tuple[Tensor, ...], inputs))
     additional_forward_args = _format_additional_forward_args(additional_forward_args)
     attributions = _format_tensor_into_tuples(attributions)  # type: ignore
     feature_mask = _format_tensor_into_tuples(feature_mask)  # type: ignore
 
     # Make sure that inputs and corresponding attributions have matching sizes.
-    assert len(inputs) == len(attributions), (
-        """The number of tensors in the inputs and
-        attributions must match. Found number of tensors in the inputs is: {} and in the
-        attributions: {}"""
-    ).format(len(inputs), len(attributions))
+    assert len(inputs) == len(attributions), f"""The number of tensors in the inputs and
+        attributions must match. Found number of tensors in the inputs is: {len(inputs)} and in the
+        attributions: {len(attributions)}"""
     if feature_mask is not None:
-        assert len(feature_mask) == len(feature_mask), (
-            """The number of tensors in the inputs and
-                feature_masks must match. Found number of tensors in the inputs is: {} and in the
-                attributions: {}"""
-        ).format(len(feature_mask), len(feature_mask))
+        assert len(feature_mask) == len(
+            feature_mask
+        ), f"""The number of tensors in the inputs and
+                feature_masks must match. Found number of tensors in the inputs is: {len(feature_mask)} and in the
+                attributions: {len(feature_mask)}"""
         for input, attribution, mask in zip(inputs, attributions, feature_mask):
-            assert input.shape == mask.shape == attribution.shape, (
-                """
-                    The shape of the input, attribution and feature mask must match. Found shapes are: input {}
-                    attribution {} and feature mask {}
+            assert input.shape == mask.shape == attribution.shape, f"""
+                    The shape of the input, attribution and feature mask must match. Found shapes are: input {input.shape}
+                    attribution {attribution.shape} and feature mask {mask.shape}
                     """
-            ).format(input.shape, attribution.shape, mask.shape)
 
     bsz = inputs[0].size(0)
     inputs_perturbed_aopc_scores_batch = []
@@ -540,18 +535,16 @@ def _aopc(
 def aopc(
     forward_func: Callable,
     inputs: TensorOrTupleOfTensorsGeneric,
-    attributions: Union[
-        List[TensorOrTupleOfTensorsGeneric], TensorOrTupleOfTensorsGeneric
-    ],
+    attributions: list[TensorOrTupleOfTensorsGeneric] | TensorOrTupleOfTensorsGeneric,
     baselines: BaselineType,
     feature_mask: TensorOrTupleOfTensorsGeneric = None,
     additional_forward_args: Any = None,
     target: TargetType = None,
-    max_features_processed_per_batch: Optional[int] = None,
+    max_features_processed_per_batch: int | None = None,
     total_feature_bins: int = 100,
-    frozen_features: Optional[List[torch.Tensor]] = None,
+    frozen_features: list[torch.Tensor] | None = None,
     n_random_perms: int = 10,
-    seed: Optional[int] = None,
+    seed: int | None = None,
     is_multi_target: bool = False,
     show_progress: bool = False,
     return_intermediate_results: bool = False,
@@ -771,18 +764,18 @@ def aopc(
     is_attributions_list = isinstance(attributions, list)
     is_targets_list = isinstance(target, list)
     if is_multi_target:
-        assert (
-            is_attributions_list
-        ), "attributions must be a list of tensors or list of tuples of tensors"
+        assert is_attributions_list, (
+            "attributions must be a list of tensors or list of tuples of tensors"
+        )
         assert is_targets_list, "targets must be a list of targets"
-        assert all(
-            isinstance(x, (tuple, int)) for x in target
-        ), "targets must be a list of ints"
-        assert len(target) == len(attributions), (
-            """The number of targets in the targets_list and
-            attributions_list must match. Found number of targets in the targets_list is: {} and in the
-            attributions_list: {}"""
-        ).format(len(target), len(attributions))
+        assert all(isinstance(x, (tuple, int)) for x in target), (
+            "targets must be a list of ints"
+        )
+        assert len(target) == len(
+            attributions
+        ), f"""The number of targets in the targets_list and
+            attributions_list must match. Found number of targets in the targets_list is: {len(target)} and in the
+            attributions_list: {len(attributions)}"""
 
     if not is_attributions_list:
         attributions = [attributions]
@@ -846,17 +839,17 @@ def aopc(
 
     if return_intermediate_results:
         if return_dict:
-            return dict(
-                desc=inputs_perturbed_aopc_desc_batch,
-                asc=inputs_perturbed_aopc_asc_batch,
-                rand=inputs_perturbed_aopc_rand_batch,
-                baselines_perturbed_desc=baselines_perturbed_aopc_desc_batch,
-                baselines_perturbed_asc=baselines_perturbed_aopc_asc_batch,
-                baselines_perturbed_rand=baselines_perturbed_aopc_rand_batch,
-                inputs_perturbed_fwds_agg_batch=inputs_perturbed_fwds_agg_batch,
-                baselines_perturbed_fwds_agg_batch=baselines_perturbed_fwds_agg_batch,
-                inputs_fwd_batch=inputs_fwd_batch,
-            )
+            return {
+                "desc": inputs_perturbed_aopc_desc_batch,
+                "asc": inputs_perturbed_aopc_asc_batch,
+                "rand": inputs_perturbed_aopc_rand_batch,
+                "baselines_perturbed_desc": baselines_perturbed_aopc_desc_batch,
+                "baselines_perturbed_asc": baselines_perturbed_aopc_asc_batch,
+                "baselines_perturbed_rand": baselines_perturbed_aopc_rand_batch,
+                "inputs_perturbed_fwds_agg_batch": inputs_perturbed_fwds_agg_batch,
+                "baselines_perturbed_fwds_agg_batch": baselines_perturbed_fwds_agg_batch,
+                "inputs_fwd_batch": inputs_fwd_batch,
+            }
         else:
             return (
                 inputs_perturbed_aopc_desc_batch,
@@ -871,14 +864,14 @@ def aopc(
             )
     else:
         if return_dict:
-            return dict(
-                desc=inputs_perturbed_aopc_desc_batch,
-                asc=inputs_perturbed_aopc_asc_batch,
-                rand=inputs_perturbed_aopc_rand_batch,
-                baselines_perturbed_desc=baselines_perturbed_aopc_desc_batch,
-                baselines_perturbed_asc=baselines_perturbed_aopc_asc_batch,
-                baselines_perturbed_rand=baselines_perturbed_aopc_rand_batch,
-            )
+            return {
+                "desc": inputs_perturbed_aopc_desc_batch,
+                "asc": inputs_perturbed_aopc_asc_batch,
+                "rand": inputs_perturbed_aopc_rand_batch,
+                "baselines_perturbed_desc": baselines_perturbed_aopc_desc_batch,
+                "baselines_perturbed_asc": baselines_perturbed_aopc_asc_batch,
+                "baselines_perturbed_rand": baselines_perturbed_aopc_rand_batch,
+            }
         else:
             return (
                 inputs_perturbed_aopc_desc_batch,
