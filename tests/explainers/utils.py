@@ -2,6 +2,7 @@ import pytest  # noqa
 
 from tests.utils.common import _compare_explanation_per_target, _set_all_random_seeds
 from tests.utils.configs import ExplainersTestRuntimeConfig, TestBaseConfig
+from torchxai.data_types import ExplanationTarget
 from torchxai.explainers.factory import ExplainerFactory
 from torchxai.ignite._explanation_step import (
     ExplanationStep,
@@ -71,6 +72,10 @@ def run_explainer_test_with_config(
     # in the first pass we compute explanations for each target separately using single-target explainer
     single_target_explanations = []
     for curr_target, curr_expected in zip(target, expected, strict=True):
+        assert isinstance(curr_target, ExplanationTarget), (
+            f"The target must be of type BaseTarget, Got: {curr_target}"
+        )
+
         explanations = run_single_test(
             base_config.model_copy(
                 update={

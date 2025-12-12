@@ -20,11 +20,8 @@ from captum.attr._utils.common import _format_callable_baseline
 from torch import Tensor
 from torch.nn import Module
 
-from torchxai.data_types.common import (
-    BaselineType,
-    TargetType,
-    TensorOrTupleOfTensorsGeneric,
-)
+from torchxai.data_types import ExplanationInputs, ExplanationTargetType
+from torchxai.data_types.common import TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.explainers._grad._deeplift import MultiTargetDeepLift
 from torchxai.explainers._utils import (
     _compute_gradients_sequential_autograd,
@@ -571,11 +568,11 @@ class DeepLiftShapExplainer(Explainer):
         >>> explainer = DeepLiftShapExplainer(model)
         >>>
         >>> # Training baselines from representative training samples
-        >>> train_baselines = torch.randn(50, 10)  # 50 training samples
+        >>> baselines = torch.randn(50, 10)  # 50 training samples
         >>> explanation_inputs = ExplanationInputs(
         ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
         ...     target=torch.tensor([0, 1]),
-        ...     baselines=OrderedDict({"input": train_baselines}),
+        ...     baselines=OrderedDict({"input": baselines}),
         ... )
         >>> attributions = explainer.explain(explanation_inputs)
         >>> # Returns: OrderedDict({"input": torch.Tensor})
@@ -585,7 +582,7 @@ class DeepLiftShapExplainer(Explainer):
         >>> explanation_inputs_mt = ExplanationInputs(
         ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
         ...     target=[torch.tensor([0]), torch.tensor([1])],
-        ...     baselines=OrderedDict({"input": train_baselines}),
+        ...     baselines=OrderedDict({"input": baselines}),
         ... )
         >>> mt_attributions = explainer_mt.explain(explanation_inputs_mt)
         >>> # Returns: [OrderedDict({"input": torch.Tensor}), OrderedDict({"input": torch.Tensor})]
@@ -641,12 +638,27 @@ class DeepLiftShapExplainer(Explainer):
             internal_batch_size=self._internal_batch_size,
         )
 
+    def _build_inputs(
+        self,
+        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
+        target: ExplanationTargetType,
+        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
+        additional_forward_args: tuple[Any, ...] | None = None,
+    ):
+        """Build ExplanationInputs from individual parameters."""
+        return ExplanationInputs(
+            inputs=inputs,
+            target=target,
+            baselines=baselines,
+            additional_forward_args=additional_forward_args,
+        )
+
     def explain(
         self,
-        inputs: TensorOrTupleOfTensorsGeneric,
-        target: TargetType,
-        train_baselines: BaselineType,
-        additional_forward_args: Any = None,
+        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
+        target: ExplanationTargetType,
+        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
+        additional_forward_args: tuple[Any, ...] | None = None,
     ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
         """Compute DeepLIFT SHAP attributions for the given inputs.
 
@@ -659,7 +671,7 @@ class DeepLiftShapExplainer(Explainer):
                 mapping feature names to tensors when used with this explainer.
             target: Target indices for attribution computation. Can be a tensor
                 (single-target) or list of tensors (multi-target).
-            train_baselines: Training baseline distribution for DeepLIFT SHAP.
+            baselines: Training baseline distribution for DeepLIFT SHAP.
                 Must be provided as a tensor distribution representing training samples.
                 The method averages attributions across these baselines.
             additional_forward_args: Additional arguments for model forward pass.
@@ -675,16 +687,16 @@ class DeepLiftShapExplainer(Explainer):
 
         Examples:
             >>> # With training baselines
-            >>> train_baselines = torch.randn(100, 10)  # 100 training samples
+            >>> baselines = torch.randn(100, 10)  # 100 training samples
             >>> attributions = explainer.explain(
             ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
             ...     target=torch.tensor([0, 1]),
-            ...     train_baselines=OrderedDict({"input": train_baselines}),
+            ...     baselines=OrderedDict({"input": baselines}),
             ... )
         """
         return super().explain(
             inputs=inputs,
             target=target,
-            baselines=train_baselines,
+            baselines=baselines,
             additional_forward_args=additional_forward_args,
         )

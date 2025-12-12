@@ -334,7 +334,6 @@ def sensitivity_max_and_avg(
     )
     if "explainer_baselines" in kwargs:
         kwargs["baselines"] = kwargs.pop("explainer_baselines")
-        print("using baselines")
     sensitivity_scores = _sensitivity_scores(
         explainer,
         inputs,

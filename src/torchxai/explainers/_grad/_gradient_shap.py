@@ -10,6 +10,7 @@ from captum.attr._core.noise_tunnel import NoiseTunnel
 from captum.attr._utils.common import _format_callable_baseline
 from torch.nn.modules import Module
 
+from torchxai.data_types import ExplanationInputs, ExplanationTargetType
 from torchxai.data_types.common import (
     BaselineType,
     TargetType,
@@ -278,12 +279,27 @@ class GradientShapExplainer(Explainer):
             stdevs=self.stdevs,
         )
 
+    def _build_inputs(
+        self,
+        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
+        target: ExplanationTargetType,
+        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
+        additional_forward_args: tuple[Any, ...] | None = None,
+    ):
+        """Build ExplanationInputs from individual parameters."""
+        return ExplanationInputs(
+            inputs=inputs,
+            target=target,
+            baselines=baselines,
+            additional_forward_args=additional_forward_args,
+        )
+
     def explain(
         self,
-        inputs: TensorOrTupleOfTensorsGeneric,
-        target: TargetType,
-        baselines: BaselineType,
-        additional_forward_args: Any = None,
+        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
+        target: ExplanationTargetType,
+        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
+        additional_forward_args: tuple[Any, ...] | None = None,
     ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
         """Compute GradientShap attributions for the given inputs.
 

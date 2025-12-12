@@ -7,6 +7,11 @@ from tests.explainers.utils import (
 )
 from tests.utils.common import _grid_segmenter
 from tests.utils.configs import TestBaseConfig
+from torchxai.data_types import (
+    ExplanationTarget,
+    SingleTargetAcrossBatch,
+    SingleTargetPerSample,
+)
 
 
 class ExplainersTestRuntimeConfig_(ExplainersTestRuntimeConfig):
@@ -81,8 +86,12 @@ test_configurations = [
             ),
         ],
         override_target=[
-            [(0, 1, 1), (0, 1, 1), (1, 1, 1), (0, 1, 1)],
-            [(0, 0, 0), (0, 1, 1), (1, 1, 1), (0, 1, 1)],
+            ExplanationTarget.from_raw_input(
+                [(0, 1, 1), (0, 1, 1), (1, 1, 1), (0, 1, 1)]
+            ),
+            ExplanationTarget.from_raw_input(
+                [(0, 0, 0), (0, 1, 1), (1, 1, 1), (0, 1, 1)]
+            ),
         ],
         delta=1e-2,
     ),
@@ -109,7 +118,10 @@ test_configurations = [
             ),
             (torch.tensor([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]),),
         ],
-        override_target=[torch.tensor([0]), torch.tensor([1])],
+        override_target=[
+            ExplanationTarget.from_raw_input(torch.tensor([0])),
+            ExplanationTarget.from_raw_input(torch.tensor([1])),
+        ],
     ),
     *_make_config_for_explainer(
         target_fixture="classification_softmax_model_multi_tuple_input_single_target_config",
@@ -117,20 +129,27 @@ test_configurations = [
             (torch.tensor([[0] * 10] * 3), torch.tensor([[0] * 10] * 3)),
             (torch.tensor([[0] * 10] * 3), torch.tensor([[0] * 10] * 3)),
         ],
-        override_target=[0, 1],
+        override_target=[
+            SingleTargetAcrossBatch(index=0),
+            SingleTargetAcrossBatch(index=1),
+        ],
     ),
     *_make_config_for_explainer(
         target_fixture="classification_alexnet_model_config",
-        override_target=[0, 1, 2],
+        override_target=[
+            SingleTargetAcrossBatch(index=0),
+            SingleTargetAcrossBatch(index=1),
+            SingleTargetAcrossBatch(index=2),
+        ],
         expected=[None] * 3,
         set_image_feature_mask=True,
     ),
     *_make_config_for_explainer(
         target_fixture="classification_alexnet_model_config",
         override_target=[
-            [0] * 10,
-            [1] * 10,
-            list(range(10)),
+            SingleTargetPerSample(indices=[0] * 10),
+            SingleTargetPerSample(indices=[1] * 10),
+            SingleTargetPerSample(indices=list(range(10))),
         ],  # take all the outputs at 0th index as target
         expected=[None] * 3,
         set_image_feature_mask=True,
@@ -148,7 +167,6 @@ test_configurations = [
 def test_lime(explainer_runtime_test_configuration):
     base_config, runtime_config = explainer_runtime_test_configuration
     base_config: TestBaseConfig
-    print("Running test with base_config:", runtime_config.test_name)
     if runtime_config.set_image_feature_mask:
         base_config = base_config.model_copy(
             update={

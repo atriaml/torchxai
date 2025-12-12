@@ -13,8 +13,6 @@ def _create_model_with_shifted_bias(
     constant_shifts: torch.Tensor,
     additional_forward_args: Any,
 ):
-    print("constant_shifts", constant_shifts[0].device)
-
     with torch.no_grad():
         # create a copy of the model
         shifted_model = deepcopy(model)

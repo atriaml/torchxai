@@ -8,8 +8,6 @@ import torch
 from torchxai.data_types import ExplanationInputs
 from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
 
-_ONLY_ALLOW_TENSORS_AS_TARGETS_DEFAULT = False
-
 
 class Explainer(ABC):
     """Abstract base class for TorchXAI explainers.
@@ -136,7 +134,7 @@ class Explainer(ABC):
         return _default_multi_target_explanation_fn
 
     def _single_target_forward(
-        self, *args, **kwargs
+        self, explanation_inputs
     ) -> dict[str, TensorOrTupleOfTensorsGeneric]:
         """Forward pass for single-target explanations.
 
@@ -147,21 +145,8 @@ class Explainer(ABC):
             Dictionary mapping feature names to their corresponding attributions.
         """
         # inspect explainer signature and save
-        explanation_inputs = ExplanationInputs(*args, **kwargs)
         fields_set = explanation_inputs.model_fields_set
         explanation_tuple_inputs = explanation_inputs.to_explanation_tuple_inputs()
-
-        # for our case, we keep target simple as tensor with equal batch size to inputs
-        if _ONLY_ALLOW_TENSORS_AS_TARGETS_DEFAULT:
-            assert isinstance(explanation_inputs.target, torch.Tensor), (
-                "Target must be a torch.Tensor for single-target explanation."
-            )
-            assert (
-                explanation_inputs.target.shape[0]
-                == explanation_tuple_inputs.inputs[0].shape[0]
-            ), "Target batch size must match inputs batch size."
-        # only keep set args
-
         explanations = self._explanation_fn(
             **explanation_tuple_inputs.model_dump(include=fields_set)
         )
@@ -173,7 +158,7 @@ class Explainer(ABC):
         )
 
     def _multi_target_forward(
-        self, *args, **kwargs
+        self, explanation_inputs
     ) -> list[OrderedDict[str, torch.Tensor]]:
         """Forward pass for multi-target explanations.
 
@@ -187,29 +172,12 @@ class Explainer(ABC):
             AssertionError: If targets are not properly formatted for multi-target mode.
         """
         # inspect explainer signature and save
-        explanation_inputs = ExplanationInputs(*args, **kwargs)
         fields_set = explanation_inputs.model_fields_set
         explanation_tuple_inputs = explanation_inputs.to_explanation_tuple_inputs()
 
         assert isinstance(explanation_tuple_inputs.target, list), (
             "Target must be a list for multi-target explanation."
         )
-        # target for each input in the batch can be variable length. However, since that will only work for 1 batch-size
-        # we only currently support that target is the same length for all inputs in the batch.
-        # # e.g. target = [[0,1], [0,1], [0,1]] for batch-size 3 with 2 targets each
-        # validate this here
-        # also just in our case we only support list of lists
-        if _ONLY_ALLOW_TENSORS_AS_TARGETS_DEFAULT:
-            for t in explanation_tuple_inputs.target:
-                assert isinstance(t, torch.Tensor | None), (
-                    f"Each target must be a torch.Tensor or None. Got: {t}"
-                )
-                if t is None:
-                    continue
-                assert t.shape == explanation_tuple_inputs.target[0].shape, (
-                    "All targets must have the same shape."
-                )
-                assert t.ndim <= 1, "Each target tensor must be 1-dimensional."
         per_target_explanations = self._explanation_fn(
             **explanation_tuple_inputs.model_dump(include=fields_set)
         )
@@ -232,6 +200,21 @@ class Explainer(ABC):
         ]
 
         return per_target_explanations
+
+    @abstractmethod
+    def _build_inputs(self, *args, **kwargs) -> ExplanationInputs:
+        """Build ExplanationInputs from args and kwargs.
+
+        This method must be implemented by subclasses to construct an
+        ExplanationInputs object from the provided arguments.
+
+        Args:
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
+        Returns:
+            ExplanationInputs: The constructed ExplanationInputs object.
+        """
+        pass
 
     def explain(
         self, *args, **kwargs
@@ -274,13 +257,17 @@ class Explainer(ABC):
         Raises:
             AssertionError: If target format doesn't match the explainer mode or batch size requirements.
         """
+
+        # we internally use ExplanationInputs for structured validation of the explainer inputs before passing to the explainer function
+        explanation_inputs = self._build_inputs(*args, **kwargs)
+
         if self._multi_target:
             return typing.cast(
                 list[OrderedDict[str, torch.Tensor]],
-                self._multi_target_forward(*args, **kwargs),
+                self._multi_target_forward(explanation_inputs),
             )
         else:
             return typing.cast(
                 OrderedDict[str, torch.Tensor],
-                self._single_target_forward(*args, **kwargs),
+                self._single_target_forward(explanation_inputs),
             )

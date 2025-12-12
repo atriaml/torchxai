@@ -226,7 +226,6 @@ def test_non_sensitivity(metrics_runtime_test_configuration_with_explanation_sta
     runtime_config.constant_shifts = tuple(
         x.to(device) for x in runtime_config.constant_shifts
     )
-    print("runtime_config.constant_shifts", runtime_config.constant_shifts[0].device)
     output_invariance, expl_inputs, expl_shifted_inputs = input_invariance(
         explainer=explainer,
         inputs=base_config.inputs,
@@ -261,7 +260,6 @@ def test_non_sensitivity(metrics_runtime_test_configuration_with_explanation_sta
 
     # now test via the Ignite Metric interface
     explanation_state.to(device)
-    print("explanation_state", explanation_state)
     input_invarance_score = _run_metric_via_ignite(metric, explanation_state)[
         "input_invarance_score"
     ]

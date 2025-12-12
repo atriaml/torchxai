@@ -3,6 +3,7 @@ import torch  # noqa
 
 from tests.explainers.utils import run_explainer_test_with_config
 from tests.utils.configs import ExplainersTestRuntimeConfig
+from torchxai.data_types import SingleTargetAcrossBatch, SingleTargetPerSample
 
 
 def _make_config_for_explainer(*args, **kwargs):
@@ -27,7 +28,11 @@ def _make_config_for_explainer(*args, **kwargs):
 test_configurations = [
     *_make_config_for_explainer(
         target_fixture="classification_alexnet_model_config",
-        override_target=[0, 1, 2],
+        override_target=[
+            SingleTargetAcrossBatch(index=0),
+            SingleTargetAcrossBatch(index=1),
+            SingleTargetAcrossBatch(index=2),
+        ],
         expected=[None] * 3,
         strides=(3, 16, 16),
         sliding_window_shapes=(3, 32, 32),
@@ -36,9 +41,9 @@ test_configurations = [
     *_make_config_for_explainer(
         target_fixture="classification_alexnet_model_config",
         override_target=[
-            [0] * 10,
-            [1] * 10,
-            list(range(10)),
+            SingleTargetPerSample(indices=[0] * 10),
+            SingleTargetPerSample(indices=[1] * 10),
+            SingleTargetPerSample(indices=list(range(10))),
         ],  # take all the outputs at 0th index as target
         expected=[None] * 3,
         strides=(3, 16, 16),

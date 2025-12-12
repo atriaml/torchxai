@@ -5,6 +5,11 @@ from tests.explainers.utils import (
     make_config_for_explainer_with_grad_batch_size,
     run_explainer_test_with_config,
 )
+from torchxai.data_types import (
+    SingleTargetAcrossBatch,
+    SingleTargetPerSample,
+    ExplanationTarget,
+)
 
 test_configurations = [
     *make_config_for_explainer_with_grad_batch_size(
@@ -28,18 +33,12 @@ test_configurations = [
     *make_config_for_explainer_with_grad_batch_size(
         target_fixture="basic_model_batch_input_config",
         explainer="deep_lift",
-        expected=(
-            torch.tensor([3, 3, 3]),
-            torch.tensor([-1, -1, -1]),
-        ),
+        expected=(torch.tensor([3, 3, 3]), torch.tensor([-1, -1, -1])),
     ),
     *make_config_for_explainer_with_grad_batch_size(
         target_fixture="basic_model_batch_input_with_additional_forward_args_config",
         explainer="deep_lift",
-        expected=(
-            torch.tensor([[0, 0, 0]]),
-            torch.tensor([[0, 0, 0]]),
-        ),
+        expected=(torch.tensor([[0, 0, 0]]), torch.tensor([[0, 0, 0]])),
     ),
     *make_config_for_explainer_with_grad_batch_size(
         target_fixture="classification_convnet_model_with_multiple_targets_config",
@@ -85,8 +84,12 @@ test_configurations = [
             ),
         ],
         override_target=[
-            [(0, 1, 1), (0, 1, 1), (1, 1, 1), (0, 1, 1)],
-            [(0, 0, 0), (0, 1, 1), (1, 1, 1), (0, 1, 1)],
+            ExplanationTarget.from_raw_input(
+                [(0, 1, 1), (0, 1, 1), (1, 1, 1), (0, 1, 1)]
+            ),
+            ExplanationTarget.from_raw_input(
+                [(0, 0, 0), (0, 1, 1), (1, 1, 1), (0, 1, 1)]
+            ),
         ],
     ),
     *make_config_for_explainer_with_grad_batch_size(
@@ -126,11 +129,14 @@ test_configurations = [
                             -0.0182,
                             0.0217,
                         ]
-                    ],
+                    ]
                 ),
             ),
         ],
-        override_target=[torch.tensor([0]), torch.tensor([1])],
+        override_target=[
+            ExplanationTarget.from_raw_input(torch.tensor([0])),
+            ExplanationTarget.from_raw_input(torch.tensor([1])),
+        ],
     ),
     *make_config_for_explainer_with_grad_batch_size(
         target_fixture="classification_softmax_model_single_input_single_target_config",
@@ -173,21 +179,28 @@ test_configurations = [
                 ),
             ),
         ],
-        override_target=[torch.tensor([0]), torch.tensor([1])],
+        override_target=[
+            ExplanationTarget.from_raw_input(torch.tensor([0])),
+            ExplanationTarget.from_raw_input(torch.tensor([1])),
+        ],
     ),
     *make_config_for_explainer_with_grad_batch_size(
         target_fixture="classification_alexnet_model_config",
         explainer="deep_lift",
-        override_target=[0, 1, 2],
+        override_target=[
+            SingleTargetAcrossBatch(index=0),
+            SingleTargetAcrossBatch(index=1),
+            SingleTargetAcrossBatch(index=2),
+        ],
         expected=[None] * 3,
     ),
     *make_config_for_explainer_with_grad_batch_size(
         target_fixture="classification_alexnet_model_config",
         explainer="deep_lift",
         override_target=[
-            [0] * 10,
-            [1] * 10,
-            list(range(10)),
+            SingleTargetPerSample(indices=[0] * 10),
+            SingleTargetPerSample(indices=[1] * 10),
+            SingleTargetPerSample(indices=list(range(10))),
         ],  # take all the outputs at 0th index as target
         expected=[None] * 3,
     ),

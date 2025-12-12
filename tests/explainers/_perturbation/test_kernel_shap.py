@@ -6,6 +6,7 @@ from tests.explainers.utils import (
     run_explainer_test_with_config,
 )
 from tests.utils.common import _grid_segmenter
+from torchxai.data_types import ExplanationTarget, SingleTargetAcrossBatch
 
 
 class ExplainersTestRuntimeConfig_(ExplainersTestRuntimeConfig):
@@ -80,8 +81,12 @@ test_configurations = [
             ),
         ],
         override_target=[
-            [(0, 1, 1), (0, 1, 1), (1, 1, 1), (0, 1, 1)],
-            [(0, 0, 0), (0, 1, 1), (1, 1, 1), (0, 1, 1)],
+            ExplanationTarget.from_raw_input(
+                [(0, 1, 1), (0, 1, 1), (1, 1, 1), (0, 1, 1)]
+            ),
+            ExplanationTarget.from_raw_input(
+                [(0, 0, 0), (0, 1, 1), (1, 1, 1), (0, 1, 1)]
+            ),
         ],
         delta=1e-2,
     ),
@@ -122,18 +127,29 @@ test_configurations = [
                 ]
             ),
         ],
-        override_target=[torch.tensor([0]), torch.tensor([1])],
+        override_target=[
+            ExplanationTarget.from_raw_input(torch.tensor([0])),
+            ExplanationTarget.from_raw_input(torch.tensor([1])),
+        ],
     ),
     *_make_config_for_explainer(
         target_fixture="classification_alexnet_model_single_sample_config",
-        override_target=[0, 1, 2],
+        override_target=[
+            SingleTargetAcrossBatch(index=0),
+            SingleTargetAcrossBatch(index=1),
+            SingleTargetAcrossBatch(index=2),
+        ],
         expected=[None] * 3,
         set_image_feature_mask=True,
         visualize=False,
     ),
     *_make_config_for_explainer(
         target_fixture="classification_alexnet_model_real_images_single_sample_config",
-        override_target=[0, 1, 2],
+        override_target=[
+            SingleTargetAcrossBatch(index=0),
+            SingleTargetAcrossBatch(index=1),
+            SingleTargetAcrossBatch(index=2),
+        ],
         expected=[None] * 3,
         set_image_feature_mask=True,
         visualize=False,

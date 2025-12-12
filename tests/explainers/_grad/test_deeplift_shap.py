@@ -8,6 +8,11 @@ from tests.explainers.utils import (
     run_explainer_test_with_config,
 )
 from tests.utils.configs import ExplainersTestRuntimeConfig, TestBaseConfig
+from torchxai.data_types import (
+    ExplanationTarget,
+    SingleTargetAcrossBatch,
+    SingleTargetPerSample,
+)
 
 test_configurations = [
     *make_config_for_explainer_with_internal_and_grad_batch_size(
@@ -77,8 +82,12 @@ test_configurations = [
             ),
         ],
         override_target=[
-            [(0, 1, 1), (0, 1, 1), (1, 1, 1), (0, 1, 1)],
-            [(0, 0, 0), (0, 1, 1), (1, 1, 1), (0, 1, 1)],
+            ExplanationTarget.from_raw_input(
+                [(0, 1, 1), (0, 1, 1), (1, 1, 1), (0, 1, 1)]
+            ),
+            ExplanationTarget.from_raw_input(
+                [(0, 0, 0), (0, 1, 1), (1, 1, 1), (0, 1, 1)]
+            ),
         ],
         internal_batch_sizes=[None, 1, 4],
     ),
@@ -119,7 +128,10 @@ test_configurations = [
                 ]
             ),
         ],
-        override_target=[torch.tensor([0]), torch.tensor([1])],
+        override_target=[
+            ExplanationTarget.from_raw_input(torch.tensor([0])),
+            ExplanationTarget.from_raw_input(torch.tensor([1])),
+        ],
         internal_batch_sizes=[None, 1, 4],
     ),
     *make_config_for_explainer_with_internal_and_grad_batch_size(
@@ -159,13 +171,20 @@ test_configurations = [
                 ]
             ),
         ],
-        override_target=[torch.tensor([0]), torch.tensor([1])],
+        override_target=[
+            ExplanationTarget.from_raw_input(torch.tensor([0])),
+            ExplanationTarget.from_raw_input(torch.tensor([1])),
+        ],
         internal_batch_sizes=[None, 1, 4],
     ),
     *make_config_for_explainer_with_internal_and_grad_batch_size(
         target_fixture="classification_alexnet_model_config",
         explainer="deep_lift_shap",
-        override_target=[0, 1, 2],
+        override_target=[
+            SingleTargetAcrossBatch(index=0),
+            SingleTargetAcrossBatch(index=1),
+            SingleTargetAcrossBatch(index=2),
+        ],
         expected=[None] * 3,
         internal_batch_sizes=[4, 16],
     ),
@@ -173,9 +192,9 @@ test_configurations = [
         target_fixture="classification_alexnet_model_config",
         explainer="deep_lift_shap",
         override_target=[
-            [0] * 10,
-            [1] * 10,
-            list(range(10)),
+            SingleTargetPerSample(indices=[0] * 10),
+            SingleTargetPerSample(indices=[1] * 10),
+            SingleTargetPerSample(indices=list(range(10))),
         ],  # take all the outputs at 0th index as target
         expected=[None] * 3,
         internal_batch_sizes=[4, 16],
@@ -196,7 +215,7 @@ def test_deep_lift_shap(explainer_runtime_test_configuration):
     runtime_config: ExplainersTestRuntimeConfig
 
     # deeplift shap always requires a random train baselines
-    train_baselines = OrderedDict(
+    baselines = OrderedDict(
         {
             k: torch.randn((20, *v.shape[1:]))
             for k, v in base_config.explanation_inputs.inputs.items()
@@ -206,7 +225,7 @@ def test_deep_lift_shap(explainer_runtime_test_configuration):
     base_config = base_config.model_copy(
         update={
             "explanation_inputs": base_config.explanation_inputs.model_copy(
-                update={"train_baselines": train_baselines}
+                update={"baselines": baselines}
             )
         }
     )
