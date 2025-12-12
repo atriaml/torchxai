@@ -6,7 +6,7 @@ from typing import Any, Self
 import torch
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
-from torchxai.ignite._utilities import _as_detached_tuple
+from torchxai.ignite._utilities import _tensor_or_tensor_dict_as_detached_tuple
 
 BaselineType = torch.Tensor | tuple[torch.Tensor]
 
@@ -80,6 +80,11 @@ class ExplanationInputs(BaseModel):
     target: list[torch.Tensor] | torch.Tensor | Any | None = None
     frozen_features: list[torch.Tensor] | None = None
 
+    @property
+    def batch_size(self) -> int:
+        first_key = next(iter(self.inputs))
+        return self.inputs[first_key].shape[0]
+
     @field_validator("additional_forward_args", mode="before")
     @classmethod
     def to_tuple(cls, v):
@@ -151,11 +156,15 @@ class ExplanationInputs(BaseModel):
     def to_explanation_tuple_inputs(self) -> ExplanationTupleInputs:
         return ExplanationTupleInputs(
             sample_id=self.sample_id,
-            inputs=_as_detached_tuple(self.inputs),
-            baselines=_as_detached_tuple(self.baselines),
-            train_baselines=_as_detached_tuple(self.train_baselines),
-            feature_mask=_as_detached_tuple(self.feature_mask),
-            additional_forward_args=_as_detached_tuple(self.additional_forward_args),
+            inputs=_tensor_or_tensor_dict_as_detached_tuple(self.inputs),
+            baselines=_tensor_or_tensor_dict_as_detached_tuple(self.baselines),
+            train_baselines=_tensor_or_tensor_dict_as_detached_tuple(
+                self.train_baselines
+            ),
+            feature_mask=_tensor_or_tensor_dict_as_detached_tuple(self.feature_mask),
+            additional_forward_args=_tensor_or_tensor_dict_as_detached_tuple(
+                self.additional_forward_args
+            ),
             target=self.target,
             feature_keys=list(self.inputs.keys()),
             frozen_features=self.frozen_features,
@@ -382,44 +391,56 @@ class ExplanationStepOutputs(BaseModel):
         )
 
     @property
+    def batch_size(self) -> int:
+        return self.inputs[0].shape[0]
+
+    @property
     def inputs(self) -> tuple[torch.Tensor, ...]:
-        return _as_detached_tuple(self.explanation_state.explanation_inputs.inputs)
+        return _tensor_or_tensor_dict_as_detached_tuple(
+            self.explanation_state.explanation_inputs.inputs
+        )
 
     @property
     def additional_forward_args(self) -> tuple[Any, ...] | None:
-        return _as_detached_tuple(
+        return _tensor_or_tensor_dict_as_detached_tuple(
             self.explanation_state.explanation_inputs.additional_forward_args
         )
 
     @property
     def feature_mask(self) -> tuple[torch.Tensor, ...] | None:
-        return _as_detached_tuple(
+        return _tensor_or_tensor_dict_as_detached_tuple(
             self.explanation_state.explanation_inputs.feature_mask
         )
 
     @property
     def attributions(self) -> tuple[torch.Tensor, ...]:
-        return _as_detached_tuple(self.explanation_state.explanations)
+        return _tensor_or_tensor_dict_as_detached_tuple(
+            self.explanation_state.explanations
+        )
 
     @property
     def explainer_baselines(self) -> tuple[torch.Tensor, ...] | None:
-        return _as_detached_tuple(self.explanation_state.explanation_inputs.baselines)
+        return _tensor_or_tensor_dict_as_detached_tuple(
+            self.explanation_state.explanation_inputs.baselines
+        )
 
     @property
     def metric_baselines(self) -> tuple[torch.Tensor, ...] | None:
         if self.metric_inputs is None:
             return None
-        return _as_detached_tuple(self.metric_inputs.baselines)
+        return _tensor_or_tensor_dict_as_detached_tuple(self.metric_inputs.baselines)
 
     @property
     def metric_shift_baselines(self) -> tuple[torch.Tensor, ...] | None:
         if self.metric_inputs is None:
             return None
-        return _as_detached_tuple(self.metric_inputs.shift_baselines)
+        return _tensor_or_tensor_dict_as_detached_tuple(
+            self.metric_inputs.shift_baselines
+        )
 
     @property
     def train_baselines(self) -> tuple[torch.Tensor, ...] | None:
-        return _as_detached_tuple(
+        return _tensor_or_tensor_dict_as_detached_tuple(
             self.explanation_state.explanation_inputs.train_baselines
         )
 
@@ -427,7 +448,9 @@ class ExplanationStepOutputs(BaseModel):
     def constant_shifts(self) -> tuple[torch.Tensor, ...] | None:
         if self.metric_inputs is None:
             return None
-        return _as_detached_tuple(self.metric_inputs.constant_shifts)
+        return _tensor_or_tensor_dict_as_detached_tuple(
+            self.metric_inputs.constant_shifts
+        )
 
     @property
     def input_layer_names(self) -> list[str] | None:
@@ -449,7 +472,9 @@ class MultiTargetExplanationStepOutputs(ExplanationStepOutputs):
         # flatten list of OrderedDicts into tuple of tensors
         attributions_list = []
         for explanation_dict in self.explanation_state.explanations:
-            attributions_list.append(_as_detached_tuple(explanation_dict))
+            attributions_list.append(
+                _tensor_or_tensor_dict_as_detached_tuple(explanation_dict)
+            )
         return attributions_list
 
     @property

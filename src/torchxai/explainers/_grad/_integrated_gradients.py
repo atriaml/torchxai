@@ -275,7 +275,7 @@ class IntegratedGradientsExplainer(Explainer):
         grad_batch_size: Batch size for gradient computations. Defaults to 64.
         n_steps: Number of steps for the integral approximation. Defaults to 50.
 
-    Example:
+    Examples:
         Single-target usage:
         >>> import torch
         >>> from collections import OrderedDict
@@ -393,7 +393,7 @@ class IntegratedGradientsExplainer(Explainer):
             by parameters set during initialization (n_steps and return_convergence_delta).
             More steps generally provide more accurate approximations but increase computation time.
 
-        Example:
+        Examples:
             >>> # With convergence delta enabled at initialization
             >>> explainer = IntegratedGradientsExplainer(
             ...     model, n_steps=100, return_convergence_delta=True

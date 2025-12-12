@@ -300,7 +300,7 @@ class DeepLiftExplainer(Explainer):
         internal_batch_size: Batch size for internal computations. Defaults to 64.
         grad_batch_size: Batch size for gradient computations. Defaults to 64.
 
-    Example:
+    Examples:
         Single-target usage:
         >>> import torch
         >>> from collections import OrderedDict
@@ -389,7 +389,7 @@ class DeepLiftExplainer(Explainer):
             This method temporarily modifies activation functions during computation.
             Hooks and attributes are automatically removed after attribution computation.
 
-        Example:
+        Examples:
             >>> # With explicit baselines
             >>> attributions = explainer.explain(
             ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),

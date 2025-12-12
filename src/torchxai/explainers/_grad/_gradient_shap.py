@@ -186,7 +186,7 @@ class GradientShapExplainer(Explainer):
         return_convergence_delta: Whether to return convergence delta for
             completeness check. Defaults to False.
 
-    Example:
+    Examples:
         Single-target usage:
         >>> import torch
         >>> from collections import OrderedDict
@@ -308,7 +308,7 @@ class GradientShapExplainer(Explainer):
             GradientShap requires a distribution of baselines rather than a single baseline.
             The number of samples and noise parameters are controlled by initialization settings.
 
-        Example:
+        Examples:
             >>> # With baseline distribution
             >>> baseline_dist = torch.randn(50, 10)  # 50 baseline samples
             >>> attributions = explainer.explain(

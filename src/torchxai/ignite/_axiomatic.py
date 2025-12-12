@@ -17,7 +17,7 @@ from torchxai.metrics.axiomatic.monotonicity_corr_and_non_sens import (
 
 class CompletenessMetric(TorchXAIMetricBase):
     def _update(
-        self, output: ExplanationStepOutputs, is_multi_target: bool = False
+        self, output: ExplanationStepOutputs, multi_target: bool = False
     ) -> dict[str, torch.Tensor]:
         return typing.cast(
             dict,
@@ -32,7 +32,7 @@ class CompletenessMetric(TorchXAIMetricBase):
                 baselines=output.metric_baselines,
                 additional_forward_args=output.additional_forward_args,
                 target=output.target,  # type: ignore
-                is_multi_target=is_multi_target,
+                multi_target=multi_target,
                 return_dict=True,
             ),
         )
@@ -58,7 +58,7 @@ class InputInvarianceMetric(TorchXAIMetricBase):
         super().__init__(model, with_amp, device)
 
     def _update(
-        self, output: ExplanationStepOutputs, is_multi_target: bool = False
+        self, output: ExplanationStepOutputs, multi_target: bool = False
     ) -> dict[str, torch.Tensor]:
         assert output.constant_shifts is not None, (
             "Constant shifts must be provided for input invariance metric"
@@ -71,7 +71,7 @@ class InputInvarianceMetric(TorchXAIMetricBase):
             inputs=output.inputs,
             constant_shifts=output.constant_shifts,
             input_layer_names=output.input_layer_names,  # type: ignore
-            is_multi_target=is_multi_target,
+            multi_target=multi_target,
             return_intermediate_results=False,
             return_dict=True,
             # these are additionall explainer forward call args
@@ -117,7 +117,7 @@ class MonotonicityCorrAndNonSensMetric(TorchXAIMetricBase):
         super().__init__(model=model, with_amp=with_amp, device=device)
 
     def _update(
-        self, output: ExplanationStepOutputs, is_multi_target: bool = False
+        self, output: ExplanationStepOutputs, multi_target: bool = False
     ) -> dict[str, torch.Tensor]:
         return monotonicity_corr_and_non_sens(
             forward_func=self._model,
@@ -142,6 +142,6 @@ class MonotonicityCorrAndNonSensMetric(TorchXAIMetricBase):
             return_ratio=self._return_ratio,
             show_progress=False,
             return_intermediate_results=False,
-            is_multi_target=is_multi_target,
+            multi_target=multi_target,
             return_dict=True,
         )

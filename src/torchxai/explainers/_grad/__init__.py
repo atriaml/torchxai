@@ -1,35 +1,21 @@
 """Gradient-based explainers."""
 
-from ._deeplift import DeepLiftExplainer, MultiTargetDeepLift
-from ._gradient_shap import GradientShapExplainer, MultiTargetGradientShap
-from ._guided_backprop import GuidedBackpropExplainer, MultiTargetGuidedBackprop
-from ._input_x_baseline_gradient import (
-    InputXBaselineGradientExplainer,
-    MultiTargetInputBaselineXGradient,
-)
-from ._input_x_gradient import InputXGradientExplainer, MultiTargetInputXGradient
-from ._integrated_gradients import (
-    IntegratedGradientsExplainer,
-    MultiTargetIntegratedGradients,
-)
-from ._saliency import MultiTargetSaliency, SaliencyExplainer
-from .deeplift_shap import DeepLiftShapExplainer, MultiTargetDeepLiftShapBatched
+from ._deeplift import DeepLiftExplainer
+from ._gradient_shap import GradientShapExplainer
+from ._guided_backprop import GuidedBackpropExplainer
+from ._input_x_baseline_gradient import InputXBaselineGradientExplainer
+from ._input_x_gradient import InputXGradientExplainer
+from ._integrated_gradients import IntegratedGradientsExplainer
+from ._saliency import SaliencyExplainer
+from .deeplift_shap import DeepLiftShapExplainer
 
 __all__ = [
     "SaliencyExplainer",
-    "MultiTargetSaliency",
     "InputXGradientExplainer",
-    "MultiTargetInputXGradient",
     "InputXBaselineGradientExplainer",
-    "MultiTargetInputBaselineXGradient",
     "GuidedBackpropExplainer",
-    "MultiTargetGuidedBackprop",
     "DeepLiftExplainer",
-    "MultiTargetDeepLift",
     "DeepLiftShapExplainer",
-    "MultiTargetDeepLiftShapBatched",
     "IntegratedGradientsExplainer",
-    "MultiTargetIntegratedGradients",
     "GradientShapExplainer",
-    "MultiTargetGradientShap",
 ]

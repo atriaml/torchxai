@@ -169,7 +169,7 @@ class GuidedBackpropExplainer(Explainer):
         internal_batch_size: Batch size for internal computations. Defaults to 64.
         grad_batch_size: Batch size for gradient computations. Defaults to 64.
 
-    Example:
+    Examples:
         Single-target usage:
         >>> import torch
         >>> from collections import OrderedDict
@@ -242,7 +242,7 @@ class GuidedBackpropExplainer(Explainer):
             This method temporarily modifies ReLU backward hooks during computation.
             Hooks are automatically removed after attribution computation completes.
 
-        Example:
+        Examples:
             >>> # Single tensor input (wrapped automatically)
             >>> attributions = explainer.explain(
             ...     inputs=torch.randn(2, 10), target=torch.tensor([0, 1])

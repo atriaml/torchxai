@@ -78,10 +78,10 @@ def completeness(
     attributions: list[TensorOrTupleOfTensorsGeneric] | TensorOrTupleOfTensorsGeneric,
     baselines: BaselineType,
     additional_forward_args: Any = None,
-    target: TargetType = None,
-    is_multi_target: bool = False,
+    target: TargetType | list[TargetType] | None = None,
+    multi_target: bool = False,
     return_dict: bool = False,
-):
+) -> Tensor | list[Tensor] | dict[str, Tensor | list[Tensor]]:
     """
     Implementation of Completeness test by Sundararajan et al., 2017, also referred
     to as Summation to Delta by Shrikumar et al., 2017 and Conservation by
@@ -107,7 +107,8 @@ def completeness(
         forward_func (Callable):
                 The forward function of the model or any modification of it.
 
-        inputs (Tensor or tuple[Tensor, ...]): Input for which
+        inputs (Tensor or tuple[Tensor, ...]):
+                Input for which
                 attributions are computed. If forward_func takes a single
                 tensor as input, a single input tensor should be provided.
                 If forward_func takes multiple tensors as input, a tuple
@@ -132,16 +133,16 @@ def completeness(
                   be broadcasted for each input value in input tensor.
 
                 - a tuple of tensors or scalars, the baseline corresponding
-                  to each tensor in the inputs' tuple can be:
+                  to each tensor in the inputs\' tuple can be:
 
                 - either a tensor with matching dimensions to
-                  corresponding tensor in the inputs' tuple
+                  corresponding tensor in the inputs\' tuple
                   or the first dimension is one and the remaining
                   dimensions match with the corresponding
                   input tensor.
 
                 - or a scalar, corresponding to a tensor in the
-                  inputs' tuple. This scalar value is broadcasted
+                  inputs\' tuple. This scalar value is broadcasted
                   for corresponding input tensor.
 
                 Default: None
@@ -175,7 +176,8 @@ def completeness(
                 tensor as well. If inputs is provided as a tuple of tensors
                 then attributions will be tuples of tensors as well.
 
-        additional_forward_args (Any, optional): If the forward function
+        additional_forward_args (Any, optional):
+                If the forward function
                 requires additional arguments other than the inputs for
                 which attributions should not be computed, this argument
                 can be provided. It must be either a single additional
@@ -188,7 +190,8 @@ def completeness(
                 being passed to `perturb_func` as an input argument.
 
                 Default: None
-        target (int, tuple, Tensor, or list, optional): Indices for selecting
+        target (int, tuple, Tensor, or list, optional):
+                Indices for selecting
                 predictions from output(for classification cases,
                 this is usually the target class).
                 If the network returns a scalar value per example, no target
@@ -213,21 +216,28 @@ def completeness(
                   target for the corresponding example.
 
                 Default: None
-        is_multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
+        multi_target (bool, optional):
+                A boolean flag that indicates whether the metric computation is for
                 multi-target explanations. if set to true, the targets are required to be a list of integers
                 each corresponding to a required target class in the output. The corresponding metric outputs
                 are then returned as a list of metric outputs corresponding to each target class.
                 Default is False.
-        return_dict (bool, optional): A boolean flag that indicates whether the metric outputs are returned as a dictionary
+        return_dict (bool, optional):
+                A boolean flag that indicates whether the metric outputs are returned as a dictionary
                 with keys as the metric names and values as the corresponding metric outputs.
                 Default is False.
+
     Returns:
-        Tensor: A tensor of scalar completeness scores per
+        (Tensor | list[Tensor] | dict[str, Tensor | list[Tensor]]):
+                Either  tensor of scalar completeness scores per
                 input example. The first dimension is equal to the
                 number of examples in the input batch and the second
-                dimension is one.
+                dimension is one. If multi_target is set to True, then a list of
+                completeness scores is returned, each respective to the (target, attribution) pairs.
+                If return_dict is set to True, then a dictionary is returned with key "score" and value as the
+                completeness score tensor or list of tensors.
 
-    Examples::
+    Examples:
         >>> # ImageClassifier takes a single input tensor of images Nx3x32x32,
         >>> # and returns an Nx10 tensor of class probabilities.
         >>> net = ImageClassifier()
@@ -241,17 +251,29 @@ def completeness(
         >>> # Computes completeness score for saliency maps
         >>> completeness = completeness(net, input, attribution, baselines)
     """
-    metric_func = _multi_target_completeness if is_multi_target else _completeness
+    metric_func = _multi_target_completeness if multi_target else _completeness
     kwargs = {
         "forward_func": forward_func,
         "inputs": inputs,
         "baselines": baselines,
         "additional_forward_args": additional_forward_args,
     }
-    if is_multi_target:
+    if multi_target:
+        assert isinstance(target, list), (
+            "For multi-target completeness, the target must be a list of target indices."
+        )
+        assert isinstance(attributions, list), (
+            "For multi-target completeness, attributions must be a list of attributions."
+        )
         kwargs["attributions_list"] = attributions  # type: ignore
         kwargs["targets_list"] = target  # type: ignore
     else:
+        assert not isinstance(target, list), (
+            "For single-target completeness, the target must be a scalar or a tensor."
+        )
+        assert not isinstance(attributions, list), (
+            "For single-target completeness, the attributions must be a tensor or a tuple of tensors."
+        )
         kwargs["attributions"] = attributions  # type: ignore
         kwargs["target"] = target
 

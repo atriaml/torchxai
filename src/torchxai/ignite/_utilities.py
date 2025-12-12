@@ -20,7 +20,11 @@ def get_logger(name: str) -> logging.Logger:
     return logger
 
 
-def _as_detached_tuple(tensor_or_mapping: Any) -> tuple[torch.Tensor, ...]:
+def _tensor_or_tensor_dict_as_detached_tuple(
+    tensor_or_mapping: Any,
+) -> tuple[torch.Tensor, ...] | None:
+    if tensor_or_mapping is None:
+        return None
     if isinstance(tensor_or_mapping, torch.Tensor):
         return (tensor_or_mapping,)
     elif isinstance(tensor_or_mapping, dict):
@@ -28,5 +32,9 @@ def _as_detached_tuple(tensor_or_mapping: Any) -> tuple[torch.Tensor, ...]:
             x.detach() if isinstance(x, torch.Tensor) else x
             for x in tensor_or_mapping.values()
         )
+    elif isinstance(tensor_or_mapping, tuple):
+        return tuple(
+            x.detach() if isinstance(x, torch.Tensor) else x for x in tensor_or_mapping
+        )
     else:
-        return tensor_or_mapping
+        raise TypeError("Input must be a torch.Tensor or a dict of torch.Tensors.")

@@ -32,7 +32,7 @@ class RandomExplainer(Explainer):
         random_seed: Random seed for reproducible random attributions. If None,
             uses PyTorch's current random state. Defaults to None.
 
-    Example:
+    Examples:
         Single-target usage:
         >>> import torch
         >>> from collections import OrderedDict
@@ -140,7 +140,7 @@ class RandomExplainer(Explainer):
             If a random seed was provided during initialization, the results will be
             reproducible across calls with the same inputs.
 
-        Example:
+        Examples:
             >>> # Generate random baseline for comparison
             >>> random_attributions = explainer.explain(
             ...     inputs=OrderedDict({"features": torch.randn(1, 10)}),

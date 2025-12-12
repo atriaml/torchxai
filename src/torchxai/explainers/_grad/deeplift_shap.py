@@ -559,7 +559,7 @@ class DeepLiftShapExplainer(Explainer):
         return_convergence_delta: Whether to return convergence delta for
             completeness check. Defaults to False.
 
-    Example:
+    Examples:
         Single-target usage:
         >>> import torch
         >>> from collections import OrderedDict
@@ -673,7 +673,7 @@ class DeepLiftShapExplainer(Explainer):
             rather than a single baseline. The convergence delta behavior is controlled
             by initialization settings.
 
-        Example:
+        Examples:
             >>> # With training baselines
             >>> train_baselines = torch.randn(100, 10)  # 100 training samples
             >>> attributions = explainer.explain(

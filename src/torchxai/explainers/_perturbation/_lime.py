@@ -615,7 +615,7 @@ class LimeExplainer(Explainer):
         weight_attributions: Whether to weight attributions by feature group sizes
             when using feature masks. Defaults to True.
 
-    Example:
+    Examples:
         Single-target usage for tabular data:
         >>> import torch
         >>> from collections import OrderedDict
@@ -786,7 +786,7 @@ class LimeExplainer(Explainer):
             LIME trains a local linear model on perturbed samples. The number of samples
             and regularization strength are controlled by initialization parameters.
 
-        Example:
+        Examples:
             >>> # For tabular data with feature grouping
             >>> feature_mask = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 4]])
             >>> attributions = explainer.explain(

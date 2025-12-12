@@ -41,7 +41,7 @@ class TorchXAIMetricBase(Metric):
 
     @abstractmethod
     def _update(
-        self, output: ExplanationStepOutputs, is_multi_target: bool = False
+        self, output: ExplanationStepOutputs, multi_target: bool = False
     ) -> dict[str, torch.Tensor]:
         """Execute the metric function. Must be implemented by subclasses."""
         pass
@@ -61,7 +61,7 @@ class TorchXAIMetricBase(Metric):
         with autocast(enabled=self._with_amp):
             metric_output = self._update(
                 output=output,
-                is_multi_target=isinstance(
+                multi_target=isinstance(
                     output.explanation_state, MultiTargetExplanationState
                 ),
             )
@@ -71,14 +71,8 @@ class TorchXAIMetricBase(Metric):
 
         # store execution time per sample
         batch_exec_time = torch.tensor(end_time - start_time, requires_grad=False)
-        batch_size = len(output.explanation_state.explanation_inputs.sample_id)
         sample_exec_time = torch.stack(
-            [
-                batch_exec_time / batch_size
-                for _ in range(
-                    len(output.explanation_state.explanation_inputs.sample_id)
-                )
-            ]
+            [batch_exec_time / output.batch_size for _ in range(output.batch_size)]
         )
 
         # detach tensors to move them to CPU
@@ -87,7 +81,7 @@ class TorchXAIMetricBase(Metric):
         )
 
         # Accumulate results
-        self._num_examples += batch_size
+        self._num_examples += output.batch_size
         self._results.append({**metric_output, "sample_exec_time": sample_exec_time})  # type: ignore
 
     # -----------------------------------------------------------------

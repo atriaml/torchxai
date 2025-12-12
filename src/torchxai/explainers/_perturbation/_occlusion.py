@@ -405,7 +405,7 @@ class OcclusionExplainer(Explainer):
         internal_batch_size: Batch size for internal computations (perturbations
             per evaluation). Defaults to 1.
 
-    Example:
+    Examples:
         Single-target usage for image data:
         >>> import torch
         >>> from collections import OrderedDict
@@ -531,7 +531,7 @@ class OcclusionExplainer(Explainer):
             Attribution values represent the importance of each spatial region
             as measured by occlusion impact.
 
-        Example:
+        Examples:
             >>> # For image data with 8x8 occlusion windows
             >>> attributions = explainer.explain(
             ...     inputs=OrderedDict({"image": torch.randn(1, 3, 224, 224)}),

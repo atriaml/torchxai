@@ -238,7 +238,7 @@ class KernelShapExplainer(Explainer):
         weight_attributions: Whether to weight attributions by feature group sizes
             when using feature masks. Defaults to True.
 
-    Example:
+    Examples:
         Single-target usage for tabular data:
         >>> import torch
         >>> from collections import OrderedDict
@@ -393,7 +393,7 @@ class KernelShapExplainer(Explainer):
             Shapley values. The number of samples significantly affects accuracy and
             computation time. More samples provide better Shapley value approximations.
 
-        Example:
+        Examples:
             >>> # For tabular data with feature grouping
             >>> feature_mask = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 4]])
             >>> attributions = explainer.explain(

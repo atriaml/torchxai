@@ -34,7 +34,7 @@ class Explainer(ABC):
         internal_batch_size: Internal batch size for computations.
         grad_batch_size: Batch size for gradient operations.
 
-    Example:
+    Examples:
         >>> import torch
         >>> from collections import OrderedDict
         >>> from torchxai.data_types import ExplanationInputs
@@ -255,7 +255,7 @@ class Explainer(ABC):
             For single-target mode: OrderedDict mapping feature names to attribution tensors.
             For multi-target mode: List of OrderedDicts, one per target.
 
-        Example:
+        Examples:
             Using ExplanationInputs object:
             >>> from torchxai.data_types import ExplanationInputs
             >>> explanation_inputs = ExplanationInputs(
