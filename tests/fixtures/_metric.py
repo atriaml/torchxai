@@ -10,7 +10,7 @@ def metrics_runtime_test_configuration(request):
     # get the configs from the fixture request
     runtime_config: TestRuntimeConfig = request.param
     base_config: TestBaseConfig = request.getfixturevalue(runtime_config.target_fixture)
-    is_multi_target = runtime_config.is_multi_target
+    multi_target = runtime_config.multi_target
     if runtime_config.override_target is not None:
         base_config = base_config.model_copy(
             update={
@@ -22,10 +22,10 @@ def metrics_runtime_test_configuration(request):
     explanation_step_outputs = prepare_explanations(
         base_config=base_config,
         runtime_config=runtime_config,
-        is_multi_target=is_multi_target,
+        multi_target=multi_target,
     )
     explanation_step_outputs = explanation_step_outputs.to(runtime_config.device)
-    if is_multi_target:
+    if multi_target:
         targets_list = base_config.explanation_inputs.target
         assert len(explanation_step_outputs.attributions) == len(targets_list), (  # type: ignore
             "Number of explanations should be equal to the number of targets"

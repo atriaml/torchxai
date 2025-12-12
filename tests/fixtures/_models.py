@@ -377,10 +377,10 @@ def multi_modal_sequence_sum():
             target=target,
             feature_mask=feature_mask,
             baselines=tuple(torch.zeros_like(x) for x in inputs),
+            frozen_features=[torch.tensor([0, 1, 2, 9, 10, 11, 18, 19, 20])],
         ),
         metric_inputs=MetricInputs(
-            frozen_features=[torch.tensor([0, 1, 2, 9, 10, 11, 18, 19, 20])],
-            baselines=tuple(torch.zeros_like(x) for x in inputs),
+            baselines=tuple(torch.zeros_like(x) for x in inputs)
         ),
         n_features=n_features,
     )
@@ -437,10 +437,10 @@ def multi_modal_sequence_relu():
             target=target,
             feature_mask=feature_mask,
             baselines=tuple(torch.zeros_like(x) for x in inputs),
+            frozen_features=[torch.tensor([0, 1, 2, 9, 10, 11, 18, 19, 20])],
         ),
         metric_inputs=MetricInputs(
-            frozen_features=[torch.tensor([0, 1, 2, 9, 10, 11, 18, 19, 20])],
-            baselines=tuple(torch.zeros_like(x) for x in inputs),
+            baselines=tuple(torch.zeros_like(x) for x in inputs)
         ),
         n_features=n_features,
     )

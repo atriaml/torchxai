@@ -107,7 +107,7 @@ def test_completeness(metrics_runtime_test_configuration):
     metric = CompletenessMetric(model=base_config.model, device=runtime_config.device)
     metric_output = _run_metric_via_ignite(
         metric=metric, explanation_step_outputs=explanation_step_outputs
-    )["completeness_score"]
+    )["score"]
     _assert_tensor_almost_equal(
         metric_output, runtime_config.expected, delta=runtime_config.delta
     )

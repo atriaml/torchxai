@@ -50,7 +50,7 @@ class TestRuntimeConfig(BaseModel):
     device: str = Field(
         default_factory=lambda: "cuda" if torch.cuda.is_available() else "cpu"
     )
-    is_multi_target: bool = False
+    multi_target: bool = False
     set_image_feature_mask: bool = False
 
     @model_validator(mode="before")

@@ -23,7 +23,7 @@ class MetricTestRuntimeConfig(TestRuntimeConfig):
     override_target: list[int] = field(default_factory=lambda: [0, 1, 2])
     expected: torch.Tensor | None = None
     explainer_kwargs: dict | None = field(
-        default_factory=lambda: {"is_multi_target": True}
+        default_factory=lambda: {"multi_target": True}
     )
     delta: float = 1e-8
     perturb_func: Callable = default_random_perturb_func()
@@ -33,7 +33,7 @@ class MetricTestRuntimeConfig(TestRuntimeConfig):
     )
     set_image_feature_mask: bool = True
     percentage_feature_removal_per_step: float = 0.0
-    is_multi_target: bool = True
+    multi_target: bool = True
 
 
 test_configurations = [
@@ -117,7 +117,7 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
             max_features_processed_per_batch=max_features,
             percentage_feature_removal_per_step=runtime_config.percentage_feature_removal_per_step,
             show_progress=True,
-            is_multi_target=True,
+            multi_target=True,
             return_intermediate_results=True,
             return_ratio=False,
         )
@@ -224,7 +224,7 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
 #     ):
 #         _set_all_random_seeds(1234)
 #         outputs_list_1 = metric_func(
-#             is_multi_target=False,
+#             multi_target=False,
 #             n_perturbs=n_perturbs,
 #             max_features=max_features,
 #             explanation=explanation_step_outputs.attributions,
@@ -238,7 +238,7 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
 #         ):
 #             _set_all_random_seeds(1234)
 #             outputs = metric_func(
-#                 is_multi_target=False,
+#                 multi_target=False,
 #                 n_perturbs=n_perturbs,
 #                 max_features=max_features,
 #                 explanation=explanation,

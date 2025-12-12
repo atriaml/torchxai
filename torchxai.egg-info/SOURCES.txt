@@ -30,6 +30,7 @@ src/torchxai/ignite/_base.py
 src/torchxai/ignite/_complexity.py
 src/torchxai/ignite/_explanation_step.py
 src/torchxai/ignite/_faithfulness.py
+src/torchxai/ignite/_localization.py
 src/torchxai/ignite/_utilities.py
 src/torchxai/ignite/_dep/_explanation_step.py
 src/torchxai/metrics/__init__.py

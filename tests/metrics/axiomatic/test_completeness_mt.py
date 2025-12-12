@@ -15,10 +15,10 @@ class MetricTestRuntimeConfig(TestRuntimeConfig):
     override_target: list[int] = field(default_factory=lambda: [0, 1, 2])
     expected: torch.Tensor | None = None
     explainer_kwargs: dict | None = field(
-        default_factory=lambda: {"is_multi_target": True}
+        default_factory=lambda: {"multi_target": True}
     )
     delta: float = 1e-8
-    is_multi_target: bool = True
+    multi_target: bool = True
 
 
 test_configurations = [
@@ -74,7 +74,7 @@ def test_completeness_multi_target(metrics_runtime_test_configuration):
         baselines=explanation_step_outputs.metric_baselines,
         additional_forward_args=explanation_step_outputs.additional_forward_args,
         target=target,
-        is_multi_target=True,
+        multi_target=True,
     )
 
     assert len(per_target_completeness) == len(multi_target_completeness_output)

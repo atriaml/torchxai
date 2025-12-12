@@ -12,7 +12,7 @@ from torchxai.ignite._explanation_step import (
 def prepare_explanations(
     base_config: TestBaseConfig,
     runtime_config: TestRuntimeConfig,
-    is_multi_target: bool = False,
+    multi_target: bool = False,
 ):
     _set_all_random_seeds(1234)
     assert isinstance(runtime_config.explainer_kwargs, dict), (
@@ -21,7 +21,7 @@ def prepare_explanations(
     explainer = ExplainerFactory.create(
         runtime_config.explainer, base_config.model, **runtime_config.explainer_kwargs
     )
-    if is_multi_target:
+    if multi_target:
         explanation_step = MultiTargetExplanationStep(
             model=base_config.model, explainer=explainer, device=runtime_config.device
         )

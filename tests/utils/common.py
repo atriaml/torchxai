@@ -156,6 +156,7 @@ def _run_metric_via_ignite(
         return explanation_step_outputs
 
     engine = Engine(explanation_step)
+    engine.logger.propagate = False
     metric.attach(engine, "metric")
     state = engine.run([None], max_epochs=1)
     return state.metrics["metric"][0]
