@@ -52,8 +52,6 @@ class TorchXAIMetricBase(Metric):
         Update internal state with output from engine.
         output_transform must return dict with key 'metric_kwargs'.
         """
-        logger.info(f"Updating metric: {self.name}")
-
         # Measure execution time
         start_time = time.time()
 

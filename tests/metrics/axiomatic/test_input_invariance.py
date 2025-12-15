@@ -2,7 +2,6 @@ import pytest
 import torch
 from pydantic import model_validator
 
-from tests.conftest import _run_metric_via_ignite
 from tests.utils.common import _assert_tensor_almost_equal, _grid_segmenter
 from tests.utils.configs import TestBaseConfig, TestRuntimeConfig
 from torchxai.data_types import ExplainerInputs, ExplanationState, ModelInputs

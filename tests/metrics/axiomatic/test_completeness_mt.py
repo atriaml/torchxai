@@ -3,12 +3,13 @@ from dataclasses import field
 import pytest
 import torch  # noqa
 
-from tests.utils.common import _assert_tensor_almost_equal
+from tests.utils.common import _assert_tensor_almost_equal, _run_metric_via_ignite
 from tests.utils.configs import TestBaseConfig, TestRuntimeConfig
 from torchxai.data_types import (
     MultiTargetExplanationStepOutputs,
     SingleTargetAcrossBatch,
 )
+from torchxai.ignite._axiomatic import CompletenessMetric
 from torchxai.metrics.axiomatic.completeness import completeness
 
 
@@ -76,7 +77,7 @@ def test_completeness_multi_target(metrics_runtime_test_configuration):
         )
         per_target_completeness.append(output)
 
-    multi_target_completeness_output = completeness(
+    multi_target_completeness = completeness(
         forward_func=base_config.model,
         inputs=explanation_step_outputs.inputs,
         attributions=explanation_step_outputs.attributions,
@@ -86,8 +87,20 @@ def test_completeness_multi_target(metrics_runtime_test_configuration):
         multi_target=True,
     )
 
-    assert len(per_target_completeness) == len(multi_target_completeness_output)
+    assert len(per_target_completeness) == len(multi_target_completeness)
     for output, expected in zip(
-        multi_target_completeness_output, per_target_completeness, strict=True
+        multi_target_completeness, per_target_completeness, strict=True
+    ):
+        _assert_tensor_almost_equal(output, expected, delta=runtime_config.delta)
+
+    # test via ignite metric interface
+    ignite_metric = CompletenessMetric(
+        model=base_config.model, device=runtime_config.device
+    )
+    multi_target_completeness_ignite = _run_metric_via_ignite(
+        metric=ignite_metric, explanation_step_outputs=explanation_step_outputs
+    )["score"]
+    for output, expected in zip(
+        multi_target_completeness, multi_target_completeness_ignite, strict=True
     ):
         _assert_tensor_almost_equal(output, expected, delta=runtime_config.delta)

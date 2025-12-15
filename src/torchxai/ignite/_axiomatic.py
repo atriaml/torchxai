@@ -81,7 +81,7 @@ class InputInvarianceMetric(TorchXAIMetricBase):
             # this metric does not use metric baselines
             target=output.target,
             baselines=output.explainer_baselines,  # notice explainer baselines, this is different from metric baselines
-            feature_mask=output.feature_mask,
+            feature_mask=output.feature_mask,  # notice explainer feature mask, this is different from metric feature mask
             additional_forward_args=output.additional_forward_args,
         )
 
@@ -128,7 +128,7 @@ class MonotonicityCorrAndNonSensMetric(TorchXAIMetricBase):
             # this baseline is used to compute the completeness score wrt to a baseline against already computed attributions
             # these contributions may be computed wrt different explainer baselines
             baselines=output.metric_baselines,
-            feature_mask=output.feature_mask,
+            feature_mask=output.metric_feature_mask,
             additional_forward_args=output.additional_forward_args,
             target=output.target,  # type: ignore
             frozen_features=output.frozen_features,

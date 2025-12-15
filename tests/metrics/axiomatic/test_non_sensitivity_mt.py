@@ -4,12 +4,17 @@ from dataclasses import field
 import pytest
 import torch
 
-from tests.utils.common import _assert_tensor_almost_equal, _set_all_random_seeds
+from tests.utils.common import (
+    _assert_tensor_almost_equal,
+    _run_metric_via_ignite,
+    _set_all_random_seeds,
+)
 from tests.utils.configs import TestBaseConfig, TestRuntimeConfig
 from torchxai.data_types import (
     MultiTargetExplanationStepOutputs,
     SingleTargetAcrossBatch,
 )
+from torchxai.ignite._axiomatic import MonotonicityCorrAndNonSensMetric
 from torchxai.metrics import monotonicity_corr_and_non_sens
 from torchxai.metrics._utils.perturbation import default_random_perturb_func
 
@@ -208,6 +213,27 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
                 _assert_tensor_almost_equal(
                     xx.float(), yy.float(), delta=runtime_config.delta, mode="mean"
                 )
+
+        _set_all_random_seeds(1234)
+        # first prepare the metric
+        metric = MonotonicityCorrAndNonSensMetric(
+            model=base_config.model,
+            device=runtime_config.device,
+            n_perturbations_per_feature=n_perturbs,
+            max_features_processed_per_batch=max_features,
+            perturb_func=runtime_config.perturb_func,
+            percentage_feature_removal_per_step=runtime_config.percentage_feature_removal_per_step,
+            return_ratio=False,
+        )
+
+        # now test via the Ignite Metric interface
+        non_sensitivity_ignite = _run_metric_via_ignite(
+            metric, explanation_step_outputs
+        )["non_sensitivity"]
+        for output, expected in zip(
+            non_sensitivity_score_batch_list_1, non_sensitivity_ignite, strict=True
+        ):
+            _assert_tensor_almost_equal(output, expected, delta=runtime_config.delta)
 
 
 # def test_multi_target_metric(metrics_runtime_test_configuration, metric_func: partial):
