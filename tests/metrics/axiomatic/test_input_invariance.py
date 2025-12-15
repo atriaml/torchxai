@@ -204,7 +204,7 @@ def test_non_sensitivity(metrics_runtime_test_configuration_with_explanation_sta
     )
 
     device = base_config.inputs.device
-    kwargs = dict(target=base_config.target)
+    kwargs = {"target": base_config.target}
     if base_config.feature_mask is not None:
         kwargs["feature_mask"] = base_config.feature_mask.to(device)
     if base_config.baselines is not None:
@@ -243,7 +243,7 @@ def test_non_sensitivity(metrics_runtime_test_configuration_with_explanation_sta
     if runtime_config.visualize:
         # here explanations can be visualized for debugging purposes
         for input, expl_input, expl_shifted_input in zip(
-            base_config.inputs, expl_inputs, expl_shifted_inputs
+            base_config.inputs, expl_inputs, expl_shifted_inputs, strict=True
         ):
             visualize_attribution(input, expl_input, "Original")
             visualize_attribution(input, expl_shifted_input, "Shifted")

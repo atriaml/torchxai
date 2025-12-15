@@ -588,6 +588,12 @@ class ExplanationStepOutputs(BaseModel):
         )
 
     @property
+    def metric_feature_mask(self) -> tuple[torch.Tensor, ...] | None:
+        if self.metric_inputs is None:
+            return None
+        return _tensor_or_tensor_dict_as_detached_tuple(self.metric_inputs.feature_mask)
+
+    @property
     def attributions(self) -> tuple[torch.Tensor, ...]:
         return _tensor_or_tensor_dict_as_detached_tuple(
             self.explanation_state.explanations

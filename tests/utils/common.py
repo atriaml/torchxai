@@ -15,6 +15,7 @@ def _grid_segmenter(images: torch.Tensor, cell_size: int = 16) -> torch.Tensor:
     feature_mask = []
     for image in images:
         # image dimensions are C x H x H
+        c = image.shape[0]
         dim_x, dim_y = image.shape[1] // cell_size, image.shape[2] // cell_size
         mask = (
             torch.arange(dim_x * dim_y, device=images.device)
@@ -23,7 +24,7 @@ def _grid_segmenter(images: torch.Tensor, cell_size: int = 16) -> torch.Tensor:
             .repeat_interleave(cell_size, dim=1)
             .long()
             .unsqueeze(0)
-        )
+        ).repeat(c, 1, 1)
         feature_mask.append(mask)
     return torch.stack(feature_mask)
 

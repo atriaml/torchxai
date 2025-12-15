@@ -5,14 +5,23 @@ import torch  # noqa
 
 from tests.utils.common import _assert_tensor_almost_equal
 from tests.utils.configs import TestBaseConfig, TestRuntimeConfig
-from torchxai.data_types import MultiTargetExplanationStepOutputs
+from torchxai.data_types import (
+    MultiTargetExplanationStepOutputs,
+    SingleTargetAcrossBatch,
+)
 from torchxai.metrics.axiomatic.completeness import completeness
 
 
 class MetricTestRuntimeConfig(TestRuntimeConfig):
     test_name: str | None = "compare_multi_target_to_single_target"
     explainer: str = "saliency"
-    override_target: list[int] = field(default_factory=lambda: [0, 1, 2])
+    override_target: list[int] = field(
+        default_factory=lambda: [
+            SingleTargetAcrossBatch(index=0),
+            SingleTargetAcrossBatch(index=1),
+            SingleTargetAcrossBatch(index=2),
+        ]
+    )
     expected: torch.Tensor | None = None
     explainer_kwargs: dict | None = field(
         default_factory=lambda: {"multi_target": True}

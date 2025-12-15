@@ -175,6 +175,12 @@ def _feature_mask_to_chunked_perturbation_mask_with_attributions_list(
 
     # create a perturbation mask of shape (n_perturations, feature_perturbation_mask)
     # that will store all the perturbations
+    print("feature_indices", feature_indices.shape)
+    print(
+        "total_num_perturbations, feature_mask.shape[0]",
+        total_num_perturbations,
+        feature_mask.shape[0],
+    )
     perturbation_masks = torch.zeros(
         (total_num_perturbations, feature_mask.shape[0]),
         dtype=torch.bool,

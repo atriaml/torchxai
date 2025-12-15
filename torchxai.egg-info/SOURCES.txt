@@ -38,6 +38,7 @@ src/torchxai/metrics/_utils/batching.py
 src/torchxai/metrics/_utils/common.py
 src/torchxai/metrics/_utils/perturbation.py
 src/torchxai/metrics/_utils/visualization.py
+src/torchxai/metrics/axiomatic/__init__.py
 src/torchxai/metrics/axiomatic/completeness.py
 src/torchxai/metrics/axiomatic/input_invariance.py
 src/torchxai/metrics/axiomatic/monotonicity_corr_and_non_sens.py
