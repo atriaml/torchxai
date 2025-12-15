@@ -249,29 +249,27 @@ def test_non_sensitivity(metrics_runtime_test_configuration):
         max_features_processed_per_batch,
         itertools.cycle(expected),
     ):
-        (_, non_sensitivity_score, n_features_found, _, _) = (
-            monotonicity_corr_and_non_sens(
-                forward_func=base_config.model,
-                inputs=explanation_step_outputs.inputs,
-                attributions=explanation_step_outputs.attributions,
-                feature_mask=explanation_step_outputs.feature_mask,
-                baselines=explanation_step_outputs.metric_baselines,
-                additional_forward_args=explanation_step_outputs.additional_forward_args,
-                target=explanation_step_outputs.target,
-                frozen_features=explanation_step_outputs.frozen_features,
-                perturb_func=runtime_config.perturb_func,
-                n_perturbations_per_feature=n_perturbs,
-                max_features_processed_per_batch=max_features,
-                zero_attribution_threshold=runtime_config.zero_attribution_threshold,
-                zero_variance_threshold=runtime_config.zero_variance_threshold,
-                use_percentage_attribution_threshold=runtime_config.use_percentage_attribution_threshold,
-                percentage_feature_removal_per_step=runtime_config.percentage_feature_removal_per_step,
-                return_intermediate_results=True,
-                return_ratio=False,
-            )
+        (_, non_sensitivity, n_features_found, _, _) = monotonicity_corr_and_non_sens(
+            forward_func=base_config.model,
+            inputs=explanation_step_outputs.inputs,
+            attributions=explanation_step_outputs.attributions,
+            feature_mask=explanation_step_outputs.feature_mask,
+            baselines=explanation_step_outputs.metric_baselines,
+            additional_forward_args=explanation_step_outputs.additional_forward_args,
+            target=explanation_step_outputs.target,
+            frozen_features=explanation_step_outputs.frozen_features,
+            perturb_func=runtime_config.perturb_func,
+            n_perturbations_per_feature=n_perturbs,
+            max_features_processed_per_batch=max_features,
+            zero_attribution_threshold=runtime_config.zero_attribution_threshold,
+            zero_variance_threshold=runtime_config.zero_variance_threshold,
+            use_percentage_attribution_threshold=runtime_config.use_percentage_attribution_threshold,
+            percentage_feature_removal_per_step=runtime_config.percentage_feature_removal_per_step,
+            return_intermediate_results=True,
+            return_ratio=False,
         )
         _assert_tensor_almost_equal(
-            non_sensitivity_score, curr_expected, delta=runtime_config.delta
+            non_sensitivity, curr_expected, delta=runtime_config.delta
         )
         target_n_features = (
             base_config.n_features
@@ -301,9 +299,9 @@ def test_non_sensitivity(metrics_runtime_test_configuration):
         )
 
         # now test via the Ignite Metric interface
-        non_sensitivity_score = _run_metric_via_ignite(
-            metric, explanation_step_outputs
-        )["non_sensitivity_score"]
+        non_sensitivity = _run_metric_via_ignite(metric, explanation_step_outputs)[
+            "non_sensitivity"
+        ]
         _assert_tensor_almost_equal(
-            non_sensitivity_score, curr_expected, delta=runtime_config.delta
+            non_sensitivity, curr_expected, delta=runtime_config.delta
         )

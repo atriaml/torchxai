@@ -6,7 +6,10 @@ import torch
 
 from tests.utils.common import _assert_tensor_almost_equal, _set_all_random_seeds
 from tests.utils.configs import TestBaseConfig, TestRuntimeConfig
-from torchxai.data_types import MultiTargetExplanationStepOutputs
+from torchxai.data_types import (
+    MultiTargetExplanationStepOutputs,
+    SingleTargetAcrossBatch,
+)
 from torchxai.metrics import monotonicity_corr_and_non_sens
 from torchxai.metrics._utils.perturbation import default_random_perturb_func
 
@@ -20,7 +23,13 @@ def _format_to_list(value):
 class MetricTestRuntimeConfig(TestRuntimeConfig):
     test_name: str | None = "compare_multi_target_to_single_target"
     expainer: str = "saliency"
-    override_target: list[int] = field(default_factory=lambda: [0, 1, 2])
+    override_target: list[int] = field(
+        default_factory=lambda: [
+            SingleTargetAcrossBatch(index=0),
+            SingleTargetAcrossBatch(index=1),
+            SingleTargetAcrossBatch(index=2),
+        ]
+    )
     expected: torch.Tensor | None = None
     explainer_kwargs: dict | None = field(
         default_factory=lambda: {"multi_target": True}

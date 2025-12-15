@@ -16,6 +16,7 @@ from captum._utils.common import (
 )
 from torch import Tensor
 
+from torchxai.data_types import ExplanationTarget, NoTarget
 from torchxai.data_types.common import (
     BaselineType,
     TargetType,
@@ -523,7 +524,7 @@ def monotonicity_corr_and_non_sens(
     baselines: BaselineType = None,
     feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
     additional_forward_args: Any = None,
-    target: TargetType = None,
+    target: ExplanationTarget | list[ExplanationTarget] = NoTarget(),
     frozen_features: list[torch.Tensor] | None = None,
     perturb_func: Callable = default_fixed_baseline_perturb_func(),
     n_perturbations_per_feature: int = 10,
@@ -536,7 +537,7 @@ def monotonicity_corr_and_non_sens(
     show_progress: bool = False,
     return_intermediate_results: bool = False,
     return_dict: bool = False,
-    is_multi_target: bool = False,
+    multi_target: bool = False,
 ) -> tuple | dict:
     """
     Implementation of Monotonicity Correlation and NonSensitivity by Nguyen at el., 2020. This implementation
@@ -766,7 +767,7 @@ def monotonicity_corr_and_non_sens(
                 is less than `zero_attribution_threshold`, it is considered as zero. This is used to compute the non-sensitivity
                 metric. Default: 1e-5
 
-        is_multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
+        multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
                 multi-target explanations. if set to true, the targets are required to be a list of integers
                 each corresponding to a required target class in the output. The corresponding metric outputs
                 are then returned as a list of metric outputs corresponding to each target class.
@@ -809,7 +810,7 @@ def monotonicity_corr_and_non_sens(
     """
     metric_func = (
         _multi_target_monotonicity_corr_and_non_sens
-        if is_multi_target
+        if multi_target
         else _monotonicity_corr_and_non_sens
     )
 
@@ -831,12 +832,12 @@ def monotonicity_corr_and_non_sens(
         "show_progress": show_progress,
     }
 
-    if is_multi_target:
+    if multi_target:
         kwargs["attributions_list"] = attributions
-        kwargs["targets_list"] = target
+        kwargs["targets_list"] = [t.value for t in target]
     else:
         kwargs["attributions"] = attributions
-        kwargs["target"] = target
+        kwargs["target"] = target.value
 
     (
         monotonicity_corr_batch,
