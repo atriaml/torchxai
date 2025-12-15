@@ -10,6 +10,7 @@ from captum._utils.common import (
 )
 from torch import Tensor
 
+from torchxai.data_types import ExplanationTarget, NoTarget
 from torchxai.data_types.common import (
     BaselineType,
     TargetType,
@@ -78,7 +79,7 @@ def completeness(
     attributions: list[TensorOrTupleOfTensorsGeneric] | TensorOrTupleOfTensorsGeneric,
     baselines: BaselineType,
     additional_forward_args: Any = None,
-    target: TargetType | list[TargetType] | None = None,
+    target: ExplanationTarget | list[ExplanationTarget] = NoTarget(),
     multi_target: bool = False,
     return_dict: bool = False,
 ) -> Tensor | list[Tensor] | dict[str, Tensor | list[Tensor]]:
@@ -266,7 +267,7 @@ def completeness(
             "For multi-target completeness, attributions must be a list of attributions."
         )
         kwargs["attributions_list"] = attributions  # type: ignore
-        kwargs["targets_list"] = target  # type: ignore
+        kwargs["targets_list"] = [t.value for t in target]  # type: ignore
     else:
         assert not isinstance(target, list), (
             "For single-target completeness, the target must be a scalar or a tensor."
@@ -275,7 +276,7 @@ def completeness(
             "For single-target completeness, the attributions must be a tensor or a tuple of tensors."
         )
         kwargs["attributions"] = attributions  # type: ignore
-        kwargs["target"] = target
+        kwargs["target"] = target.value
 
     score = metric_func(**kwargs)
     if return_dict:

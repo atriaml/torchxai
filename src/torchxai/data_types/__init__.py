@@ -631,6 +631,10 @@ class ExplanationStepOutputs(BaseModel):
     def target(self) -> list[torch.Tensor] | torch.Tensor | None:
         return self.explanation_state.explanation_inputs.target
 
+    @property
+    def frozen_features(self) -> list[torch.Tensor] | None:
+        return self.explanation_state.explanation_inputs.frozen_features
+
 
 class MultiTargetExplanationStepOutputs(ExplanationStepOutputs):
     explanation_state: MultiTargetExplanationState  # type: ignore[override]
