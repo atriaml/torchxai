@@ -36,7 +36,8 @@ def metrics_runtime_test_configuration(request):
         metric_inputs = base_config.metric_inputs.model_copy(
             update={
                 "feature_mask": _grid_segmenter(
-                    base_config.explanation_inputs.inputs["0"], cell_size=32
+                    base_config.explanation_inputs.inputs["0"],
+                    cell_size=runtime_config.image_feature_mask_cell_size,
                 )
             }
         )

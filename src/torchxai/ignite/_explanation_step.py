@@ -25,14 +25,12 @@ class ExplanationStep:
         explainer: Explainer,
         device: str | torch.device,
         with_amp: bool = False,
-        use_captum_explainer: bool = False,
         only_allow_tensors_as_targets: bool = False,
     ):
         self._model = model
         self._explainer = explainer
         self._device = torch.device(device)
         self._with_amp = with_amp
-        self._use_captum_explainer = use_captum_explainer
         self._only_allow_tensors_as_targets = only_allow_tensors_as_targets
         self._explainer._model = self._model
 
@@ -92,7 +90,6 @@ class MultiTargetExplanationStep(ExplanationStep):
             explainer=explainer,
             device=device,
             with_amp=with_amp,
-            use_captum_explainer=False,
             only_allow_tensors_as_targets=only_allow_tensors_as_targets,
         )
         self._iterative_computation = iterative_computation

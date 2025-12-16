@@ -52,6 +52,7 @@ class TestRuntimeConfig(BaseModel):
     )
     multi_target: bool = False
     set_image_feature_mask: bool = False
+    image_feature_mask_cell_size: int = 32
 
     @model_validator(mode="before")
     @classmethod
