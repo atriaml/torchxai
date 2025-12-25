@@ -6,8 +6,8 @@ import tqdm
 from torch import nn
 
 from tests.helpers.basic_models import MNISTCNNModel, MNISTLinearModel
-from tests.utils.configs import TestBaseConfig
-from torchxai.data_types import ExplanationInputs, MetricInputs
+from tests.utils.configs import BaseTestConfig
+from tests.utils.types import ExplanationInputs, MetricInputs
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -111,7 +111,7 @@ def mnist_trainer(model_type: str = "linear", train_and_eval_model: bool = True)
     target = batch[1].to(device)
     train_baselines = train_baselines.to(device)
 
-    return TestBaseConfig(
+    return BaseTestConfig(
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(inputs.size(0))],
             inputs=inputs,

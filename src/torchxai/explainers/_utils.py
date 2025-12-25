@@ -17,7 +17,7 @@ from captum.attr._utils.approximation_methods import approximation_parameters
 from captum.attr._utils.common import _format_tensor_into_tuples
 from torch import Tensor
 
-from torchxai.data_types.common import TargetType, TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import TargetType, TensorOrTupleOfTensorsGeneric
 
 
 def _generate_mask_weights(feature_mask_batch: torch.Tensor) -> torch.Tensor:

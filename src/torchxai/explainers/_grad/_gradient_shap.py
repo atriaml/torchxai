@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from collections.abc import Callable
 from functools import partial
 from typing import Any
@@ -10,9 +9,9 @@ from captum.attr._core.noise_tunnel import NoiseTunnel
 from captum.attr._utils.common import _format_callable_baseline
 from torch.nn.modules import Module
 
-from torchxai.data_types import ExplanationInputs, ExplanationTargetType
-from torchxai.data_types.common import (
+from torchxai.data_types import (
     BaselineType,
+    ExplanationTargetType,
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
@@ -66,7 +65,7 @@ class GradientShap_(GradientShap):
 
         nt = NoiseTunnel(input_min_baseline_x_grad)
 
-        attributions = nt.attribute.__wrapped__(
+        attributions = nt.attribute.__wrapped__(  # type: ignore
             nt,  # self
             inputs,
             nt_type="smoothgrad",
@@ -117,7 +116,7 @@ class MultiTargetGradientShap(GradientShap):
         self.gradient_func = gradient_func
         self.grad_batch_size = grad_batch_size
 
-    def attribute(
+    def attribute(  # type: ignore
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
         baselines: TensorOrTupleOfTensorsGeneric
@@ -279,28 +278,13 @@ class GradientShapExplainer(Explainer):
             stdevs=self.stdevs,
         )
 
-    def _build_inputs(
-        self,
-        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
-        target: ExplanationTargetType,
-        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
-        additional_forward_args: tuple[Any, ...] | None = None,
-    ):
-        """Build ExplanationInputs from individual parameters."""
-        return ExplanationInputs(
-            inputs=inputs,
-            target=target,
-            baselines=baselines,
-            additional_forward_args=additional_forward_args,
-        )
-
     def explain(
         self,
-        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
+        inputs: TensorOrTupleOfTensorsGeneric,
         target: ExplanationTargetType,
-        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
+        baselines: TensorOrTupleOfTensorsGeneric | None = None,
         additional_forward_args: tuple[Any, ...] | None = None,
-    ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
+    ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute GradientShap attributions for the given inputs.
 
         This method provides a backward-compatible interface that accepts individual
@@ -333,7 +317,7 @@ class GradientShapExplainer(Explainer):
             ...     baselines=OrderedDict({"input": baseline_dist}),
             ... )
         """
-        return super().explain(
+        return self._default_explain(
             inputs=inputs,
             target=target,
             baselines=baselines,

@@ -5,10 +5,10 @@ from typing import Any, Self
 import torch
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from torchxai.data_types import ExplanationInputs, MetricInputs
+from tests.utils.types import ExplanationInputs, MetricInputs
 
 
-class TestBaseConfig(BaseModel):
+class BaseTestConfig(BaseModel):
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
         frozen=True,
@@ -31,7 +31,7 @@ class TestBaseConfig(BaseModel):
         )
 
 
-class TestRuntimeConfig(BaseModel):
+class RuntimeTestConfig(BaseModel):
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
         frozen=True,
@@ -42,7 +42,6 @@ class TestRuntimeConfig(BaseModel):
     explainer: str = "integrated_gradients"
     target_fixture: str | None = None
     explainer_kwargs: dict | None = Field(default_factory=dict)
-    use_captum_explainer: bool = False
     expected: Any = None
     delta: float = 1e-4
     override_target: Any = None
@@ -73,7 +72,7 @@ class TestRuntimeConfig(BaseModel):
         return values
 
 
-class ExplainersTestRuntimeConfig(TestRuntimeConfig):
+class ExplainersTestRuntimeConfig(RuntimeTestConfig):
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
         frozen=True,

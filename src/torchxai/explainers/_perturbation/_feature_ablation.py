@@ -1,5 +1,4 @@
 import math
-from collections import OrderedDict
 from collections.abc import Callable
 from functools import partial
 from typing import Any, cast
@@ -21,9 +20,9 @@ from captum.attr import (
 from captum.attr._utils.common import _format_input_baseline
 from torch import Tensor, dtype
 
-from torchxai.data_types import ExplanationInputs, ExplanationTargetType
-from torchxai.data_types.common import (
+from torchxai.data_types import (
     BaselineType,
+    ExplanationTargetType,
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
@@ -63,7 +62,7 @@ class FeatureAblation(CaptumFeatureAblation):
         # behavior stays consistent and no longer check again
         self._is_output_shape_valid = False
 
-    def attribute(
+    def attribute(  # type: ignore[override]
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
         baselines: BaselineType = None,
@@ -268,17 +267,17 @@ class MultiTargetFeatureAblation(FeatureAblation):
     features and measuring the impact on each target.
     """
 
-    def attribute(
+    def attribute(  # type: ignore[override]
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
+        target: list[TargetType],
         baselines: BaselineType = None,
-        target: TargetType = None,
         additional_forward_args: Any = None,
         feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         perturbations_per_eval: int = 1,
         show_progress: bool = False,
         **kwargs: Any,
-    ) -> TensorOrTupleOfTensorsGeneric:
+    ) -> list[TensorOrTupleOfTensorsGeneric]:
         is_inputs_tuple = _is_tuple(inputs)
         inputs, baselines = _format_input_baseline(inputs, baselines)
         additional_forward_args = _format_additional_forward_args(
@@ -341,6 +340,7 @@ class MultiTargetFeatureAblation(FeatureAblation):
             ]
 
             # Weights are used in cases where ablations may be overlapping.
+            weights = []
             if self.use_weights:
                 weights = [
                     torch.zeros(
@@ -550,7 +550,7 @@ class MultiTargetFeatureAblation(FeatureAblation):
         if input_mask is not None and input_mask.shape[0] != num_examples:
             input_mask = input_mask.expand(num_examples, *input_mask.shape[1:])
 
-        perturbations_per_eval = min(perturbations_per_eval, num_features)
+        perturbations_per_eval = int(min(perturbations_per_eval, num_features))
         baseline = baselines[i] if isinstance(baselines, tuple) else baselines
         if isinstance(baseline, torch.Tensor):
             baseline = baseline.reshape((1,) + baseline.shape)
@@ -579,8 +579,8 @@ class MultiTargetFeatureAblation(FeatureAblation):
 
         num_features_processed = min_feature
         while num_features_processed < num_features:
-            current_num_ablated_features = min(
-                perturbations_per_eval, num_features - num_features_processed
+            current_num_ablated_features = int(
+                min(perturbations_per_eval, num_features - num_features_processed)
             )
 
             # Store appropriate inputs and additional args based on batch size.
@@ -705,7 +705,7 @@ class FeatureAblationExplainer(Explainer):
 
     def __init__(
         self,
-        model: torch.nn.Module | Callable,
+        model: torch.nn.Module,
         multi_target: bool = False,
         internal_batch_size: int = 64,
         weight_attributions: bool = False,
@@ -790,31 +790,14 @@ class FeatureAblationExplainer(Explainer):
 
         return wrapped
 
-    def _build_inputs(
-        self,
-        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
-        target: ExplanationTargetType,
-        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
-        feature_mask: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
-        additional_forward_args: tuple[Any, ...] | None = None,
-    ):
-        """Build ExplanationInputs from individual parameters."""
-        return ExplanationInputs(
-            inputs=inputs,
-            target=target,
-            baselines=baselines,
-            feature_mask=feature_mask,
-            additional_forward_args=additional_forward_args,
-        )
-
     def explain(
         self,
-        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
+        inputs: TensorOrTupleOfTensorsGeneric,
         target: ExplanationTargetType,
-        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
-        feature_mask: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
+        baselines: TensorOrTupleOfTensorsGeneric | None = None,
+        feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
         additional_forward_args: tuple[Any, ...] | None = None,
-    ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
+    ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute Feature Ablation attributions for the given inputs.
 
         This method provides a backward-compatible interface that accepts individual
@@ -851,7 +834,7 @@ class FeatureAblationExplainer(Explainer):
             ...     feature_mask=feature_mask,
             ... )
         """
-        return super().explain(
+        return self._default_explain(
             inputs=inputs,
             target=target,
             baselines=baselines,

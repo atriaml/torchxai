@@ -9,7 +9,7 @@ from tests.utils.common import (
     _assert_tensor_almost_equal,
     _set_all_random_seeds,
 )
-from tests.utils.configs import TestRuntimeConfig
+from tests.utils.configs import RuntimeTestConfig
 from torchxai.metrics import aopc
 from torchxai.metrics._utils.common import _tuple_tensors_to_tensors
 
@@ -21,7 +21,7 @@ def _format_to_list(value):
 
 
 @dataclasses.dataclass
-class MetricTestRuntimeConfig_(TestRuntimeConfig):
+class MetricTestRuntimeConfig_(RuntimeTestConfig):
     max_features_processed_per_batch: int = None
     total_features_perturbed: int = 100
     expected_desc: torch.Tensor = None

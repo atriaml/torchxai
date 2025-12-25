@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from collections.abc import Callable, Generator
 from functools import partial
 from typing import Any
@@ -12,9 +11,9 @@ from torch import Tensor
 from torch.distributions.categorical import Categorical
 from torch.nn import Module
 
-from torchxai.data_types import ExplanationInputs, ExplanationTargetType
-from torchxai.data_types.common import (
+from torchxai.data_types import (
     BaselineType,
+    ExplanationTargetType,
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
@@ -162,8 +161,8 @@ class MultiTargetKernelShap(MultiTargetLime):
     def attribute(  # type: ignore
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
+        target: list[TargetType],
         baselines: BaselineType = None,
-        target: list[TargetType] | None = None,
         additional_forward_args: Any = None,
         feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         n_samples: int = 25,
@@ -357,34 +356,15 @@ class KernelShapExplainer(Explainer):
 
         return wrapped
 
-    def _build_inputs(
-        self,
-        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
-        target: ExplanationTargetType,
-        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
-        feature_mask: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
-        additional_forward_args: tuple[Any, ...] | None = None,
-        frozen_features: list[torch.Tensor] | None = None,
-    ):
-        """Build ExplanationInputs from individual parameters."""
-        return ExplanationInputs(
-            inputs=inputs,
-            target=target,
-            baselines=baselines,
-            feature_mask=feature_mask,
-            additional_forward_args=additional_forward_args,
-            frozen_features=frozen_features,
-        )
-
     def explain(
         self,
-        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
+        inputs: TensorOrTupleOfTensorsGeneric,
         target: ExplanationTargetType,
-        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
-        feature_mask: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
+        baselines: TensorOrTupleOfTensorsGeneric | None = None,
+        feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
         additional_forward_args: tuple[Any, ...] | None = None,
         frozen_features: list[torch.Tensor] | None = None,
-    ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
+    ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute Kernel SHAP attributions for the given inputs.
 
         This method provides a backward-compatible interface that accepts individual
@@ -423,7 +403,7 @@ class KernelShapExplainer(Explainer):
             ...     feature_mask=feature_mask,
             ... )
         """
-        return super().explain(
+        return self._default_explain(
             inputs=inputs,
             target=target,
             baselines=baselines,

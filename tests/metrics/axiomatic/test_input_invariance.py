@@ -3,12 +3,12 @@ import torch
 from pydantic import model_validator
 
 from tests.utils.common import _assert_tensor_almost_equal
-from tests.utils.configs import TestRuntimeConfig
+from tests.utils.configs import RuntimeTestConfig
 from torchxai.data_types import ExplanationStepOutputs
 from torchxai.metrics.axiomatic.input_invariance import input_invariance
 
 
-class MetricTestRuntimeConfig_(TestRuntimeConfig):
+class MetricTestRuntimeConfig_(RuntimeTestConfig):
     model_type: str = "linear"
     train_and_eval_model: bool = False
     constant_shifts: tuple[torch.Tensor, ...] | None = None

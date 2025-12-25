@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from collections.abc import Callable
 from functools import partial
 from typing import Any
@@ -11,8 +10,11 @@ from captum._utils.gradient import (
 )
 from captum.attr import GradientAttribution, Saliency
 
-from torchxai.data_types import ExplanationInputs, ExplanationTargetType
-from torchxai.data_types.common import TargetType, TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import (
+    ExplanationTargetType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.explainers._utils import (
     _compute_gradients_sequential_autograd,
     _compute_gradients_vmap_autograd,
@@ -178,25 +180,12 @@ class SaliencyExplainer(Explainer):
             abs=False,
         )
 
-    def _build_inputs(
-        self,
-        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
-        target: ExplanationTargetType,
-        additional_forward_args: tuple[Any, ...] | None = None,
-    ):
-        """Build ExplanationInputs from individual parameters."""
-        return ExplanationInputs(
-            inputs=inputs,
-            target=target,
-            additional_forward_args=additional_forward_args,
-        )
-
     def explain(
         self,
-        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
+        inputs: TensorOrTupleOfTensorsGeneric,
         target: ExplanationTargetType,
         additional_forward_args: tuple[Any, ...] | None = None,
-    ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
+    ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute saliency attributions for the given inputs.
 
         This method provides a backward-compatible interface that accepts individual
@@ -233,7 +222,7 @@ class SaliencyExplainer(Explainer):
             ...     target=torch.tensor([0, 1]),
             ... )
         """
-        return super().explain(
+        return self._default_explain(
             inputs=inputs,
             target=target,
             additional_forward_args=additional_forward_args,

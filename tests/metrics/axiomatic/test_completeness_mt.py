@@ -4,7 +4,7 @@ import pytest
 import torch  # noqa
 
 from tests.utils.common import _assert_tensor_almost_equal, _run_metric_via_ignite
-from tests.utils.configs import TestBaseConfig, TestRuntimeConfig
+from tests.utils.configs import BaseTestConfig, RuntimeTestConfig
 from torchxai.data_types import (
     MultiTargetExplanationStepOutputs,
     SingleTargetAcrossBatch,
@@ -13,7 +13,7 @@ from torchxai.ignite._axiomatic import CompletenessMetric
 from torchxai.metrics.axiomatic.completeness import completeness
 
 
-class MetricTestRuntimeConfig(TestRuntimeConfig):
+class MetricTestRuntimeConfig(RuntimeTestConfig):
     test_name: str | None = "compare_multi_target_to_single_target"
     explainer: str = "saliency"
     override_target: list[int] = field(
@@ -58,7 +58,7 @@ def test_completeness_multi_target(metrics_runtime_test_configuration):
     base_config, runtime_config, explanation_step_outputs = (
         metrics_runtime_test_configuration
     )
-    base_config: TestBaseConfig
+    base_config: BaseTestConfig
     runtime_config: MetricTestRuntimeConfig
     explanation_step_outputs: MultiTargetExplanationStepOutputs
     target = base_config.explanation_inputs.target

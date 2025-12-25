@@ -1,13 +1,10 @@
 import pytest  # noqa
 
 from tests.utils.common import _compare_explanation_per_target, _set_all_random_seeds
-from tests.utils.configs import ExplainersTestRuntimeConfig, TestBaseConfig
+from tests.utils.configs import ExplainersTestRuntimeConfig, BaseTestConfig
 from torchxai.data_types import ExplanationTarget
 from torchxai.explainers.factory import ExplainerFactory
-from torchxai.ignite._explanation_step import (
-    ExplanationStep,
-    MultiTargetExplanationStep,
-)
+from tests.utils.explanation_steps import ExplanationStep, MultiTargetExplanationStep
 
 
 def make_config_for_explainer_with_grad_batch_size(*args, **kwargs):
@@ -59,7 +56,7 @@ def _format_to_list_if_not_list(obj):
 
 
 def run_explainer_test_with_config(
-    base_config: TestBaseConfig, runtime_config: ExplainersTestRuntimeConfig
+    base_config: BaseTestConfig, runtime_config: ExplainersTestRuntimeConfig
 ):
     # perform basic validation
     expected = _format_to_list_if_not_list(runtime_config.expected)
@@ -131,7 +128,7 @@ def run_explainer_test_with_config(
 
 
 def run_single_test(
-    base_config: TestBaseConfig,
+    base_config: BaseTestConfig,
     runtime_config: ExplainersTestRuntimeConfig,
     is_multi_target: bool = False,
 ):
@@ -148,23 +145,16 @@ def run_single_test(
         )
     else:
         explanation_step = ExplanationStep(
-            model=base_config.model,
-            explainer=explainer,
-            device=runtime_config.device,
-            use_captum_explainer=runtime_config.use_captum_explainer,
+            model=base_config.model, explainer=explainer, device=runtime_config.device
         )
     if runtime_config.throws_exception:
         with pytest.raises(Exception) as _:
-            explanation_step(
-                explanation_inputs=base_config.explanation_inputs,
-                metric_inputs=base_config.metric_inputs,
-            )
+            explanation_step(explanation_inputs=base_config.explanation_inputs)
         return
 
     explanations = explanation_step(
-        explanation_inputs=base_config.explanation_inputs,
-        metric_inputs=base_config.metric_inputs,
-    ).explanation_state.explanations_as_tuple
+        explanation_inputs=base_config.explanation_inputs
+    ).explanations
 
     has_expected = (
         runtime_config.expected is not None

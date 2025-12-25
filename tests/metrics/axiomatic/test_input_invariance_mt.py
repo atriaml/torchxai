@@ -8,13 +8,13 @@ from tests.utils.common import (
     _grid_segmenter,
     _set_all_random_seeds,
 )
-from tests.utils.configs import TestBaseConfig, TestRuntimeConfig
+from tests.utils.configs import BaseTestConfig, RuntimeTestConfig
 from torchxai.explainers.factory import ExplainerFactory
 from torchxai.metrics.axiomatic.input_invariance import input_invariance
 
 
 @dataclasses.dataclass
-class MetricTestRuntimeConfig(TestRuntimeConfig):
+class MetricTestRuntimeConfig(RuntimeTestConfig):
     model_type: str = "linear"
     train_and_eval_model: bool = False
     constant_shifts: torch.Tensor = None
@@ -35,8 +35,8 @@ class MetricTestRuntimeConfig(TestRuntimeConfig):
 
 @pytest.fixture
 def metrics_runtime_test_configuration(request):
-    runtime_config: TestRuntimeConfig = request.param
-    base_config: TestBaseConfig = request.getfixturevalue(
+    runtime_config: RuntimeTestConfig = request.param
+    base_config: BaseTestConfig = request.getfixturevalue(
         runtime_config.target_fixture
     )(runtime_config.model_type, runtime_config.train_and_eval_model)
     explainer = ExplainerFactory.create(

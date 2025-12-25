@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import pytest  # noqa
 import torch
 
@@ -210,11 +208,8 @@ def test_gradient_shap(explainer_runtime_test_configuration):
     base_config, runtime_config = explainer_runtime_test_configuration
 
     # gradient shap always requires a random baseline
-    baselines = OrderedDict(
-        {
-            k: torch.randn((20, *v.shape[1:]))
-            for k, v in base_config.explanation_inputs.inputs.items()
-        }
+    baselines = tuple(
+        torch.randn((20, *v.shape[1:])) for v in base_config.explanation_inputs.inputs
     )
 
     base_config = base_config.model_copy(

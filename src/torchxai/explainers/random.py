@@ -1,11 +1,10 @@
-from collections import OrderedDict
 from collections.abc import Callable
 from typing import Any
 
 import torch
 from captum._utils.common import _format_tensor_into_tuples
 
-from torchxai.data_types.common import TargetType, TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.explainers.explainer import Explainer
 
 
@@ -116,8 +115,8 @@ class RandomExplainer(Explainer):
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
         target: TargetType,
-        additional_forward_args: Any = None,
-    ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
+        additional_forward_args: tuple[Any, ...] | None = None,
+    ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Generate random attributions for the given inputs.
 
         This method provides a backward-compatible interface that accepts individual

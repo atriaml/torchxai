@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import pytest  # noqa
 import torch
 
@@ -7,7 +5,7 @@ from tests.explainers.utils import (
     make_config_for_explainer_with_internal_and_grad_batch_size,
     run_explainer_test_with_config,
 )
-from tests.utils.configs import ExplainersTestRuntimeConfig, TestBaseConfig
+from tests.utils.configs import ExplainersTestRuntimeConfig, BaseTestConfig
 from torchxai.data_types import (
     ExplanationTarget,
     SingleTargetAcrossBatch,
@@ -211,15 +209,12 @@ test_configurations = [
 )
 def test_deep_lift_shap(explainer_runtime_test_configuration):
     base_config, runtime_config = explainer_runtime_test_configuration
-    base_config: TestBaseConfig
+    base_config: BaseTestConfig
     runtime_config: ExplainersTestRuntimeConfig
 
     # deeplift shap always requires a random train baselines
-    baselines = OrderedDict(
-        {
-            k: torch.randn((20, *v.shape[1:]))
-            for k, v in base_config.explanation_inputs.inputs.items()
-        }
+    baselines = tuple(
+        torch.randn((20, *v.shape[1:])) for v in base_config.explanation_inputs.inputs
     )
 
     base_config = base_config.model_copy(

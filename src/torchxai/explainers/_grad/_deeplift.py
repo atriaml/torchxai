@@ -1,6 +1,5 @@
 import typing
 import warnings
-from collections import OrderedDict
 from collections.abc import Callable
 from functools import partial
 from typing import Any
@@ -30,9 +29,9 @@ from captum.attr._utils.common import (
 from torch import Tensor, nn
 from torch.nn import Module
 
-from torchxai.data_types import ExplanationInputs, ExplanationTargetType
-from torchxai.data_types.common import (
+from torchxai.data_types import (
     BaselineType,
+    ExplanationTargetType,
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
@@ -335,8 +334,8 @@ class DeepLiftExplainer(Explainer):
         self,
         model: Module,
         multi_target: bool = False,
-        internal_batch_size: int = 64,
-        grad_batch_size: int = 64,
+        internal_batch_size: int = 1,
+        grad_batch_size: int = 1,
     ) -> None:
         super().__init__(model, multi_target, internal_batch_size, grad_batch_size)
 
@@ -360,28 +359,13 @@ class DeepLiftExplainer(Explainer):
             ).attribute
         )
 
-    def _build_inputs(
-        self,
-        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
-        target: ExplanationTargetType,
-        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
-        additional_forward_args: tuple[Any, ...] | None = None,
-    ):
-        """Build ExplanationInputs from individual parameters."""
-        return ExplanationInputs(
-            inputs=inputs,
-            target=target,
-            baselines=baselines,
-            additional_forward_args=additional_forward_args,
-        )
-
     def explain(
         self,
-        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
+        inputs: TensorOrTupleOfTensorsGeneric,
         target: ExplanationTargetType,
-        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
+        baselines: TensorOrTupleOfTensorsGeneric | None = None,
         additional_forward_args: tuple[Any, ...] | None = None,
-    ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
+    ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute DeepLIFT attributions for the given inputs.
 
         This method provides a backward-compatible interface that accepts individual
@@ -418,7 +402,7 @@ class DeepLiftExplainer(Explainer):
             ...     inputs=torch.randn(2, 10), target=torch.tensor([0, 1])
             ... )
         """
-        return super().explain(
+        return self._default_explain(
             inputs=inputs,
             target=target,
             baselines=baselines,

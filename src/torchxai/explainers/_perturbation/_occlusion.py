@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from collections.abc import Callable
 from functools import partial
 from typing import Any
@@ -13,9 +12,9 @@ from captum.attr._utils.common import (
 from torch import Tensor
 from torch.nn.modules import Module
 
-from torchxai.data_types import ExplanationInputs, ExplanationTargetType
-from torchxai.data_types.common import (
+from torchxai.data_types import (
     BaselineType,
+    ExplanationTargetType,
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
@@ -199,17 +198,17 @@ class MultiTargetOcclusion(MultiTargetFeatureAblation):
     def attribute(  # type: ignore
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
+        target: list[TargetType],
         sliding_window_shapes: tuple[int, ...] | tuple[tuple[int, ...], ...],
         strides: None
         | int
         | tuple[int, ...]
         | tuple[int | tuple[int, ...], ...] = None,
         baselines: BaselineType = None,
-        target: TargetType = None,
         additional_forward_args: Any = None,
         perturbations_per_eval: int = 1,
         show_progress: bool = False,
-    ) -> TensorOrTupleOfTensorsGeneric:
+    ) -> list[TensorOrTupleOfTensorsGeneric]:
         formatted_inputs = _format_tensor_into_tuples(inputs)
 
         # Formatting strides
@@ -501,32 +500,13 @@ class OcclusionExplainer(Explainer):
             show_progress=self._show_progress,
         )
 
-    def _build_inputs(
-        self,
-        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
-        target: ExplanationTargetType,
-        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
-        feature_mask: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
-        additional_forward_args: tuple[Any, ...] | None = None,
-        frozen_features: list[torch.Tensor] | None = None,
-    ):
-        """Build ExplanationInputs from individual parameters."""
-        return ExplanationInputs(
-            inputs=inputs,
-            target=target,
-            baselines=baselines,
-            feature_mask=feature_mask,
-            additional_forward_args=additional_forward_args,
-            frozen_features=frozen_features,
-        )
-
     def explain(
         self,
-        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
+        inputs: TensorOrTupleOfTensorsGeneric,
         target: ExplanationTargetType,
-        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
+        baselines: TensorOrTupleOfTensorsGeneric | None = None,
         additional_forward_args: tuple[Any, ...] | None = None,
-    ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
+    ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute Occlusion attributions for the given inputs.
 
         This method provides a backward-compatible interface that accepts individual
@@ -559,7 +539,7 @@ class OcclusionExplainer(Explainer):
             ...     baselines=OrderedDict({"image": torch.zeros(1, 3, 224, 224)}),
             ... )
         """
-        return super().explain(
+        return self._default_explain(
             inputs=inputs,
             target=target,
             baselines=baselines,

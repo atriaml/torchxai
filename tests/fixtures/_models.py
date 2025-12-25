@@ -18,8 +18,9 @@ from tests.helpers.classification_models import (
     SoftmaxModelTupleInput,
 )
 from tests.utils.common import _set_all_random_seeds
-from tests.utils.configs import TestBaseConfig
-from torchxai.data_types import ExplanationInputs, MetricInputs
+from tests.utils.configs import BaseTestConfig
+from tests.utils.types import ExplanationInputs, MetricInputs
+from torchxai.data_types import ExplanationTarget
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -31,10 +32,10 @@ def pytest_runtest_setup():
 
 @pytest.fixture()
 def park_function_configuration():
-    yield TestBaseConfig(
+    yield BaseTestConfig(
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
-            inputs=torch.tensor([[0.24, 0.48, 0.56, 0.99, 0.68, 0.86]]),
+            inputs=(torch.tensor([[0.24, 0.48, 0.56, 0.99, 0.68, 0.86]]),),
         ),
         model=ParkFunction(),
         n_features=6,
@@ -43,7 +44,7 @@ def park_function_configuration():
 
 @pytest.fixture()
 def basic_model_single_input_config():
-    yield TestBaseConfig(
+    yield BaseTestConfig(
         model=BasicModel2(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
@@ -55,7 +56,7 @@ def basic_model_single_input_config():
 
 @pytest.fixture()
 def basic_model_single_batched_input_config():
-    yield TestBaseConfig(
+    yield BaseTestConfig(
         model=BasicModel2(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
@@ -67,7 +68,7 @@ def basic_model_single_batched_input_config():
 
 @pytest.fixture()
 def basic_model_batch_input_config():
-    yield TestBaseConfig(
+    yield BaseTestConfig(
         model=BasicModel2(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(3)],
@@ -79,7 +80,7 @@ def basic_model_batch_input_config():
 
 @pytest.fixture()
 def basic_model_batch_input_with_additional_forward_args_config():
-    config = TestBaseConfig(
+    config = BaseTestConfig(
         model=BasicModel4_MultiArgs(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
@@ -93,14 +94,16 @@ def basic_model_batch_input_with_additional_forward_args_config():
 
 @pytest.fixture()
 def classification_convnet_model_with_multiple_targets_config():
-    yield TestBaseConfig(
+    yield BaseTestConfig(
         model=BasicModel_ConvNet_One_Conv(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(20)],
-            inputs=torch.stack([torch.arange(1, 17).float()] * 20, dim=0).view(
-                20, 1, 4, 4
+            inputs=(
+                torch.stack([torch.arange(1, 17).float()] * 20, dim=0).view(
+                    20, 1, 4, 4
+                ),
             ),
-            target=torch.tensor([1] * 20),
+            target=ExplanationTarget.from_raw_input(torch.tensor([1] * 20)),
         ),
         n_features=(1 * 4 * 4),
     )
@@ -108,12 +111,14 @@ def classification_convnet_model_with_multiple_targets_config():
 
 @pytest.fixture()
 def classification_multilayer_model_with_tuple_targets_config():
-    yield TestBaseConfig(
+    yield BaseTestConfig(
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(4)],
-            inputs=torch.arange(1.0, 13.0).view(4, 3).float(),
+            inputs=(torch.arange(1.0, 13.0).view(4, 3).float(),),
             additional_forward_args=(torch.arange(1, 13).view(4, 3).float(), True),
-            target=[(0, 1, 1), (0, 1, 1), (1, 1, 1), (0, 1, 1)],
+            target=ExplanationTarget.from_raw_input(
+                [(0, 1, 1), (0, 1, 1), (1, 1, 1), (0, 1, 1)]
+            ),
         ),
         model=BasicModel_MultiLayer(),
         n_features=3,
@@ -122,14 +127,16 @@ def classification_multilayer_model_with_tuple_targets_config():
 
 @pytest.fixture()
 def classification_multilayer_model_with_baseline_and_tuple_targets_config():
-    yield TestBaseConfig(
+    yield BaseTestConfig(
         model=BasicModel_MultiLayer(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(4)],
-            inputs=torch.arange(1.0, 13.0).view(4, 3).float(),
+            inputs=(torch.arange(1.0, 13.0).view(4, 3).float(),),
             additional_forward_args=(torch.arange(1, 13).view(4, 3).float(), True),
-            target=[(0, 1, 1), (0, 1, 1), (1, 1, 1), (0, 1, 1)],
-            baselines=torch.ones(4, 3),
+            target=ExplanationTarget.from_raw_input(
+                [(0, 1, 1), (0, 1, 1), (1, 1, 1), (0, 1, 1)]
+            ),
+            baselines=(torch.ones(4, 3),),
         ),
         metric_inputs=MetricInputs(baselines=torch.ones(4, 3)),
         n_features=3,
@@ -138,11 +145,11 @@ def classification_multilayer_model_with_baseline_and_tuple_targets_config():
 
 @pytest.fixture()
 def classification_sigmoid_model_single_input_single_target_config():
-    yield TestBaseConfig(
+    yield BaseTestConfig(
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
-            inputs=torch.tensor([[1.0] * 10]),
-            target=torch.tensor([1]),
+            inputs=(torch.tensor([[1.0] * 10]),),
+            target=ExplanationTarget.from_raw_input(torch.tensor([1])),
         ),
         model=SigmoidModel(10, 20, 10),
         n_features=10,
@@ -151,9 +158,9 @@ def classification_sigmoid_model_single_input_single_target_config():
 
 @pytest.fixture()
 def classification_softmax_model_single_input_single_target_config():
-    yield TestBaseConfig(
+    yield BaseTestConfig(
         explanation_inputs=ExplanationInputs(
-            sample_id=[str(i) for i in range(1)], inputs=torch.tensor([[1.0] * 10])
+            sample_id=[str(i) for i in range(1)], inputs=(torch.tensor([[1.0] * 10]),)
         ),
         model=SoftmaxModel(10, 20, 10),
         n_features=10,
@@ -162,9 +169,10 @@ def classification_softmax_model_single_input_single_target_config():
 
 @pytest.fixture()
 def classification_softmax_model_multi_input_single_target_config():
-    yield TestBaseConfig(
+    yield BaseTestConfig(
         explanation_inputs=ExplanationInputs(
-            sample_id=[str(i) for i in range(3)], inputs=torch.tensor([[1.0] * 10] * 3)
+            sample_id=[str(i) for i in range(3)],
+            inputs=(torch.tensor([[1.0] * 10] * 3),),
         ),
         model=SoftmaxModel(10, 20, 10),
         n_features=10,
@@ -173,11 +181,11 @@ def classification_softmax_model_multi_input_single_target_config():
 
 @pytest.fixture()
 def classification_softmax_model_multi_tuple_input_single_target_config():
-    yield TestBaseConfig(
+    yield BaseTestConfig(
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(3)],
             inputs=(torch.tensor([[1.0] * 10] * 3), torch.tensor([[-1.0] * 10] * 3)),
-            target=torch.tensor([1]),
+            target=ExplanationTarget.from_raw_input(torch.tensor([1])),
         ),
         model=SoftmaxModelTupleInput(10, 20, 10),
         n_features=20,
@@ -191,11 +199,11 @@ def classification_alexnet_model_single_sample_config():
     model = alexnet(pretrained=True)
     model.eval()
     model.zero_grad()
-    yield TestBaseConfig(
+    yield BaseTestConfig(
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
-            inputs=torch.randn(1, 3, 224, 224),
-            target=torch.tensor([1]),
+            inputs=(torch.randn(1, 3, 224, 224),),
+            target=ExplanationTarget.from_raw_input(torch.tensor([1])),
         ),
         model=model,
         n_features=(3 * 224 * 224),
@@ -209,11 +217,11 @@ def classification_alexnet_model_config():
     model = alexnet(pretrained=True)
     model.eval()
     model.zero_grad()
-    yield TestBaseConfig(
+    yield BaseTestConfig(
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(10)],
-            inputs=torch.randn(10, 3, 224, 224),
-            target=torch.tensor([1]),
+            inputs=(torch.randn(10, 3, 224, 224),),
+            target=ExplanationTarget.from_raw_input(torch.tensor([1])),
         ),
         model=model,
         n_features=(3 * 224 * 224),
@@ -260,7 +268,7 @@ def classification_alexnet_model_real_images_single_sample_config():
     model = alexnet(pretrained=True)
     model.eval()
     model.zero_grad()
-    yield TestBaseConfig(
+    yield BaseTestConfig(
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)], inputs=images, target=labels
         ),
@@ -318,9 +326,11 @@ def classification_alexnet_model_real_images_config():
     model = alexnet(pretrained=True)
     model.eval()
     model.zero_grad()
-    yield TestBaseConfig(
+    yield BaseTestConfig(
         explanation_inputs=ExplanationInputs(
-            sample_id=[str(i) for i in range(10)], inputs=images, target=labels
+            sample_id=[str(i) for i in range(10)],
+            inputs=(images,),
+            target=ExplanationTarget.from_raw_input(labels),
         ),
         model=model,
         n_features=(3 * 224 * 224),
@@ -369,12 +379,12 @@ def multi_modal_sequence_sum():
     inputs = tuple(x / total_sum for x in inputs)
     target = None
 
-    yield TestBaseConfig(
+    yield BaseTestConfig(
         model=BasicModel7_SumMultiTensor(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
             inputs=inputs,
-            target=target,
+            target=ExplanationTarget.from_raw_input(target),
             feature_mask=feature_mask,
             baselines=tuple(torch.zeros_like(x) for x in inputs),
             frozen_features=[torch.tensor([0, 1, 2, 9, 10, 11, 18, 19, 20])],
@@ -429,12 +439,12 @@ def multi_modal_sequence_relu():
     inputs = tuple((x - mean) / std for x in inputs)
     target = None
 
-    yield TestBaseConfig(
+    yield BaseTestConfig(
         model=BasicModel7_ReluMultiTensor(),
         explanation_inputs=ExplanationInputs(
             sample_id=[str(i) for i in range(1)],
             inputs=inputs,
-            target=target,
+            target=ExplanationTarget.from_raw_input(target),
             feature_mask=feature_mask,
             baselines=tuple(torch.zeros_like(x) for x in inputs),
             frozen_features=[torch.tensor([0, 1, 2, 9, 10, 11, 18, 19, 20])],

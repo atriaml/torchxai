@@ -1,7 +1,6 @@
 import math
 import typing
 import warnings
-from collections import OrderedDict
 from collections.abc import Callable
 from functools import partial
 from typing import Any, Literal
@@ -28,9 +27,9 @@ from captum.attr._utils.common import _format_input_baseline
 from torch import Tensor
 from torch.nn import CosineSimilarity, Module
 
-from torchxai.data_types import ExplanationInputs, ExplanationTargetType
-from torchxai.data_types.common import (
+from torchxai.data_types import (
     BaselineType,
+    ExplanationTargetType,
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
@@ -271,7 +270,7 @@ class Lime(LimeBase):
                 )
 
         coefs = super().attribute(
-            inputs=inputs,
+            inputs=inputs,  # type: ignore
             target=target,
             additional_forward_args=additional_forward_args,
             n_samples=n_samples,
@@ -372,14 +371,13 @@ class MultiTargetLime(MultiTargetLimeBase):
     def attribute(  # type: ignore
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
+        target: list[TargetType],
         baselines: BaselineType = None,
-        target: list[TargetType] | None = None,
         additional_forward_args: Any = None,
         feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         n_samples: int = 25,
         perturbations_per_eval: int = 1,
         frozen_features: list[torch.Tensor] | None = None,
-        return_input_shape: bool = True,
         show_progress: bool = False,
     ) -> list[TensorOrTupleOfTensorsGeneric]:
         return self._attribute_kwargs(
@@ -391,21 +389,19 @@ class MultiTargetLime(MultiTargetLimeBase):
             n_samples=n_samples,
             perturbations_per_eval=perturbations_per_eval,
             frozen_features=frozen_features,
-            return_input_shape=return_input_shape,
             show_progress=show_progress,
         )
 
     def _attribute_kwargs(  # type: ignore
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
+        target: list[TargetType],
         baselines: BaselineType = None,
-        target: list[TargetType] | None = None,
         additional_forward_args: Any = None,
         feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         n_samples: int = 25,
         perturbations_per_eval: int = 1,
         frozen_features: list[torch.Tensor] | None = None,
-        return_input_shape: bool = True,
         show_progress: bool = False,
         **kwargs,
     ) -> list[TensorOrTupleOfTensorsGeneric]:
@@ -426,7 +422,7 @@ class MultiTargetLime(MultiTargetLimeBase):
                 stacklevel=2,
             )
 
-        multi_target_coefs: Tensor
+        multi_target_coefs: list[Tensor]
         if bsz > 1:
             test_output = _run_forward_multi_target(
                 self.forward_func, inputs, target, additional_forward_args
@@ -494,7 +490,7 @@ class MultiTargetLime(MultiTargetLimeBase):
 
                         multi_target_coefs = super().attribute(
                             inputs=curr_inps if is_inputs_tuple else curr_inps[0],
-                            target=curr_target,
+                            target=curr_target,  # type: ignore
                             additional_forward_args=curr_additional_args,
                             n_samples=n_samples,
                             perturbations_per_eval=perturbations_per_eval,
@@ -510,29 +506,24 @@ class MultiTargetLime(MultiTargetLimeBase):
                             show_progress=show_progress,
                             **kwargs,
                         )
-                        if return_input_shape:
-                            output_list.append(
-                                [
-                                    self._convert_output_shape(
-                                        curr_inps,
-                                        curr_feature_mask,
-                                        coefs,
-                                        num_interp_features,
-                                        is_inputs_tuple,
-                                    )
-                                    for coefs in multi_target_coefs
-                                ]
-                            )
-                        else:
-                            output_list.append(
-                                [coefs.reshape(1, -1) for coefs in multi_target_coefs]
-                            )  # type: ignore
+                        output_list.append(
+                            [
+                                self._convert_output_shape(
+                                    curr_inps,
+                                    curr_feature_mask,
+                                    coefs,
+                                    num_interp_features,
+                                    is_inputs_tuple,
+                                )
+                                for coefs in multi_target_coefs
+                            ]
+                        )
 
                     # switch from per sample target output to per target output
                     # each element of this output now contains the batch attributions for a single target
                     output_list = list(zip(*output_list, strict=False))
 
-                    return [_reduce_list(output) for output in output_list]
+                    return [_reduce_list(output) for output in output_list]  # type: ignore
                 else:
                     raise AssertionError(
                         "Invalid number of outputs, forward function should return a"
@@ -557,19 +548,16 @@ class MultiTargetLime(MultiTargetLimeBase):
             **kwargs,
         )
 
-        if return_input_shape:
-            return [
-                self._convert_output_shape(
-                    formatted_inputs,
-                    feature_mask,
-                    coefs,
-                    num_interp_features,
-                    is_inputs_tuple,
-                )
-                for coefs in multi_target_coefs
-            ]
-        else:
-            return multi_target_coefs
+        return [
+            self._convert_output_shape(
+                formatted_inputs,
+                feature_mask,
+                coefs,
+                num_interp_features,
+                is_inputs_tuple,
+            )
+            for coefs in multi_target_coefs
+        ]
 
     def _convert_output_shape(
         self,
@@ -751,34 +739,15 @@ class LimeExplainer(Explainer):
 
         return wrapped
 
-    def _build_inputs(
-        self,
-        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
-        target: ExplanationTargetType,
-        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
-        feature_mask: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
-        additional_forward_args: tuple[Any, ...] | None = None,
-        frozen_features: list[torch.Tensor] | None = None,
-    ):
-        """Build ExplanationInputs from individual parameters."""
-        return ExplanationInputs(
-            inputs=inputs,
-            target=target,
-            baselines=baselines,
-            feature_mask=feature_mask,
-            additional_forward_args=additional_forward_args,
-            frozen_features=frozen_features,
-        )
-
     def explain(
         self,
-        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
+        inputs: TensorOrTupleOfTensorsGeneric,
         target: ExplanationTargetType,
-        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
-        feature_mask: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
+        baselines: TensorOrTupleOfTensorsGeneric | None = None,
+        feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
         additional_forward_args: tuple[Any, ...] | None = None,
         frozen_features: list[torch.Tensor] | None = None,
-    ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
+    ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute LIME attributions for the given inputs.
 
         This method provides a backward-compatible interface that accepts individual
@@ -818,7 +787,7 @@ class LimeExplainer(Explainer):
         """
 
         # Get base attributions
-        return super().explain(
+        return self._default_explain(
             inputs=inputs,
             target=target,
             baselines=baselines,

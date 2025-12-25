@@ -1,6 +1,6 @@
 # _grad
 from torchxai.explainers._grad._deeplift import DeepLiftExplainer  # noqa
-from torchxai.explainers._grad.deeplift_shap import DeepLiftShapExplainer  # noqa
+from torchxai.explainers._grad._deeplift_shap import DeepLiftShapExplainer  # noqa
 from torchxai.explainers._grad._gradient_shap import GradientShapExplainer  # noqa
 from torchxai.explainers._grad._guided_backprop import GuidedBackpropExplainer  # noqa
 from torchxai.explainers._grad._input_x_gradient import InputXGradientExplainer  # noqa

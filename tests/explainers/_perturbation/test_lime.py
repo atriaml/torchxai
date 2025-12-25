@@ -6,7 +6,7 @@ from tests.explainers.utils import (
     run_explainer_test_with_config,
 )
 from tests.utils.common import _grid_segmenter
-from tests.utils.configs import TestBaseConfig
+from tests.utils.configs import BaseTestConfig
 from torchxai.data_types import (
     ExplanationTarget,
     SingleTargetAcrossBatch,
@@ -166,7 +166,7 @@ test_configurations = [
 )
 def test_lime(explainer_runtime_test_configuration):
     base_config, runtime_config = explainer_runtime_test_configuration
-    base_config: TestBaseConfig
+    base_config: BaseTestConfig
     if runtime_config.set_image_feature_mask:
         base_config = base_config.model_copy(
             update={

@@ -6,7 +6,7 @@ import pytest  # noqa
 import torch
 
 from tests.utils.common import _assert_tensor_almost_equal, _run_metric_via_ignite
-from tests.utils.configs import TestRuntimeConfig
+from tests.utils.configs import RuntimeTestConfig
 from torchxai.ignite._axiomatic import MonotonicityCorrAndNonSensMetric
 from torchxai.metrics import monotonicity_corr_and_non_sens
 from torchxai.metrics._utils.perturbation import (
@@ -21,7 +21,7 @@ def _format_to_list(value):
     return value
 
 
-class MetricTestRuntimeConfig_(TestRuntimeConfig):
+class MetricTestRuntimeConfig_(RuntimeTestConfig):
     perturb_func: Callable = default_random_perturb_func()
     n_perturbations_per_feature: int | list[int | None] = 100
     max_features_processed_per_batch: int | list[int | None] | None = None

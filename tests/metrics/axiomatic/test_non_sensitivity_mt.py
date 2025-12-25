@@ -9,7 +9,7 @@ from tests.utils.common import (
     _run_metric_via_ignite,
     _set_all_random_seeds,
 )
-from tests.utils.configs import TestBaseConfig, TestRuntimeConfig
+from tests.utils.configs import BaseTestConfig, RuntimeTestConfig
 from torchxai.data_types import (
     MultiTargetExplanationStepOutputs,
     SingleTargetAcrossBatch,
@@ -25,7 +25,7 @@ def _format_to_list(value):
     return value
 
 
-class MetricTestRuntimeConfig(TestRuntimeConfig):
+class MetricTestRuntimeConfig(RuntimeTestConfig):
     test_name: str | None = "compare_multi_target_to_single_target"
     expainer: str = "saliency"
     override_target: list[int] = field(
@@ -95,7 +95,7 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
     base_config, runtime_config, explanation_step_outputs = (
         metrics_runtime_test_configuration
     )
-    base_config: TestBaseConfig
+    base_config: BaseTestConfig
     runtime_config: MetricTestRuntimeConfig
     explanation_step_outputs: MultiTargetExplanationStepOutputs
 

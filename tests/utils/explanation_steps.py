@@ -1,20 +1,12 @@
 from __future__ import annotations
 
 import inspect
-import typing
-from collections import OrderedDict
 
 import torch
 import tqdm
 
-from torchxai.data_types import (
-    ExplanationInputs,
-    ExplanationState,
-    ExplanationStepOutputs,
-    MetricInputs,
-    MultiTargetExplanationState,
-    MultiTargetExplanationStepOutputs,
-)
+from tests.utils.types import ExplanationInputs, ExplanationStepOutputs
+from torchxai.data_types import ExplanationTarget
 from torchxai.explainers.explainer import Explainer
 
 
@@ -42,7 +34,7 @@ class ExplanationStep:
 
     def _run_explainer_forward(
         self, explainer: Explainer, explanation_inputs: ExplanationInputs
-    ) -> OrderedDict[str, torch.Tensor]:
+    ) -> tuple[torch.Tensor, ...]:
         # filster args here so there is no error on fowrard
         # verify that impossible args are not set
         kwargs = {}
@@ -50,28 +42,27 @@ class ExplanationStep:
         for arg in signature:
             kwargs[arg] = getattr(explanation_inputs, arg)
 
-        return typing.cast(OrderedDict[str, torch.Tensor], explainer.explain(**kwargs))
-
-    def __call__(
-        self,
-        explanation_inputs: ExplanationInputs,
-        metric_inputs: MetricInputs | None = None,
-    ) -> ExplanationStepOutputs:
-        explanation_inputs = explanation_inputs.to(self._device)
-        metric_inputs = (
-            metric_inputs.to(self._device) if metric_inputs is not None else None
+        # if target is in
+        target = kwargs.pop("target", None)
+        assert isinstance(target, ExplanationTarget), (
+            "Explainer explain method must be called with target of type ExplanationTarget."
         )
+        explanations = explainer.explain(**kwargs, target=target)
+        assert isinstance(explanations, tuple), (
+            f"Explainer explain method must return a tuple, got {type(explanations)}"
+        )
+        return explanations
+
+    def __call__(self, explanation_inputs: ExplanationInputs) -> ExplanationStepOutputs:
+        explanation_inputs = explanation_inputs.to(self._device)
         model_outputs = self._run_model_forward(explanation_inputs)
         explanation = self._run_explainer_forward(
             explainer=self._explainer, explanation_inputs=explanation_inputs
         )
-        expl_state = ExplanationState(
+        return ExplanationStepOutputs(
             explanation_inputs=explanation_inputs,
             model_outputs=model_outputs,
             explanations=explanation,
-        )
-        return ExplanationStepOutputs(
-            explanation_state=expl_state, metric_inputs=metric_inputs
         )
 
 
@@ -97,7 +88,7 @@ class MultiTargetExplanationStep(ExplanationStep):
 
     def _run_explainer_forward(  # type: ignore
         self, explainer: Explainer, explanation_inputs: ExplanationInputs
-    ) -> list[OrderedDict[str, torch.Tensor]]:
+    ) -> list[tuple[torch.Tensor, ...]]:
         assert isinstance(explainer.multi_target, bool) and explainer.multi_target, (
             "Explainer must be set to multi-target mode for MultiTargetExplanationStep."
         )
@@ -126,31 +117,25 @@ class MultiTargetExplanationStep(ExplanationStep):
             explainer.multi_target = True
             return per_target_explanations
         else:
-            return typing.cast(
-                list[OrderedDict[str, torch.Tensor]], explainer.explain(**kwargs)
+            explanations = explainer.explain(**kwargs)
+            assert isinstance(explanations, list), (
+                f"Explainer explain method must return a list, got {type(explanations)}"
             )
+            return explanations  # type: ignore
 
     def __call__(  # type: ignore
-        self,
-        explanation_inputs: ExplanationInputs,
-        metric_inputs: MetricInputs | None = None,
-    ) -> MultiTargetExplanationStepOutputs:
+        self, explanation_inputs: ExplanationInputs
+    ) -> ExplanationStepOutputs:
         assert isinstance(self._explainer, Explainer), (
             "Multi-target explainer must be an instance of Explainer."
         )
         explanation_inputs = explanation_inputs.to(self._device)
-        metric_inputs = (
-            metric_inputs.to(self._device) if metric_inputs is not None else None
-        )
         model_outputs = self._run_model_forward(explanation_inputs)
         explanation = self._run_explainer_forward(
             explainer=self._explainer, explanation_inputs=explanation_inputs
         )
-        expl_state = MultiTargetExplanationState(
+        return ExplanationStepOutputs(
             explanation_inputs=explanation_inputs,
             model_outputs=model_outputs,
             explanations=explanation,
-        )
-        return MultiTargetExplanationStepOutputs(
-            explanation_state=expl_state, metric_inputs=metric_inputs
         )

@@ -9,7 +9,7 @@ from tests.utils.common import (
     _assert_tensor_almost_equal,
     _set_all_random_seeds,
 )
-from tests.utils.configs import TestRuntimeConfig
+from tests.utils.configs import RuntimeTestConfig
 from torchxai.metrics import infidelity
 
 
@@ -20,7 +20,7 @@ def _format_to_list(value):
 
 
 @dataclasses.dataclass
-class MetricTestRuntimeConfig_(TestRuntimeConfig):
+class MetricTestRuntimeConfig_(RuntimeTestConfig):
     n_perturb_samples: int = 10
     max_examples_per_batch: int = None
     normalize: bool = True

@@ -16,7 +16,7 @@ from captum.attr import LimeBase
 from torch import Tensor
 from torch.utils.data import DataLoader, TensorDataset
 
-from torchxai.data_types.common import TargetType, TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.explainers._utils import _run_forward_multi_target
 
 
@@ -44,13 +44,13 @@ class MultiTargetLimeBase(LimeBase):
     def attribute(  # type: ignore[override]
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        target: list[TargetType] | None = None,
+        target: list[TargetType],
         additional_forward_args: Any = None,
         n_samples: int = 50,
         perturbations_per_eval: int = 1,
         show_progress: bool = False,
         **kwargs,
-    ) -> Tensor:
+    ) -> list[Tensor]:
         with torch.no_grad():
             inp_tensor = (
                 cast(Tensor, inputs) if isinstance(inputs, Tensor) else inputs[0]
@@ -131,7 +131,7 @@ class MultiTargetLimeBase(LimeBase):
 
                     model_out = self._evaluate_batch(
                         curr_model_inputs,
-                        expanded_target,  #
+                        expanded_target,  # type: ignore
                         expanded_additional_args,
                         device,
                     )
@@ -154,7 +154,10 @@ class MultiTargetLimeBase(LimeBase):
                     expanded_target = _expand_target(target, len(curr_model_inputs))
 
                 model_out = self._evaluate_batch(
-                    curr_model_inputs, expanded_target, expanded_additional_args, device
+                    curr_model_inputs,
+                    expanded_target,  # type: ignore
+                    expanded_additional_args,
+                    device,
                 )
                 if attr_progress is not None:
                     attr_progress.update()
@@ -186,7 +189,7 @@ class MultiTargetLimeBase(LimeBase):
                 coefs.append(output)
             return coefs
 
-    def _evaluate_batch(
+    def _evaluate_batch(  # type: ignore
         self,
         curr_model_inputs: list[TensorOrTupleOfTensorsGeneric],
         expanded_target: tuple[TargetType, ...],
@@ -195,8 +198,8 @@ class MultiTargetLimeBase(LimeBase):
     ):
         model_out = _run_forward_multi_target(
             self.forward_func,
-            _reduce_list(curr_model_inputs),
-            expanded_target,
+            _reduce_list(curr_model_inputs),  # type: ignore
+            expanded_target,  # type: ignore
             expanded_additional_args,
         )
         if isinstance(model_out, Tensor):

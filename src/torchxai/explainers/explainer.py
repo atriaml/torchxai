@@ -1,12 +1,10 @@
-import typing
 from abc import ABC, abstractmethod
-from collections import OrderedDict
 from collections.abc import Callable
 
 import torch
 
-from torchxai.data_types import ExplanationInputs
-from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import TensorOrTupleOfTensorsGeneric
+from torchxai.data_types._target import ExplanationTarget
 
 
 class Explainer(ABC):
@@ -134,8 +132,8 @@ class Explainer(ABC):
         return _default_multi_target_explanation_fn
 
     def _single_target_forward(
-        self, explanation_inputs
-    ) -> dict[str, TensorOrTupleOfTensorsGeneric]:
+        self, **explanation_inputs
+    ) -> TensorOrTupleOfTensorsGeneric:
         """Forward pass for single-target explanations.
 
         Args:
@@ -145,21 +143,15 @@ class Explainer(ABC):
             Dictionary mapping feature names to their corresponding attributions.
         """
         # inspect explainer signature and save
-        fields_set = explanation_inputs.model_fields_set
-        explanation_tuple_inputs = explanation_inputs.to_explanation_tuple_inputs()
-        explanations = self._explanation_fn(
-            **explanation_tuple_inputs.model_dump(include=fields_set)
+        target = explanation_inputs.pop("target")
+        assert isinstance(target, ExplanationTarget), (
+            "Explainer explain method must be called with target of type ExplanationTarget."
         )
-        return OrderedDict(
-            {
-                key: explanations[idx]
-                for idx, key in enumerate(explanation_inputs.inputs.keys())
-            }
-        )
+        return self._explanation_fn(**explanation_inputs, target=target.value)
 
     def _multi_target_forward(
-        self, explanation_inputs
-    ) -> list[OrderedDict[str, torch.Tensor]]:
+        self, **explanation_inputs
+    ) -> list[TensorOrTupleOfTensorsGeneric]:
         """Forward pass for multi-target explanations.
 
         Args:
@@ -171,54 +163,44 @@ class Explainer(ABC):
         Raises:
             AssertionError: If targets are not properly formatted for multi-target mode.
         """
-        # inspect explainer signature and save
-        fields_set = explanation_inputs.model_fields_set
-        explanation_tuple_inputs = explanation_inputs.to_explanation_tuple_inputs()
-
-        assert isinstance(explanation_tuple_inputs.target, list), (
+        # inspect explainer signature and saveexplanation_inputs
+        target = explanation_inputs.pop("target")
+        assert isinstance(target, list), (
             "Target must be a list for multi-target explanation."
         )
+        target_validated = []
+        for t in target:
+            assert isinstance(t, ExplanationTarget), (
+                "Each target in multi-target explanation must be of type ExplanationTarget."
+            )
+            target_validated.append(t.value)
         per_target_explanations = self._explanation_fn(
-            **explanation_tuple_inputs.model_dump(include=fields_set)
+            **explanation_inputs, target=target_validated
         )
         assert isinstance(per_target_explanations, list), (
             "Explanations must be a list for multi-target explanation."
         )
-        assert len(per_target_explanations) == len(explanation_tuple_inputs.target), (
+        assert len(per_target_explanations) == len(target), (
             "Number of explanations must match number of targets."
         )
 
-        # convert the list[tuple[tensors]] -> list[dict[tensors]] to -> tuples -> list of targets
-        def _tuples_to_dict(
-            exp_tuples: tuple, keys: list[str]
-        ) -> OrderedDict[str, torch.Tensor]:
-            return OrderedDict(zip(keys, exp_tuples, strict=True))
-
-        feature_keys = list(explanation_inputs.inputs.keys())
-        per_target_explanations = [
-            _tuples_to_dict(exp, feature_keys) for exp in per_target_explanations
-        ]
-
         return per_target_explanations
 
+    def _default_explain(
+        self, **kwargs
+    ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
+        # get the explanation_outputs
+        # get value of the target
+
+        if self._multi_target:
+            return self._multi_target_forward(**kwargs)
+        else:
+            return self._single_target_forward(**kwargs)
+
     @abstractmethod
-    def _build_inputs(self, *args, **kwargs) -> ExplanationInputs:
-        """Build ExplanationInputs from args and kwargs.
-
-        This method must be implemented by subclasses to construct an
-        ExplanationInputs object from the provided arguments.
-
-        Args:
-            *args: Positional arguments.
-            **kwargs: Keyword arguments.
-        Returns:
-            ExplanationInputs: The constructed ExplanationInputs object.
-        """
-        pass
-
     def explain(
         self, *args, **kwargs
-    ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
+    ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute attributions for the given structured inputs.
 
         This is the main method for generating explanations. It automatically handles
@@ -257,17 +239,3 @@ class Explainer(ABC):
         Raises:
             AssertionError: If target format doesn't match the explainer mode or batch size requirements.
         """
-
-        # we internally use ExplanationInputs for structured validation of the explainer inputs before passing to the explainer function
-        explanation_inputs = self._build_inputs(*args, **kwargs)
-
-        if self._multi_target:
-            return typing.cast(
-                list[OrderedDict[str, torch.Tensor]],
-                self._multi_target_forward(explanation_inputs),
-            )
-        else:
-            return typing.cast(
-                OrderedDict[str, torch.Tensor],
-                self._single_target_forward(explanation_inputs),
-            )

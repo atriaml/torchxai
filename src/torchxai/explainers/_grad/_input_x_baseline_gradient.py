@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from collections.abc import Callable
 from typing import Any
 
@@ -12,9 +11,9 @@ from captum.attr._core.gradient_shap import (
 )
 from captum.attr._utils.common import _format_input_baseline
 
-from torchxai.data_types import ExplanationInputs, ExplanationTargetType
-from torchxai.data_types.common import (
+from torchxai.data_types import (
     BaselineType,
+    ExplanationTargetType,
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
@@ -144,10 +143,6 @@ class MultiTargetInputBaselineXGradient(GradientAttribution):
     def has_convergence_delta(self) -> bool:
         return True
 
-    @property
-    def multiplies_by_inputs(self):
-        return self._multiply_by_inputs
-
 
 class InputXBaselineGradientExplainer(Explainer):
     """Input × Baseline Gradient explainer for computing scaled baseline-gradient attributions.
@@ -214,28 +209,13 @@ class InputXBaselineGradientExplainer(Explainer):
             self._model, grad_batch_size=self._grad_batch_size
         ).attribute
 
-    def _build_inputs(
-        self,
-        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
-        target: ExplanationTargetType,
-        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
-        additional_forward_args: tuple[Any, ...] | None = None,
-    ):
-        """Build ExplanationInputs from individual parameters."""
-        return ExplanationInputs(
-            inputs=inputs,
-            target=target,
-            baselines=baselines,
-            additional_forward_args=additional_forward_args,
-        )
-
     def explain(
         self,
-        inputs: OrderedDict[str, torch.Tensor] | torch.Tensor,
+        inputs: TensorOrTupleOfTensorsGeneric,
         target: ExplanationTargetType,
-        baselines: OrderedDict[str, torch.Tensor] | torch.Tensor | None = None,
+        baselines: TensorOrTupleOfTensorsGeneric | None = None,
         additional_forward_args: tuple[Any, ...] | None = None,
-    ) -> OrderedDict[str, torch.Tensor] | list[OrderedDict[str, torch.Tensor]]:
+    ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute Input × Baseline Gradient attributions for the given inputs.
 
         This method provides a backward-compatible interface that accepts individual
@@ -274,7 +254,7 @@ class InputXBaselineGradientExplainer(Explainer):
             ...     ),
             ... )
         """
-        return super().explain(
+        return self._default_explain(
             inputs=inputs,
             target=target,
             baselines=baselines,

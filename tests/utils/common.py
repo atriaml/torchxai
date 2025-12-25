@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch import Tensor
 
-from torchxai.data_types import ExplanationStepOutputs
+from tests.utils.types import ExplanationStepOutputs
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)

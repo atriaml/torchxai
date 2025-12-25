@@ -14,7 +14,7 @@ from captum.attr import NoiseTunnel
 from captum.attr._utils.common import _validate_noise_tunnel_type
 from torch import Tensor
 
-from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import TensorOrTupleOfTensorsGeneric
 from torchxai.explainers._utils import _expand_and_update_target_multi_target
 
 

@@ -1,17 +1,14 @@
 import pytest  # noqa
 
 from tests.utils.common import _set_all_random_seeds
-from tests.utils.configs import TestBaseConfig, TestRuntimeConfig
+from tests.utils.configs import BaseTestConfig, RuntimeTestConfig
+from tests.utils.explanation_steps import ExplanationStep, MultiTargetExplanationStep
 from torchxai.explainers.factory import ExplainerFactory
-from torchxai.ignite._explanation_step import (
-    ExplanationStep,
-    MultiTargetExplanationStep,
-)
 
 
 def prepare_explanations(
-    base_config: TestBaseConfig,
-    runtime_config: TestRuntimeConfig,
+    base_config: BaseTestConfig,
+    runtime_config: RuntimeTestConfig,
     multi_target: bool = False,
 ):
     _set_all_random_seeds(1234)
@@ -27,12 +24,6 @@ def prepare_explanations(
         )
     else:
         explanation_step = ExplanationStep(
-            model=base_config.model,
-            explainer=explainer,
-            device=runtime_config.device,
-            use_captum_explainer=runtime_config.use_captum_explainer,
+            model=base_config.model, explainer=explainer, device=runtime_config.device
         )
-    return explanation_step(
-        explanation_inputs=base_config.explanation_inputs,
-        metric_inputs=base_config.metric_inputs,
-    )
+    return explanation_step(explanation_inputs=base_config.explanation_inputs)
