@@ -81,8 +81,8 @@ class MultiTargetDeepLift(DeepLift):
     ) -> None:
         super().__init__(model, multiply_by_inputs, eps)
 
-        self.gradient_func = gradient_func
-        self.grad_batch_size = grad_batch_size
+        self._gradient_func = gradient_func
+        self._grad_batch_size = grad_batch_size
 
     def attribute(  # type: ignore[override]
         self,
@@ -154,8 +154,8 @@ class MultiTargetDeepLift(DeepLift):
                 expanded_target,
                 additional_forward_args,
             )
-            multi_target_gradients = self.gradient_func(
-                wrapped_forward_func, inputs, grad_batch_size=self.grad_batch_size
+            multi_target_gradients = self._gradient_func(
+                wrapped_forward_func, inputs, grad_batch_size=self._grad_batch_size
             )
 
             def gradients_to_attributions(gradients):

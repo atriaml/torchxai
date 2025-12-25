@@ -113,8 +113,8 @@ class MultiTargetGradientShap(GradientShap):
         grad_batch_size: int = 10,
     ) -> None:
         super().__init__(forward_func, multiply_by_inputs)
-        self.gradient_func = gradient_func
-        self.grad_batch_size = grad_batch_size
+        self._gradient_func = gradient_func
+        self._grad_batch_size = grad_batch_size
 
     def attribute(  # type: ignore
         self,
@@ -142,8 +142,8 @@ class MultiTargetGradientShap(GradientShap):
         input_min_baseline_x_grad = MultiTargetInputBaselineXGradient(
             self.forward_func,
             self.multiplies_by_inputs,
-            gradient_func=self.gradient_func,
-            grad_batch_size=self.grad_batch_size,
+            gradient_func=self._gradient_func,
+            grad_batch_size=self._grad_batch_size,
         )
         nt = MultiTargetNoiseTunnel(input_min_baseline_x_grad)
 
@@ -240,9 +240,9 @@ class GradientShapExplainer(Explainer):
             return_convergence_delta: Whether to return convergence delta for
                 completeness check. Defaults to False.
         """
-        self.n_samples = n_samples
-        self.return_convergence_delta = return_convergence_delta
-        self.stdevs = stddevs
+        self._n_samples = n_samples
+        self._return_convergence_delta = return_convergence_delta
+        self._stdevs = stddevs
 
         super().__init__(
             model, multi_target, internal_batch_size, grad_batch_size=grad_batch_size
@@ -256,10 +256,10 @@ class GradientShapExplainer(Explainer):
         """
         return partial(
             GradientShap_(self._model).attribute,
-            n_samples=self.n_samples,
+            n_samples=self._n_samples,
             n_samples_batch_size=self._internal_batch_size,
-            return_convergence_delta=self.return_convergence_delta,
-            stdevs=self.stdevs,
+            return_convergence_delta=self._return_convergence_delta,
+            stdevs=self._stdevs,
         )
 
     def _init_multi_target_explanation_fn(self) -> Callable:
@@ -272,10 +272,10 @@ class GradientShapExplainer(Explainer):
             MultiTargetGradientShap(
                 self._model, grad_batch_size=self._grad_batch_size
             ).attribute,
-            n_samples=self.n_samples,
+            n_samples=self._n_samples,
             n_samples_batch_size=self._internal_batch_size,
-            return_convergence_delta=self.return_convergence_delta,
-            stdevs=self.stdevs,
+            return_convergence_delta=self._return_convergence_delta,
+            stdevs=self._stdevs,
         )
 
     def explain(

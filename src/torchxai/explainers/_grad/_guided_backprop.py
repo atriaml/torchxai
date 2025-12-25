@@ -67,12 +67,12 @@ class MultiTargetGuidedBackprop(GradientAttribution):
             model (nn.Module): The reference to PyTorch model instance.
         """
         GradientAttribution.__init__(self, model)
-        self.model = model
-        self.backward_hooks: list[RemovableHandle] = []
-        self.use_relu_grad_output = use_relu_grad_output
-        self.gradient_func = gradient_func
-        self.grad_batch_size = grad_batch_size
-        assert isinstance(self.model, torch.nn.Module), (
+        self._model = model
+        self._backward_hooks: list[RemovableHandle] = []
+        self._use_relu_grad_output = use_relu_grad_output
+        self._gradient_func = gradient_func
+        self._grad_batch_size = grad_batch_size
+        assert isinstance(self._model, torch.nn.Module), (
             "Given model must be an instance of torch.nn.Module to properly hook"
             " ReLU layers."
         )
@@ -112,14 +112,14 @@ class MultiTargetGuidedBackprop(GradientAttribution):
             stacklevel=2,
         )
         try:
-            self.model.apply(self._register_hooks)
+            self._model.apply(self._register_hooks)
 
-            multi_target_gradients = self.gradient_func(
+            multi_target_gradients = self._gradient_func(
                 self.forward_func,
                 inputs,
                 target,
                 additional_forward_args,
-                grad_batch_size=self.grad_batch_size,
+                grad_batch_size=self._grad_batch_size,
             )
         finally:
             self._remove_hooks()
@@ -133,7 +133,7 @@ class MultiTargetGuidedBackprop(GradientAttribution):
     def _register_hooks(self, module: Module):
         if isinstance(module, torch.nn.ReLU):
             hooks = _register_backward_hook(module, self._backward_hook, self)
-            self.backward_hooks.extend(hooks)
+            self._backward_hooks.extend(hooks)
 
     def _backward_hook(
         self,
@@ -141,7 +141,7 @@ class MultiTargetGuidedBackprop(GradientAttribution):
         grad_input: Tensor | tuple[Tensor, ...],
         grad_output: Tensor | tuple[Tensor, ...],
     ):
-        to_override_grads = grad_output if self.use_relu_grad_output else grad_input
+        to_override_grads = grad_output if self._use_relu_grad_output else grad_input
         if isinstance(to_override_grads, tuple):
             return tuple(
                 F.relu(to_override_grad) for to_override_grad in to_override_grads
@@ -150,7 +150,7 @@ class MultiTargetGuidedBackprop(GradientAttribution):
             return F.relu(to_override_grads)
 
     def _remove_hooks(self):
-        for hook in self.backward_hooks:
+        for hook in self._backward_hooks:
             hook.remove()
 
 

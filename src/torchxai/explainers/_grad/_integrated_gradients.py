@@ -66,8 +66,8 @@ class MultiTargetIntegratedGradients(IntegratedGradients):
         grad_batch_size: int = 10,
     ) -> None:
         super().__init__(forward_func, multiply_by_inputs)
-        self.gradient_func = gradient_func
-        self.grad_batch_size = grad_batch_size
+        self._gradient_func = gradient_func
+        self._grad_batch_size = grad_batch_size
 
     def attribute(  # type: ignore
         self,
@@ -209,12 +209,12 @@ class MultiTargetIntegratedGradients(IntegratedGradients):
         expanded_target = [_expand_target(t, n_steps) for t in target]
 
         # grads: dim -> (bsz * #steps x inputs[0].shape[1:], ...)
-        multi_target_gradients = self.gradient_func(
+        multi_target_gradients = self._gradient_func(
             forward_fn=self.forward_func,
             inputs=scaled_features_tpl,
             target=expanded_target,
             additional_forward_args=input_additional_args,
-            grad_batch_size=self.grad_batch_size,
+            grad_batch_size=self._grad_batch_size,
         )
 
         # flattening grads so that we can multilpy it with step-size

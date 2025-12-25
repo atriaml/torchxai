@@ -49,8 +49,8 @@ class MultiTargetInputXGradient(GradientAttribution):
         grad_batch_size: int = 10,
     ) -> None:
         super().__init__(forward_func)
-        self.gradient_func = gradient_func
-        self.grad_batch_size = grad_batch_size
+        self._gradient_func = gradient_func
+        self._grad_batch_size = grad_batch_size
 
     def attribute(
         self,
@@ -79,12 +79,12 @@ class MultiTargetInputXGradient(GradientAttribution):
         # verify that the target is valid
         _verify_target_for_multi_target_impl(inputs, target)
 
-        multi_target_gradients = self.gradient_func(
+        multi_target_gradients = self._gradient_func(
             self.forward_func,
             inputs,
             target,
             additional_forward_args,
-            grad_batch_size=self.grad_batch_size,
+            grad_batch_size=self._grad_batch_size,
         )
 
         def gradients_to_attributions(gradients):

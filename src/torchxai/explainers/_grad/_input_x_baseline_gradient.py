@@ -47,8 +47,8 @@ class MultiTargetInputBaselineXGradient(GradientAttribution):
         grad_batch_size: int = 10,
     ) -> None:
         super().__init__(forward_func)
-        self.gradient_func = gradient_func
-        self.grad_batch_size = grad_batch_size
+        self._gradient_func = gradient_func
+        self._grad_batch_size = grad_batch_size
         self._multiply_by_inputs = multiply_by_inputs
 
     def attribute(  # type: ignore
@@ -82,12 +82,12 @@ class MultiTargetInputBaselineXGradient(GradientAttribution):
             _scale_input(input, baseline, rand_coefficient)
             for input, baseline in zip(inputs, baselines, strict=False)
         )
-        multi_target_gradients = self.gradient_func(
+        multi_target_gradients = self._gradient_func(
             self.forward_func,
             input_baseline_scaled,
             target,
             additional_forward_args,
-            grad_batch_size=self.grad_batch_size,
+            grad_batch_size=self._grad_batch_size,
         )
 
         def gradients_to_attributions(per_target_gradients):
@@ -142,6 +142,10 @@ class MultiTargetInputBaselineXGradient(GradientAttribution):
 
     def has_convergence_delta(self) -> bool:
         return True
+
+    @property
+    def multiplies_by_inputs(self):  # type: ignore
+        return self._multiply_by_inputs
 
 
 class InputXBaselineGradientExplainer(Explainer):
