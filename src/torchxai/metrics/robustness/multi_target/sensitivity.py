@@ -15,7 +15,7 @@ from captum.metrics._utils.batching import _divide_and_aggregate_metrics
 from torch import Tensor
 
 from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
-from torchxai.explainers.explainer import Explainer
+from torchxai.explainers._explainer import Explainer
 from torchxai.metrics.robustness.utilities import default_perturb_func
 
 
@@ -170,7 +170,10 @@ def _multi_target_sensitivity_scores(
     bsz = inputs[0].size(0)
 
     def _agg_sensitivity_scores(agg_tensors, tensors):
-        return [torch.cat([agg_t, t], dim=-1) for agg_t, t in zip(agg_tensors, tensors, strict=False)]
+        return [
+            torch.cat([agg_t, t], dim=-1)
+            for agg_t, t in zip(agg_tensors, tensors, strict=False)
+        ]
 
     with torch.no_grad():
         expl_inputs_list = explanation_func.explain(inputs, **kwargs)

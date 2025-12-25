@@ -3,7 +3,7 @@ import pytest  # noqa
 from tests.utils.common import _compare_explanation_per_target, _set_all_random_seeds
 from tests.utils.configs import ExplainersTestRuntimeConfig, BaseTestConfig
 from torchxai.data_types import ExplanationTarget
-from torchxai.explainers.factory import ExplainerFactory
+from torchxai.explainers._factory import ExplainerFactory
 from tests.utils.explanation_steps import ExplanationStep, MultiTargetExplanationStep
 
 

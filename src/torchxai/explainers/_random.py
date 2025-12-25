@@ -5,7 +5,7 @@ import torch
 from captum._utils.common import _format_tensor_into_tuples
 
 from torchxai.data_types import TargetType, TensorOrTupleOfTensorsGeneric
-from torchxai.explainers.explainer import Explainer
+from torchxai.explainers._explainer import Explainer
 
 
 class RandomExplainer(Explainer):

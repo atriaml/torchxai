@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from torch import nn
 
+from torchxai.explainers._explainer import Explainer
 from torchxai.explainers._grad._deeplift import DeepLiftExplainer
 from torchxai.explainers._grad._deeplift_shap import DeepLiftShapExplainer
 from torchxai.explainers._grad._gradient_shap import GradientShapExplainer
@@ -16,8 +17,7 @@ from torchxai.explainers._perturbation._feature_ablation import FeatureAblationE
 from torchxai.explainers._perturbation._kernel_shap import KernelShapExplainer
 from torchxai.explainers._perturbation._lime import LimeExplainer
 from torchxai.explainers._perturbation._occlusion import OcclusionExplainer
-from torchxai.explainers.explainer import Explainer
-from torchxai.explainers.random import RandomExplainer
+from torchxai.explainers._random import RandomExplainer
 
 AVAILABLE_EXPLAINERS = {
     "random": RandomExplainer,

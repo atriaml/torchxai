@@ -15,6 +15,7 @@ from torchxai.data_types import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
+from torchxai.explainers._explainer import Explainer
 from torchxai.explainers._grad._input_x_baseline_gradient import (
     MultiTargetInputBaselineXGradient,
 )
@@ -23,7 +24,6 @@ from torchxai.explainers._utils import (
     _compute_gradients_sequential_autograd,
     _compute_gradients_vmap_autograd,
 )
-from torchxai.explainers.explainer import Explainer
 
 
 class GradientShap_(GradientShap):

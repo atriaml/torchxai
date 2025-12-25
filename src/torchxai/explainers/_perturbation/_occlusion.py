@@ -18,11 +18,11 @@ from torchxai.data_types import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
+from torchxai.explainers._explainer import Explainer
 from torchxai.explainers._perturbation._feature_ablation import (
     FeatureAblation,
     MultiTargetFeatureAblation,
 )
-from torchxai.explainers.explainer import Explainer
 
 
 class Occlusion(FeatureAblation):

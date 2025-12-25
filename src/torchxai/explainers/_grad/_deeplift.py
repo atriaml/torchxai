@@ -35,12 +35,12 @@ from torchxai.data_types import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
+from torchxai.explainers._explainer import Explainer
 from torchxai.explainers._utils import (
     _compute_gradients_sequential_autograd,
     _compute_gradients_vmap_autograd,
     _verify_target_for_multi_target_impl,
 )
-from torchxai.explainers.explainer import Explainer
 
 # replace the softmax with nonlinear as the normalization in the softmax function is not invariant to the batch size!
 # the softmax implementation results in differnt deltas for higher or lower batch sizes. Seems incorrect!

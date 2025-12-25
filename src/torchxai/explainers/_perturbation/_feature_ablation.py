@@ -26,12 +26,12 @@ from torchxai.data_types import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
+from torchxai.explainers._explainer import Explainer
 from torchxai.explainers._utils import (
     _expand_feature_mask_to_target,
     _run_forward_multi_target,
     _weight_attributions,
 )
-from torchxai.explainers.explainer import Explainer
 
 
 class FeatureAblation(CaptumFeatureAblation):

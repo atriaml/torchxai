@@ -9,7 +9,7 @@ from tests.utils.common import (
     _set_all_random_seeds,
 )
 from tests.utils.configs import BaseTestConfig, RuntimeTestConfig
-from torchxai.explainers.factory import ExplainerFactory
+from torchxai.explainers._factory import ExplainerFactory
 from torchxai.metrics.axiomatic.input_invariance import input_invariance
 
 

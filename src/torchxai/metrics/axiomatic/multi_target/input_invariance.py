@@ -5,7 +5,7 @@ from captum._utils.common import _format_output, _format_tensor_into_tuples, _is
 from torch import Tensor
 
 from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
-from torchxai.explainers.explainer import Explainer
+from torchxai.explainers._explainer import Explainer
 from torchxai.metrics.axiomatic.utilities import (
     _create_shifted_expainer,
     _prepare_kwargs_for_base_and_shifted_inputs,

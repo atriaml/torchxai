@@ -24,13 +24,13 @@ from torchxai.data_types import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
+from torchxai.explainers._explainer import Explainer
 from torchxai.explainers._grad._deeplift import MultiTargetDeepLift
 from torchxai.explainers._utils import (
     _compute_gradients_sequential_autograd,
     _compute_gradients_vmap_autograd,
     _verify_target_for_multi_target_impl,
 )
-from torchxai.explainers.explainer import Explainer
 
 
 class DeepLiftShapBatched(DeepLift):

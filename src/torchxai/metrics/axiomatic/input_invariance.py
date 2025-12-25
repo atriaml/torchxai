@@ -6,7 +6,7 @@ from captum._utils.common import _format_output, _format_tensor_into_tuples, _is
 from captum.attr import Attribution
 
 from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
-from torchxai.explainers.explainer import Explainer
+from torchxai.explainers._explainer import Explainer
 from torchxai.metrics.axiomatic.multi_target.input_invariance import (
     _multi_target_input_invariance,
 )

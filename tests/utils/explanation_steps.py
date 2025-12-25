@@ -7,7 +7,7 @@ import tqdm
 
 from tests.utils.types import ExplanationInputs, ExplanationStepOutputs
 from torchxai.data_types import ExplanationTarget
-from torchxai.explainers.explainer import Explainer
+from torchxai.explainers._explainer import Explainer
 
 
 class ExplanationStep:
