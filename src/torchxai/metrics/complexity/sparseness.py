@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch import Tensor
 
-from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import TensorOrTupleOfTensorsGeneric
 from torchxai.metrics._utils.common import (
     _construct_default_feature_mask,
     _reduce_tensor_with_indices_non_deterministic,
@@ -122,7 +122,7 @@ def _sparseness_feature_grouped(
 
 def sparseness(
     attributions: tuple[Tensor, ...] | list[tuple[Tensor, ...]],
-    is_multi_target: bool = False,
+    multi_target: bool = False,
     return_dict: bool = False,
 ) -> dict | torch.Tensor | list[torch.Tensor]:
     """
@@ -148,7 +148,7 @@ def sparseness(
         attributions (Tuple[Tensor,...]): A tuple of tensors representing attributions of separate inputs. Each
             tensor in the tuple has shape (batch_size, num_features).
 
-        is_multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
+        multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
                 multi-target explanations. if set to true, the targets are required to be a list of integers
                 each corresponding to a required target class in the output. The corresponding metric outputs
                 are then returned as a list of metric outputs corresponding to each target class.
@@ -177,7 +177,7 @@ def sparseness(
         >>> sparseness_scores = sparseness(attribution)
     """
     is_attributions_list = isinstance(attributions, list)
-    if is_multi_target:
+    if multi_target:
         assert is_attributions_list, (
             "attributions must be a list of tensors or list of tuples of tensors"
         )
@@ -194,7 +194,7 @@ def sparseness(
 def sparseness_feature_grouped(
     attributions: tuple[Tensor, ...] | list[tuple[Tensor, ...]],
     feature_mask: tuple[torch.Tensor, ...] | None = None,
-    is_multi_target: bool = False,
+    multi_target: bool = False,
     return_dict: bool = False,
 ) -> dict | torch.Tensor | list[torch.Tensor]:
     """
@@ -246,7 +246,7 @@ def sparseness_feature_grouped(
                     is perturbed independently.
                     Default: None
 
-        is_multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
+        multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
                 multi-target explanations. if set to true, the targets are required to be a list of integers
                 each corresponding to a required target class in the output. The corresponding metric outputs
                 are then returned as a list of metric outputs corresponding to each target class.
@@ -275,7 +275,7 @@ def sparseness_feature_grouped(
         >>> sparseness_scores = sparseness(attribution)
     """
     is_attributions_list = isinstance(attributions, list)
-    if is_multi_target:
+    if multi_target:
         assert is_attributions_list, (
             "attributions must be a list of tensors or list of tuples of tensors"
         )

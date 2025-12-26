@@ -137,3 +137,12 @@ class ExplanationStepOutputs(BaseModel):
     explanation_inputs: ExplanationInputs
     model_outputs: torch.Tensor
     explanations: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]]
+
+    def to(self, device: str | torch.device = "cpu") -> ExplanationStepOutputs:
+        return self.model_copy(
+            update={
+                "explanation_inputs": self.explanation_inputs.to(device),
+                "model_outputs": _to_device(self.model_outputs, device),
+                "explanations": _to_device(self.explanations, device),
+            }
+        )

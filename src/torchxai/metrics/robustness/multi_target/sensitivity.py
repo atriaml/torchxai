@@ -14,7 +14,7 @@ from captum._utils.common import (
 from captum.metrics._utils.batching import _divide_and_aggregate_metrics
 from torch import Tensor
 
-from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import TensorOrTupleOfTensorsGeneric
 from torchxai.explainers._explainer import Explainer
 from torchxai.metrics.robustness.utilities import default_perturb_func
 
@@ -156,7 +156,7 @@ def _multi_target_sensitivity_scores(
         "Explanation function must be an instance of "
         f"`torchxai.explainers.Explainer`. Found = {explanation_func}"
     )
-    assert explanation_func._is_multi_target, (
+    assert explanation_func._multi_target, (
         "Explanation function must be a multi-target explainer."
     )
     target = kwargs.get("target", None)

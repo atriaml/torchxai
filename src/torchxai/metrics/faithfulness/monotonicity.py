@@ -15,11 +15,7 @@ from captum._utils.common import (
 )
 from torch import Tensor
 
-from torchxai.data_types.common import (
-    BaselineType,
-    TargetType,
-    TensorOrTupleOfTensorsGeneric,
-)
+from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.metrics._utils.batching import _divide_and_aggregate_metrics_n_features
 from torchxai.metrics._utils.common import (
     _construct_default_feature_mask,
@@ -110,7 +106,9 @@ def _eval_monotonicity_single_sample(
     with torch.no_grad():
 
         def _agg_monotonicity_tensors(agg_tensors, tensors):
-            return tuple(agg_t + t for agg_t, t in zip(agg_tensors, tensors, strict=False))
+            return tuple(
+                agg_t + t for agg_t, t in zip(agg_tensors, tensors, strict=False)
+            )
 
         bsz = inputs[0].size(0)
         assert bsz == 1, "Batch size must be 1 for monotonicity_single_sample"
@@ -287,7 +285,7 @@ def monotonicity(
     max_features_processed_per_batch: int | None = None,
     percentage_feature_removal_per_step: float = 0.01,
     frozen_features: list[torch.Tensor] | None = None,
-    is_multi_target: bool = False,
+    multi_target: bool = False,
     show_progress: bool = False,
     return_intermediate_results: bool = False,
     return_dict: bool = False,
@@ -465,7 +463,7 @@ def monotonicity(
                 This can be useful for ignoring the input structure features like padding, etc. Default: None
                 In case CLS,PAD,SEP tokens are present in the input, they can be frozen by passing the indices
                 of feature masks that correspond to these tokens.
-        is_multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
+        multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
                 multi-target explanations. if set to true, the targets are required to be a list of integers
                 each corresponding to a required target class in the output. The corresponding metric outputs
                 are then returned as a list of metric outputs corresponding to each target class.
@@ -499,7 +497,7 @@ def monotonicity(
     """
     is_attributions_list = isinstance(attributions, list)
     is_targets_list = isinstance(target, list)
-    if is_multi_target:
+    if multi_target:
         assert is_attributions_list, (
             "attributions must be a list of tensors or list of tuples of tensors"
         )

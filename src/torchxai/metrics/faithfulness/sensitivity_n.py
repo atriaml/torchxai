@@ -6,11 +6,7 @@ import torch
 from captum._utils.common import _format_tensor_into_tuples
 from torch import Tensor
 
-from torchxai.data_types.common import (
-    BaselineType,
-    TargetType,
-    TensorOrTupleOfTensorsGeneric,
-)
+from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.metrics._utils.common import (
     _construct_default_feature_mask,
     _validate_feature_mask,
@@ -35,12 +31,12 @@ def sensitivity_n(
     max_examples_per_batch: int | None = None,
     frozen_features: list[torch.Tensor] | None = None,
     normalize: bool = False,
-    is_multi_target: bool = False,
+    multi_target: bool = False,
     return_dict: bool = False,
 ) -> Tensor:
     r"""
     A wrapper around the Captum library's infidelity metric that computes senstivity_n.
-    The metric returns a list of senstivity_n scores if is_multi_target is True using the
+    The metric returns a list of senstivity_n scores if multi_target is True using the
     `torchxai.metrics.faithfulness.multi_target._multi_target_infidelity`,
     otherwise it returns a single sensitivity_n score using the captum implementation `captum.metrics.infidelity`.
 
@@ -254,7 +250,7 @@ def sensitivity_n(
                 https://github.com/chihkuanyeh/saliency_evaluation
 
                 Default: False
-        is_multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
+        multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
                 multi-target explanations. if set to true, the targets are required to be a list of integers
                 each corresponding to a required target class in the output. The corresponding metric outputs
                 are then returned as a list of metric outputs corresponding to each target class. For multi-target
@@ -351,19 +347,19 @@ def sensitivity_n(
             )
         )
 
-    metric_func = _multi_target_infidelity if is_multi_target else _infidelity
+    metric_func = _multi_target_infidelity if multi_target else _infidelity
     score = metric_func(
         forward_func=forward_func,
         perturb_func=sensitivity_perturb_function,
         inputs=inputs,
         **(
             {"attributions_list": attributions}
-            if is_multi_target
+            if multi_target
             else {"attributions": attributions}
         ),
         baselines=baselines,
         additional_forward_args=additional_forward_args,
-        **{"targets_list": target} if is_multi_target else {"target": target},
+        **{"targets_list": target} if multi_target else {"target": target},
         feature_mask=feature_mask,
         frozen_features=frozen_features,
         n_perturb_samples=n_perturb_samples,

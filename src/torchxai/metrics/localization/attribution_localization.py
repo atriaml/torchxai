@@ -1,7 +1,7 @@
 import torch
 from captum._utils.common import _format_output, _format_tensor_into_tuples, _is_tuple
 
-from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import TensorOrTupleOfTensorsGeneric
 
 
 def _attribution_localization_impl(

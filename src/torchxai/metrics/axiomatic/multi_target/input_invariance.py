@@ -1,10 +1,11 @@
+import inspect
 from typing import Any
 
 import torch
 from captum._utils.common import _format_output, _format_tensor_into_tuples, _is_tuple
 from torch import Tensor
 
-from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import TensorOrTupleOfTensorsGeneric
 from torchxai.explainers._explainer import Explainer
 from torchxai.metrics.axiomatic.utilities import (
     _create_shifted_expainer,
@@ -31,17 +32,14 @@ def _multi_target_input_invariance(
     constant_shifts: TensorOrTupleOfTensorsGeneric,
     input_layer_names: tuple[str],
     **kwargs: Any,
-) -> tuple[list[float], list[tuple[Tensor, ...]], list[tuple[Tensor, ...]]]:
+) -> tuple[list[Tensor], list[tuple[Tensor, ...]], list[tuple[Tensor, ...]]]:
     assert isinstance(explainer, Explainer), (
         "The explainer must be an instance of Explainer."
     )
-    assert explainer._is_multi_target, "The explainer must be a multi-target explainer."
+    assert explainer.multi_target, "The explainer must be a multi-target explainer."
 
     target = kwargs.get("target", None)
     assert isinstance(target, list), "targets must be a list of targets"
-    assert all(isinstance(x, (tuple, int)) for x in target), (
-        "targets must be a list of ints"
-    )
 
     # Keeps track whether original input is a tuple or not before
     # converting it into a tuple.
@@ -90,6 +88,11 @@ def _multi_target_input_invariance(
 
     with torch.no_grad():
         if isinstance(explainer, Explainer):
+            possible_args = inspect.signature(explainer.explain).parameters
+            kwargs_copy = {k: v for k, v in kwargs_copy.items() if k in possible_args}
+            shifted_kwargs_copy = {
+                k: v for k, v in shifted_kwargs_copy.items() if k in possible_args
+            }
             inputs_expl_list = explainer.explain(inputs, **kwargs_copy)
             shifted_inputs_expl_list = shifted_explainer.explain(
                 shifted_inputs, **shifted_kwargs_copy
@@ -114,38 +117,45 @@ def _multi_target_input_invariance(
                 "Each shifted explanation in the list must be a tuple of tensors."
             )
 
-        # calculate the difference between the two explanations step by step
-        input_invarance_score_list = []
-        for inputs_expl, shifted_inputs_expl in zip(
-            inputs_expl_list, shifted_inputs_expl_list, strict=True
-        ):
-            # For each target, compute differences across all input layers
-            layer_scores = []
-            for input_expl, shifted_input_expl in zip(
-                inputs_expl, shifted_inputs_expl, strict=True
-            ):
-                # For each layer, compute mean absolute difference per sample
-                sample_scores = []
-                for per_sample_input_expl, per_sample_shifted_input_expl in zip(
-                    input_expl, shifted_input_expl, strict=True
-                ):
-                    diff = torch.abs(
-                        per_sample_input_expl - per_sample_shifted_input_expl
+        # calculate the difference between the two explanations
+        input_invarance_score_list = [
+            sum(
+                tuple(
+                    torch.tensor(
+                        [
+                            torch.mean(
+                                torch.abs(
+                                    per_sample_input_expl
+                                    - per_sample_shifted_input_expl
+                                )
+                            ).item()
+                            for per_sample_input_expl, per_sample_shifted_input_expl in zip(
+                                input_expl, shifted_input_expl, strict=True
+                            )
+                        ],
+                        device=inputs[0].device,
                     )
-                    mean_diff = torch.mean(diff).item()
-                    sample_scores.append(mean_diff)
-
-                layer_score = torch.tensor(sample_scores, device=inputs[0].device)
-                layer_scores.append(layer_score)
-
-            # Sum scores across all layers for this target
-            total_score = sum(layer_scores)
-            input_invarance_score_list.append(total_score)
-
+                    for input_expl, shifted_input_expl in zip(
+                        inputs_expl, shifted_inputs_expl, strict=True
+                    )
+                )
+            )
+            for inputs_expl, shifted_inputs_expl in zip(
+                inputs_expl_list, shifted_inputs_expl_list, strict=True
+            )
+        ]
+        input_invarance_score_list = [
+            torch.tensor(score, device=inputs[0].device)
+            for score in input_invarance_score_list
+        ]
         return (
             input_invarance_score_list,
-            _format_output_list_of_tensor_tuples(is_inputs_tuple, inputs_expl_list),
-            _format_output_list_of_tensor_tuples(
-                is_inputs_tuple, shifted_inputs_expl_list
-            ),
+            [
+                _format_output(is_inputs_tuple, inputs_expl)  # type: ignore
+                for inputs_expl in inputs_expl_list
+            ],
+            [
+                _format_output(is_inputs_tuple, shifted_inputs_expl)  # type: ignore
+                for shifted_inputs_expl in shifted_inputs_expl_list
+            ],
         )

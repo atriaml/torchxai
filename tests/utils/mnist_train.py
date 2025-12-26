@@ -119,7 +119,10 @@ def mnist_trainer(model_type: str = "linear", train_and_eval_model: bool = True)
             target=target,
             baselines=train_baselines,
         ),
-        metric_inputs=MetricInputs(input_layer_names=input_layer_names),
+        metric_inputs=MetricInputs(
+            input_layer_names=input_layer_names,
+            constant_shifts=(torch.ones(1, 28, 28).unsqueeze(0),),
+        ),
         model=model,
         n_features=(1 * 28 * 28),
     )

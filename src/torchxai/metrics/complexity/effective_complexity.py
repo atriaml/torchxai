@@ -14,11 +14,7 @@ from captum._utils.common import (
 )
 from torch import Tensor
 
-from torchxai.data_types.common import (
-    BaselineType,
-    TargetType,
-    TensorOrTupleOfTensorsGeneric,
-)
+from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.metrics._utils.batching import (
     _divide_and_aggregate_metrics_n_perturbations_per_feature,
 )
@@ -440,7 +436,7 @@ def effective_complexity(
     frozen_features: list[torch.Tensor] | None = None,
     zero_variance_threshold: float = 0.01,
     return_ratio: bool = False,
-    is_multi_target: bool = False,
+    multi_target: bool = False,
     show_progress: bool = False,
     return_intermediate_results: bool = False,
     return_dict: bool = False,
@@ -665,7 +661,7 @@ def effective_complexity(
         zero_variance_threshold (float, optional): A small value that is used to threshold the output variance
         return_ratio (bool, optional): A boolean flag that indicates whether the effective complexity is returned as a ratio
                 of the number of important features to the total number of features. Default: False
-        is_multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
+        multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
                 multi-target explanations. if set to true, the targets are required to be a list of integers
                 each corresponding to a required target class in the output. The corresponding metric outputs
                 are then returned as a list of metric outputs corresponding to each target class.
@@ -703,7 +699,7 @@ def effective_complexity(
     """
     is_attributions_list = isinstance(attributions, list)
     is_targets_list = isinstance(target, list)
-    if is_multi_target:
+    if multi_target:
         assert is_attributions_list, (
             "attributions must be a list of tensors or list of tuples of tensors"
         )

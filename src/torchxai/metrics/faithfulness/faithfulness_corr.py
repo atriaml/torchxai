@@ -15,11 +15,7 @@ from captum._utils.common import (
 )
 from torch import Tensor
 
-from torchxai.data_types.common import (
-    BaselineType,
-    TargetType,
-    TensorOrTupleOfTensorsGeneric,
-)
+from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.metrics._utils.batching import _divide_and_aggregate_metrics
 from torchxai.metrics._utils.common import (
     _construct_default_feature_mask,
@@ -288,7 +284,7 @@ def faithfulness_corr(
     frozen_features: list[torch.Tensor] | None = None,
     percent_features_perturbed: float = 0.1,
     show_progress: bool = False,
-    is_multi_target: bool = False,
+    multi_target: bool = False,
     return_intermediate_results: bool = False,
     return_dict: bool = False,
 ) -> tuple[Tensor | list[Tensor], Tensor | list[Tensor], Tensor | list[Tensor]]:
@@ -518,7 +514,7 @@ def faithfulness_corr(
             what percentages of features in the input are perturbed in each perturbation of the input.
             Default: 0.1
         show_progress (bool, optional): Displays the progress of the metric computation.
-        is_multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
+        multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
                 multi-target explanations. if set to true, the targets are required to be a list of integers
                 each corresponding to a required target class in the output. The corresponding metric outputs
                 are then returned as a list of metric outputs corresponding to each target class.
@@ -553,7 +549,7 @@ def faithfulness_corr(
         >>> faithfulness_corr, attribution_sums, perturbation_fwd_diffs = aopc(net, input, attribution)
     """
     metric_func = (
-        _multi_target_faithfulness_corr if is_multi_target else _faithfulness_corr
+        _multi_target_faithfulness_corr if multi_target else _faithfulness_corr
     )
     (
         faithfulness_corr_scores,
@@ -564,13 +560,13 @@ def faithfulness_corr(
         inputs=inputs,
         **(
             {"attributions_list": attributions}
-            if is_multi_target
+            if multi_target
             else {"attributions": attributions}
         ),
         baselines=baselines,
         feature_mask=feature_mask,
         additional_forward_args=additional_forward_args,
-        **({"targets_list": target} if is_multi_target else {"target": target}),
+        **({"targets_list": target} if multi_target else {"target": target}),
         perturb_func=perturb_func,
         n_perturb_samples=n_perturb_samples,
         max_examples_per_batch=max_examples_per_batch,

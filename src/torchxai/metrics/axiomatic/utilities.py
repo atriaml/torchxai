@@ -99,10 +99,10 @@ def _prepare_kwargs_for_base_and_shifted_inputs(kwargs: Any) -> Any:
     kwargs_copy = deepcopy(kwargs)
     shifted_kwargs_copy = deepcopy(kwargs)
 
-    kwargs_copy.pop("shifted_baselines", None)
-    if "shifted_baselines" in shifted_kwargs_copy:
+    kwargs_copy.pop("shift_baselines", None)
+    if "shift_baselines" in shifted_kwargs_copy:
         shifted_kwargs_copy["baselines"] = shifted_kwargs_copy.pop(
-            "shifted_baselines", None
+            "shift_baselines", None
         )
     if "additional_forward_args" in kwargs_copy:
         kwargs_copy["additional_forward_args"] = _format_additional_forward_args(

@@ -1,5 +1,6 @@
 import logging
 import random
+from typing import Any
 
 import numpy as np
 import torch
@@ -75,6 +76,11 @@ def _compare_explanation_per_target(
 def _assert_tensor_almost_equal(
     actual, expected, delta: float = 0.0001, mode: str = "sum"
 ) -> None:
+    if isinstance(actual, (list, tuple)):
+        for a, e in zip(actual, expected, strict=True):
+            _assert_tensor_almost_equal(a, e, delta=delta, mode=mode)
+        return
+
     assert isinstance(actual, torch.Tensor), (
         "Actual parameter given for comparison must be a tensor."
     )
@@ -83,8 +89,8 @@ def _assert_tensor_almost_equal(
     assert actual.shape == expected.shape, (
         f"Expected tensor with shape: {expected.shape}. Actual shape {actual.shape}."
     )
-    actual = actual.cpu()
-    expected = expected.cpu()
+    actual = actual.cpu().float()
+    expected = expected.cpu().float()
 
     # check if both are nan
     if torch.isnan(actual).all():
@@ -95,11 +101,11 @@ def _assert_tensor_almost_equal(
 
     if mode == "sum":
         assert torch.sum(torch.abs(actual - expected)).item() < delta, (
-            f"Tensors are not equal with tolerance ({delta}). Actual: {actual}, Expected: {expected}"
+            f"Tensors are not equal with tolerance ({delta}). Actual: {actual}, Expected: {expected} , Difference: {torch.sum(torch.abs(actual - expected)).item()}"
         )
     elif mode == "mean":
         assert torch.mean(torch.abs(actual - expected)).item() < delta, (
-            f"Tensors are not equal with tolerance ({delta}). Actual: {actual}, Expected: {expected}"
+            f"Tensors are not equal with tolerance ({delta}). Actual: {actual}, Expected: {expected}, Difference: {torch.mean(torch.abs(actual - expected)).item()}"
         )
     elif mode == "max":
         # if both tensors are empty, they are equal but there is no max
@@ -108,7 +114,7 @@ def _assert_tensor_almost_equal(
 
         if actual.size() == torch.Size([]):
             assert torch.max(torch.abs(actual - expected)).item() < delta, (
-                f"Tensors are not equal with tolerance ({delta}). Actual: {actual}, Expected: {expected}"
+                f"Tensors are not equal with tolerance ({delta}). Actual: {actual}, Expected: {expected} , Difference: {torch.max(torch.abs(actual - expected)).item()}"
             )
         else:
             for index, (input, ref) in enumerate(zip(actual, expected, strict=True)):
@@ -120,6 +126,37 @@ def _assert_tensor_almost_equal(
                 )
     else:
         raise ValueError("Mode for assertion comparison must be one of `max` or `sum`.")
+
+
+def _flatten_tensor_container(container: Any) -> list[torch.Tensor]:
+    flattened_tensors = []
+    if isinstance(container, torch.Tensor):
+        flattened_tensors.append(container)
+    elif isinstance(container, (list, tuple)):
+        for item in container:
+            if isinstance(item, torch.Tensor):
+                flattened_tensors.append(item)
+            elif isinstance(item, (list, tuple)):
+                flattened_tensors.extend(item)
+            else:
+                raise ValueError("Unsupported type in container for flattening.")
+    else:
+        raise ValueError("Unsupported type in container for flattening.")
+    return flattened_tensors
+
+
+def _assert_tensor_containers_almost_equal(
+    actual_container: Any,
+    expected_container: Any,
+    delta: float = 0.0001,
+    mode: str = "sum",
+) -> None:
+    t1 = _flatten_tensor_container(actual_container)
+    t2 = _flatten_tensor_container(expected_container)
+    print(f"Comparing containers with {len(t1)} and {len(t2)} tensors.")
+    assert len(t1) == len(t2), "Containers do not have the same number of tensors."
+    for tensor1, tensor2 in zip(t1, t2, strict=True):
+        _assert_tensor_almost_equal(tensor1, tensor2, delta=delta, mode=mode)
 
 
 def _assert_all_tensors_almost_equal(tensors: list[torch.Tensor]):

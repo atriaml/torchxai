@@ -16,9 +16,10 @@ from captum._utils.common import (
 )
 from torch import Tensor
 
-from torchxai.data_types import ExplanationTarget, NoTarget
-from torchxai.data_types.common import (
+from torchxai.data_types import (
     BaselineType,
+    ExplanationTarget,
+    NoTarget,
     TargetType,
     TensorOrTupleOfTensorsGeneric,
     TensorOrTupleOfTensorsOrListOfTensorsGeneric,

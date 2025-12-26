@@ -2,7 +2,7 @@ import torch
 from captum._utils.common import _format_tensor_into_tuples
 from torch import Tensor
 
-from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import TensorOrTupleOfTensorsGeneric
 
 
 def default_perturb_func(

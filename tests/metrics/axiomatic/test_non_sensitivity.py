@@ -1,13 +1,13 @@
-import itertools
 import math
 from collections.abc import Callable
+from typing import Any
 
 import pytest  # noqa
 import torch
 
-from tests.utils.common import _assert_tensor_almost_equal, _run_metric_via_ignite
+from tests.fixtures._metric import _run_metric_test_looped
+from tests.utils.common import _assert_tensor_almost_equal
 from tests.utils.configs import RuntimeTestConfig
-from torchxai.ignite._axiomatic import MonotonicityCorrAndNonSensMetric
 from torchxai.metrics import monotonicity_corr_and_non_sens
 from torchxai.metrics._utils.perturbation import (
     default_fixed_baseline_perturb_func,
@@ -233,43 +233,18 @@ def test_non_sensitivity(metrics_runtime_test_configuration):
         metrics_runtime_test_configuration
     )
 
-    n_perturbations_per_feature = _format_to_list(
-        runtime_config.n_perturbations_per_feature
-    )
-    max_features_processed_per_batch = _format_to_list(
-        runtime_config.max_features_processed_per_batch
-    )
-    expected = _format_to_list(runtime_config.expected)
-
-    assert len(n_perturbations_per_feature) == len(max_features_processed_per_batch)
-    assert len(n_perturbations_per_feature) == len(expected) or len(expected) == 1
-
-    for n_perturbs, max_features, curr_expected in zip(
-        n_perturbations_per_feature,
-        max_features_processed_per_batch,
-        itertools.cycle(expected),
-    ):
-        (_, non_sensitivity, n_features_found, _, _) = monotonicity_corr_and_non_sens(
-            forward_func=base_config.model,
-            inputs=explanation_step_outputs.inputs,
-            attributions=explanation_step_outputs.attributions,
-            feature_mask=explanation_step_outputs.feature_mask,
-            baselines=explanation_step_outputs.metric_baselines,
-            additional_forward_args=explanation_step_outputs.additional_forward_args,
-            target=explanation_step_outputs.target,
-            frozen_features=explanation_step_outputs.frozen_features,
-            perturb_func=runtime_config.perturb_func,
-            n_perturbations_per_feature=n_perturbs,
-            max_features_processed_per_batch=max_features,
-            zero_attribution_threshold=runtime_config.zero_attribution_threshold,
-            zero_variance_threshold=runtime_config.zero_variance_threshold,
-            use_percentage_attribution_threshold=runtime_config.use_percentage_attribution_threshold,
-            percentage_feature_removal_per_step=runtime_config.percentage_feature_removal_per_step,
-            return_intermediate_results=True,
-            return_ratio=False,
+    def comparison_func(output: Any, expected: torch.Tensor):
+        (_, non_sensitivity, n_features_found, _, _) = output
+        print(
+            "non_sensitivity",
+            non_sensitivity,
+            "expected",
+            expected,
+            "n_features_found",
+            n_features_found,
         )
         _assert_tensor_almost_equal(
-            non_sensitivity, curr_expected, delta=runtime_config.delta
+            non_sensitivity, expected, delta=runtime_config.delta
         )
         target_n_features = (
             base_config.n_features
@@ -284,24 +259,17 @@ def test_non_sensitivity(metrics_runtime_test_configuration):
             f"{n_features_found} != {target_n_features}"
         )
 
-        # first prepare the metric
-        metric = MonotonicityCorrAndNonSensMetric(
-            model=base_config.model,
-            device=runtime_config.device,
-            n_perturbations_per_feature=n_perturbs,
-            max_features_processed_per_batch=max_features,
-            perturb_func=runtime_config.perturb_func,
-            zero_attribution_threshold=runtime_config.zero_attribution_threshold,
-            zero_variance_threshold=runtime_config.zero_variance_threshold,
-            use_percentage_attribution_threshold=runtime_config.use_percentage_attribution_threshold,
-            percentage_feature_removal_per_step=runtime_config.percentage_feature_removal_per_step,
-            return_ratio=False,
-        )
-
-        # now test via the Ignite Metric interface
-        non_sensitivity = _run_metric_via_ignite(metric, explanation_step_outputs)[
-            "non_sensitivity"
-        ]
-        _assert_tensor_almost_equal(
-            non_sensitivity, curr_expected, delta=runtime_config.delta
-        )
+    _run_metric_test_looped(
+        base_config=base_config,
+        runtime_config=runtime_config,
+        explanation_step_outputs=explanation_step_outputs,
+        metric_func=monotonicity_corr_and_non_sens,
+        comparison_func=comparison_func,
+        use_percentage_attribution_threshold=runtime_config.use_percentage_attribution_threshold,
+        zero_attribution_threshold=runtime_config.zero_attribution_threshold,
+        zero_variance_threshold=runtime_config.zero_variance_threshold,
+        percentage_feature_removal_per_step=runtime_config.percentage_feature_removal_per_step,
+        perturb_func=runtime_config.perturb_func,
+        return_intermediate_results=True,
+        return_ratio=False,
+    )

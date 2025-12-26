@@ -14,11 +14,7 @@ from captum._utils.common import (
 )
 from torch import Tensor
 
-from torchxai.data_types.common import (
-    BaselineType,
-    TargetType,
-    TensorOrTupleOfTensorsGeneric,
-)
+from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.explainers._utils import _run_forward_multi_target
 from torchxai.metrics._utils.batching import _divide_and_aggregate_metrics
 from torchxai.metrics._utils.common import (

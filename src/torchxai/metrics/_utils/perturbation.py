@@ -1,7 +1,7 @@
 import torch
 from captum._utils.common import _format_tensor_into_tuples
 
-from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import TensorOrTupleOfTensorsGeneric
 from torchxai.metrics._utils.common import (
     _split_tensors_to_tuple_tensors,
     _tuple_tensors_to_tensors,

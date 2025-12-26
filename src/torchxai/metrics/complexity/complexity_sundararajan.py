@@ -1,6 +1,6 @@
 import torch
 
-from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import TensorOrTupleOfTensorsGeneric
 from torchxai.metrics._utils.common import (
     _construct_default_feature_mask,
     _reduce_tensor_with_indices_non_deterministic,
@@ -123,7 +123,7 @@ def complexity_sundararajan(
     attributions: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]],
     eps: float = 1e-5,
     normalize_attribution: bool = True,
-    is_multi_target: bool = False,
+    multi_target: bool = False,
     return_dict: bool = False,
 ) -> dict | torch.Tensor | list[torch.Tensor]:
     """
@@ -149,7 +149,7 @@ def complexity_sundararajan(
             tensor in the tuple has shape (batch_size, num_features).
         eps (float): The threshold value for attributions to be considered important.
         normalize_attribution (bool): If True, the attributions are normalized to sum to 1.
-        is_multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
+        multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
                 multi-target explanations. if set to true, the targets are required to be a list of integers
                 each corresponding to a required target class in the output. The corresponding metric outputs
                 are then returned as a list of metric outputs corresponding to each target class.
@@ -178,7 +178,7 @@ def complexity_sundararajan(
         >>> effective_complexity_scores = effective_complexity(attribution)
     """
     is_attributions_list = isinstance(attributions, list)
-    if is_multi_target:
+    if multi_target:
         assert is_attributions_list, (
             "attributions must be a list of tensors or list of tuples of tensors"
         )
@@ -204,7 +204,7 @@ def complexity_sundararajan_feature_grouped(
     feature_mask: tuple[torch.Tensor, ...] | None = None,
     eps: float = 1e-5,
     normalize_attribution: bool = True,
-    is_multi_target: bool = False,
+    multi_target: bool = False,
     return_dict: bool = False,
 ) -> dict | torch.Tensor | list[torch.Tensor]:
     """
@@ -254,7 +254,7 @@ def complexity_sundararajan_feature_grouped(
                     Default: None
         eps (float): The threshold value for attributions to be considered important.
         normalize_attribution (bool): If True, the attributions are normalized to sum to 1.
-        is_multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
+        multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
                 multi-target explanations. if set to true, the targets are required to be a list of integers
                 each corresponding to a required target class in the output. The corresponding metric outputs
                 are then returned as a list of metric outputs corresponding to each target class.
@@ -284,7 +284,7 @@ def complexity_sundararajan_feature_grouped(
     """
 
     is_attributions_list = isinstance(attributions, list)
-    if is_multi_target:
+    if multi_target:
         assert is_attributions_list, (
             "attributions must be a list of tensors or list of tuples of tensors"
         )

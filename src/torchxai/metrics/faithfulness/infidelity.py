@@ -16,11 +16,7 @@ from captum._utils.common import (
 from captum.metrics._utils.batching import _divide_and_aggregate_metrics
 from torch import Tensor
 
-from torchxai.data_types.common import (
-    BaselineType,
-    TargetType,
-    TensorOrTupleOfTensorsGeneric,
-)
+from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.metrics._utils.perturbation import default_infidelity_perturb_fn
 from torchxai.metrics.faithfulness.multi_target.infidelity import (
     _multi_target_infidelity,
@@ -261,12 +257,12 @@ def infidelity(
     n_perturb_samples: int = 10,
     max_examples_per_batch: int | None = None,
     normalize: bool = True,
-    is_multi_target: bool = False,
+    multi_target: bool = False,
     return_dict: bool = False,
 ) -> Tensor:
     r"""
     A wrapper around the Captum library's infidelity metric. The metric returns a list of infidelity
-    scores if is_multi_target is True using the `torchxai.metrics.faithfulness.multi_target._multi_target_infidelity`,
+    scores if multi_target is True using the `torchxai.metrics.faithfulness.multi_target._multi_target_infidelity`,
     otherwise it returns a single infidelity score using the captum implementation `captum.metrics.infidelity`.
 
     Explanation infidelity represents the expected mean-squared error
@@ -509,7 +505,7 @@ def infidelity(
                 https://github.com/chihkuanyeh/saliency_evaluation
 
                 Default: False
-        is_multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
+        multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
                 multi-target explanations. if set to true, the targets are required to be a list of integers
                 each corresponding to a required target class in the output. The corresponding metric outputs
                 are then returned as a list of metric outputs corresponding to each target class. For multi-target
@@ -540,19 +536,19 @@ def infidelity(
     if perturb_func is None:
         perturb_func = default_infidelity_perturb_fn()
 
-    metric_func = _multi_target_infidelity if is_multi_target else _infidelity
+    metric_func = _multi_target_infidelity if multi_target else _infidelity
     score = metric_func(
         forward_func=forward_func,
         perturb_func=perturb_func,
         inputs=inputs,
         **(
             {"attributions_list": attributions}
-            if is_multi_target
+            if multi_target
             else {"attributions": attributions}
         ),
         baselines=baselines,
         additional_forward_args=additional_forward_args,
-        **{"targets_list": target} if is_multi_target else {"target": target},
+        **{"targets_list": target} if multi_target else {"target": target},
         feature_mask=feature_mask,
         frozen_features=frozen_features,
         n_perturb_samples=n_perturb_samples,

@@ -1,9 +1,9 @@
 import pytest  # noqa
 import torch
 
-from tests.utils.common import _assert_tensor_almost_equal, _run_metric_via_ignite
+from tests.fixtures._metric import _run_metric_test
+from tests.utils.common import _assert_tensor_almost_equal
 from tests.utils.configs import RuntimeTestConfig
-from torchxai.ignite._axiomatic import CompletenessMetric
 from torchxai.metrics.axiomatic.completeness import completeness
 
 test_configurations = [
@@ -90,24 +90,13 @@ def test_completeness(metrics_runtime_test_configuration):
         metrics_runtime_test_configuration
     )
 
-    # test direct function call
-    metric_output = completeness(
-        forward_func=base_config.model,
-        inputs=explanation_step_outputs.inputs,
-        attributions=explanation_step_outputs.attributions,
-        baselines=explanation_step_outputs.metric_baselines,
-        additional_forward_args=explanation_step_outputs.additional_forward_args,
-        target=explanation_step_outputs.target,  # type: ignore
-    )
-    _assert_tensor_almost_equal(
-        metric_output, runtime_config.expected, delta=runtime_config.delta
-    )
+    def comparison_func(output: torch.Tensor, expected: torch.Tensor):
+        _assert_tensor_almost_equal(output, expected, delta=runtime_config.delta)
 
-    # test via ignite metric interface
-    metric = CompletenessMetric(model=base_config.model, device=runtime_config.device)
-    metric_output = _run_metric_via_ignite(
-        metric=metric, explanation_step_outputs=explanation_step_outputs
-    )["score"]
-    _assert_tensor_almost_equal(
-        metric_output, runtime_config.expected, delta=runtime_config.delta
+    _run_metric_test(
+        base_config=base_config,
+        runtime_config=runtime_config,
+        metric_func=completeness,
+        comparison_func=comparison_func,
+        explanation_step_outputs=explanation_step_outputs,
     )

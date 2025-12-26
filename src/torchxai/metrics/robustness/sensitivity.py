@@ -16,7 +16,7 @@ from captum.attr import Attribution
 from captum.metrics._utils.batching import _divide_and_aggregate_metrics
 from torch import Tensor
 
-from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import TensorOrTupleOfTensorsGeneric
 from torchxai.explainers._explainer import Explainer
 from torchxai.metrics.robustness.multi_target.sensitivity import (
     _multi_target_sensitivity_scores,
@@ -32,10 +32,10 @@ def _sensitivity_scores(
     n_perturb_samples: int = 10,
     norm_ord: str = "fro",
     max_examples_per_batch: int = None,
-    is_multi_target: bool = False,
+    multi_target: bool = False,
     **kwargs: Any,
 ) -> Tensor | list[Tensor]:
-    if is_multi_target:
+    if multi_target:
         return _multi_target_sensitivity_scores(
             explainer,
             inputs,
@@ -181,7 +181,7 @@ def sensitivity_max_and_avg(
     n_perturb_samples: int = 10,
     norm_ord: str = "fro",
     max_examples_per_batch: int = None,
-    is_multi_target: bool = False,
+    multi_target: bool = False,
     return_dict: bool = False,
     **kwargs: Any,
 ) -> tuple[Tensor, Tensor]:
@@ -190,7 +190,7 @@ def sensitivity_max_and_avg(
     function that repeats the feature masks when performing perturbations. This function returns the sensitivity
     scores with both average and max aggregation resulting in sensitivity_max and sensitivity_avg together.
 
-    The metric returns a list of senstivity scores if is_multi_target is True using the
+    The metric returns a list of senstivity scores if multi_target is True using the
     `torchxai.metrics.robustness.multi_target._multi_target_sensitivity_scores`,
     otherwise it returns a single sensitivity score same as the `captum.metric.sensitivity_max`.
 
@@ -294,7 +294,7 @@ def sensitivity_max_and_avg(
                 `input batch size * n_perturb_samples`.
 
                 Default: None
-        is_multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
+        multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
                 multi-target explanations. if set to true, the targets are required to be a list of integers
                 each corresponding to a required target class in the output. The corresponding metric outputs
                 are then returned as a list of metric outputs corresponding to each target class. For multi-target
@@ -342,10 +342,10 @@ def sensitivity_max_and_avg(
         n_perturb_samples=n_perturb_samples,
         norm_ord=norm_ord,
         max_examples_per_batch=max_examples_per_batch,
-        is_multi_target=is_multi_target,
+        multi_target=multi_target,
         **kwargs,
     )
-    if is_multi_target:
+    if multi_target:
         if return_dict:
             return {
                 "sensitivity_max": [

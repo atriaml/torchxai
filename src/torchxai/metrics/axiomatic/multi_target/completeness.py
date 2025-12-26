@@ -9,11 +9,7 @@ from captum._utils.common import (
 )
 from torch import Tensor
 
-from torchxai.data_types.common import (
-    BaselineType,
-    TargetType,
-    TensorOrTupleOfTensorsGeneric,
-)
+from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.explainers._utils import _run_forward_multi_target
 
 

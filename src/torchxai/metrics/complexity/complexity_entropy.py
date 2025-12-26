@@ -1,7 +1,7 @@
 import torch
 from torch.distributions import Categorical
 
-from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import TensorOrTupleOfTensorsGeneric
 from torchxai.metrics._utils.common import (
     _construct_default_feature_mask,
     _format_tensor_into_tuples,
@@ -121,7 +121,7 @@ def _complexity_entropy_feature_grouped(
 
 def complexity_entropy(
     attributions: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]],
-    is_multi_target: bool = False,
+    multi_target: bool = False,
     return_dict: bool = False,
 ) -> dict | torch.Tensor | list[torch.Tensor]:
     """
@@ -143,7 +143,7 @@ def complexity_entropy(
     Args:
         attributions (Tuple[Tensor,...]): A tuple of tensors representing attributions of separate inputs. Each
             tensor in the tuple has shape (batch_size, num_features).
-        is_multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
+        multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
                 multi-target explanations. if set to true, the targets are required to be a list of integers
                 each corresponding to a required target class in the output. The corresponding metric outputs
                 are then returned as a list of metric outputs corresponding to each target class.
@@ -171,7 +171,7 @@ def complexity_entropy(
         >>> complexity_entropy_scores = complexity(attribution)
     """
     is_attributions_list = isinstance(attributions, list)
-    if is_multi_target:
+    if multi_target:
         assert is_attributions_list, (
             "attributions must be a list of tensors or list of tuples of tensors"
         )
@@ -190,7 +190,7 @@ def complexity_entropy(
 def complexity_entropy_feature_grouped(
     attributions: tuple[torch.Tensor, ...] | list[tuple[torch.Tensor, ...]],
     feature_mask: tuple[torch.Tensor, ...] | None = None,
-    is_multi_target: bool = False,
+    multi_target: bool = False,
     return_dict: bool = False,
 ) -> dict | torch.Tensor | list[torch.Tensor]:
     """
@@ -234,7 +234,7 @@ def complexity_entropy_feature_grouped(
                     each scalar within a tensor as a separate feature, which
                     is perturbed independently.
                     Default: None
-        is_multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
+        multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
                 multi-target explanations. if set to true, the targets are required to be a list of integers
                 each corresponding to a required target class in the output. The corresponding metric outputs
                 are then returned as a list of metric outputs corresponding to each target class.
@@ -262,7 +262,7 @@ def complexity_entropy_feature_grouped(
         >>> complexity_scores = complexity(attribution)
     """
     is_attributions_list = isinstance(attributions, list)
-    if is_multi_target:
+    if multi_target:
         assert is_attributions_list, (
             "attributions must be a list of tensors or list of tuples of tensors"
         )

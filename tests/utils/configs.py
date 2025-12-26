@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any, Self
 
 import torch
@@ -44,6 +45,7 @@ class RuntimeTestConfig(BaseModel):
     explainer_kwargs: dict | None = Field(default_factory=dict)
     expected: Any = None
     delta: float = 1e-4
+    mode: str = "sum"
     override_target: Any = None
     throws_exception: bool = False
     device: str = Field(
@@ -52,6 +54,14 @@ class RuntimeTestConfig(BaseModel):
     multi_target: bool = False
     set_image_feature_mask: bool = False
     image_feature_mask_cell_size: int = 32
+    model_type: str = "linear"
+    train_and_eval_model: bool = False
+    set_baselines_to_type: str | None = None
+
+    n_perturbations_per_feature: int | list[int | None] | None = None
+    max_features_processed_per_batch: int | list[int | None] | None = None
+    perturb_func: Callable | None = None
+    percentage_feature_removal_per_step: float = 0.0
 
     @model_validator(mode="before")
     @classmethod
@@ -68,6 +78,11 @@ class RuntimeTestConfig(BaseModel):
             values["test_name"] = test_name + "_" + values["test_name"]
         else:
             values["test_name"] = test_name
+
+        if "set_baselines_to_type" in values:
+            assert values["set_baselines_to_type"] in ["zero", "black", None], (
+                "set_baselines_to_type must be one of 'zero', 'black', or None"
+            )
 
         return values
 

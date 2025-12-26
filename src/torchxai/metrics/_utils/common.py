@@ -3,7 +3,7 @@ import math
 import torch
 from captum.attr._utils.common import _format_tensor_into_tuples  # noqa
 
-from torchxai.data_types.common import TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import TensorOrTupleOfTensorsGeneric
 
 
 def _validate_feature_mask(tensor: torch.Tensor | tuple[torch.Tensor, ...]) -> None:
