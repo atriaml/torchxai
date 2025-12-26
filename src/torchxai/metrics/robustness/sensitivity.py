@@ -15,7 +15,6 @@ from captum._utils.common import (
 from captum.attr import Attribution
 from captum.metrics._utils.batching import _divide_and_aggregate_metrics
 from torch import Tensor
-
 from torchxai.data_types import TensorOrTupleOfTensorsGeneric
 from torchxai.explainers._explainer import Explainer
 from torchxai.metrics.robustness.multi_target.sensitivity import (
@@ -180,7 +179,7 @@ def sensitivity_max_and_avg(
     perturb_radius: float = 0.02,
     n_perturb_samples: int = 10,
     norm_ord: str = "fro",
-    max_examples_per_batch: int = None,
+    max_examples_per_batch: int | None = None,
     multi_target: bool = False,
     return_dict: bool = False,
     **kwargs: Any,

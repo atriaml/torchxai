@@ -19,6 +19,11 @@ from torchxai.metrics.faithfulness.infidelity import infidelity
 from torchxai.metrics.faithfulness.monotonicity import monotonicity
 from torchxai.metrics.faithfulness.sensitivity_n import sensitivity_n
 
+# localization
+from torchxai.metrics.localization.attribution_localization import (
+    attribution_localization,
+)
+
 # robustness
 from torchxai.metrics.robustness.sensitivity import sensitivity_max_and_avg
 
@@ -41,4 +46,6 @@ __all__ = [
     "sensitivity_n",
     # robustness
     "sensitivity_max_and_avg",
+    # localization
+    "attribution_localization",
 ]

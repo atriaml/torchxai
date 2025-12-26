@@ -26,7 +26,6 @@ def _attribution_localization_impl(
             attributions = tuple(
                 torch.clamp(attribution, min=0) for attribution in attributions
             )
-        print("attributions", attributions)
 
         bsz = attributions[0].shape[0]
         localization_scores = tuple(

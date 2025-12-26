@@ -5,7 +5,6 @@ from typing import Any
 import torch
 from captum._utils.common import _format_tensor_into_tuples
 from torch import Tensor
-
 from torchxai.data_types import BaselineType, TensorOrTupleOfTensorsGeneric
 from torchxai.data_types._target import ExplanationTarget, NoTarget
 from torchxai.metrics._utils.common import (
@@ -25,12 +24,12 @@ def sensitivity_n(
     inputs: TensorOrTupleOfTensorsGeneric,
     attributions: list[TensorOrTupleOfTensorsGeneric] | TensorOrTupleOfTensorsGeneric,
     baselines: BaselineType,
-    feature_mask: TensorOrTupleOfTensorsGeneric = None,
+    feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
     additional_forward_args: Any = None,
     target: ExplanationTarget | list[ExplanationTarget] = NoTarget(),
+    frozen_features: list[torch.Tensor] | None = None,
     n_perturb_samples: int = 10,
     max_examples_per_batch: int | None = None,
-    frozen_features: list[torch.Tensor] | None = None,
     normalize: bool = False,
     multi_target: bool = False,
     return_dict: bool = False,

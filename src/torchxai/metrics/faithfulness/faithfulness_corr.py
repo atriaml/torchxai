@@ -14,7 +14,6 @@ from captum._utils.common import (
     _run_forward,
 )
 from torch import Tensor
-
 from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.data_types._target import ExplanationTarget, NoTarget
 from torchxai.metrics._utils.batching import _divide_and_aggregate_metrics
@@ -279,10 +278,10 @@ def faithfulness_corr(
     feature_mask: TensorOrTupleOfTensorsGeneric = None,
     additional_forward_args: Any = None,
     target: ExplanationTarget | list[ExplanationTarget] = NoTarget(),
+    frozen_features: list[torch.Tensor] | None = None,
     perturb_func: Callable = default_fixed_baseline_perturb_func(),
     n_perturb_samples: int = 10,
     max_examples_per_batch: int | None = None,
-    frozen_features: list[torch.Tensor] | None = None,
     percent_features_perturbed: float = 0.1,
     show_progress: bool = False,
     multi_target: bool = False,
