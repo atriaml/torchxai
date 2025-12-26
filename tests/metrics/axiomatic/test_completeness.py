@@ -1,7 +1,7 @@
 import pytest  # noqa
 import torch
 
-from tests.fixtures._metric import _run_metric_test
+from tests.fixtures._metric import _run_metric_test_simple
 from tests.utils.common import _assert_tensor_almost_equal
 from tests.utils.configs import RuntimeTestConfig
 from torchxai.metrics.axiomatic.completeness import completeness
@@ -93,7 +93,7 @@ def test_completeness(metrics_runtime_test_configuration):
     def comparison_func(output: torch.Tensor, expected: torch.Tensor):
         _assert_tensor_almost_equal(output, expected, delta=runtime_config.delta)
 
-    _run_metric_test(
+    _run_metric_test_simple(
         base_config=base_config,
         runtime_config=runtime_config,
         metric_func=completeness,

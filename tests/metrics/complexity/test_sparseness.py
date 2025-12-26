@@ -4,6 +4,7 @@ from logging import getLogger
 import pytest  # noqa
 import torch
 
+from tests.fixtures._metric import _run_metric_test_simple
 from tests.utils.common import _assert_tensor_almost_equal
 from tests.utils.configs import RuntimeTestConfig
 from torchxai.metrics import sparseness
@@ -79,23 +80,27 @@ test_configurations = [
     indirect=True,
 )
 def test_sparseness(metrics_runtime_test_configuration):
-    base_config, runtime_config, explanations = metrics_runtime_test_configuration
-    output = sparseness(attributions=explanations)
-    _assert_tensor_almost_equal(
-        output, runtime_config.expected, delta=runtime_config.delta, mode="mean"
+    base_config, runtime_config, explanation_step_outputs = (
+        metrics_runtime_test_configuration
     )
 
+    def comparison_func(output: torch.Tensor, expected: torch.Tensor):
+        _assert_tensor_almost_equal(
+            output, expected, delta=runtime_config.delta, mode="mean"
+        )
 
-@pytest.mark.metrics
-@pytest.mark.parametrize(
-    "metrics_runtime_test_configuration",
-    test_configurations,
-    ids=[f"{idx}_{config.test_name}" for idx, config in enumerate(test_configurations)],
-    indirect=True,
-)
-def test_sparseness_feature_grouped(metrics_runtime_test_configuration):
-    base_config, runtime_config, explanations = metrics_runtime_test_configuration
-    output = sparseness_feature_grouped(attributions=explanations)
-    _assert_tensor_almost_equal(
-        output, runtime_config.expected, delta=runtime_config.delta, mode="mean"
+    _run_metric_test_simple(
+        base_config=base_config,
+        runtime_config=runtime_config,
+        explanation_step_outputs=explanation_step_outputs,
+        metric_func=sparseness,
+        comparison_func=comparison_func,
+    )
+
+    _run_metric_test_simple(
+        base_config=base_config,
+        runtime_config=runtime_config,
+        explanation_step_outputs=explanation_step_outputs,
+        metric_func=sparseness_feature_grouped,
+        comparison_func=comparison_func,
     )

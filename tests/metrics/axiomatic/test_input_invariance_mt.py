@@ -20,7 +20,7 @@ def setup_test_config_for_explainer(explainer, **kwargs):
                 SingleTargetAcrossBatch(index=2),
             ],
             expected=None,
-            delta=1e-5,
+            delta=1e-8,
             multi_target=True,
             **kwargs,
         )

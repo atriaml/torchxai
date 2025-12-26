@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from tests.fixtures._metric import _run_metric_test
+from tests.fixtures._metric import _run_metric_test_simple
 from tests.utils.common import _assert_tensor_almost_equal
 from tests.utils.configs import RuntimeTestConfig
 from torchxai.metrics._utils.visualization import visualize_attribution
@@ -117,7 +117,7 @@ def test_input_invariance(explainer_based_metrics_runtime_test_configuration):
             mode="mean",
         )
 
-    _run_metric_test(
+    _run_metric_test_simple(
         base_config=base_config,
         runtime_config=runtime_config,
         explainer=explainer,

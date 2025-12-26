@@ -15,6 +15,7 @@ from captum._utils.common import (
 from torch import Tensor
 
 from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
+from torchxai.data_types._target import ExplanationTarget, NoTarget
 from torchxai.metrics._utils.batching import (
     _divide_and_aggregate_metrics_n_perturbations_per_feature,
 )
@@ -428,7 +429,7 @@ def effective_complexity(
     baselines: BaselineType = None,
     feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
     additional_forward_args: Any = None,
-    target: TargetType | list[TargetType] = None,
+    target: ExplanationTarget | list[ExplanationTarget] = NoTarget(),
     perturb_func: Callable = default_fixed_baseline_perturb_func(),
     n_perturbations_per_feature: int = 10,
     max_features_processed_per_batch: int | None = None,
@@ -704,9 +705,6 @@ def effective_complexity(
             "attributions must be a list of tensors or list of tuples of tensors"
         )
         assert is_targets_list, "targets must be a list of targets"
-        assert all(isinstance(x, (tuple, int)) for x in target), (
-            "targets must be a list of ints"
-        )
         assert len(target) == len(
             attributions
         ), f"""The number of targets in the targets_list and
@@ -721,7 +719,9 @@ def effective_complexity(
     effective_complexity_batch_list = []
     perturbed_fwd_diffs_relative_vars_batch_list = []
     n_features_batch_list = []
-    for a, t in tqdm.tqdm(zip(attributions, target, strict=True)):
+    for a, t in tqdm.tqdm(
+        zip(attributions, target, strict=True), disable=not show_progress
+    ):
         (
             effective_complexity_batch,
             perturbed_fwd_diffs_relative_vars_batch,
@@ -733,7 +733,7 @@ def effective_complexity(
             baselines=baselines,
             feature_mask=feature_mask,
             additional_forward_args=additional_forward_args,
-            target=t,
+            target=t.value,
             perturb_func=perturb_func,
             n_perturbations_per_feature=n_perturbations_per_feature,
             max_features_processed_per_batch=max_features_processed_per_batch,

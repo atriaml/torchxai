@@ -26,6 +26,7 @@ def _attribution_localization_impl(
             attributions = tuple(
                 torch.clamp(attribution, min=0) for attribution in attributions
             )
+        print("attributions", attributions)
 
         bsz = attributions[0].shape[0]
         localization_scores = tuple(
@@ -33,6 +34,7 @@ def _attribution_localization_impl(
             / attribution.view(bsz, -1).sum(dim=1)
             for attribution, mask in zip(attributions, feature_mask, strict=False)
         )
+
         mask_size_ratios = tuple(
             mask.numel() / mask.contiguous().view(bsz, -1).sum(dim=1)
             for mask in feature_mask

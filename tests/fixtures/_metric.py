@@ -36,7 +36,7 @@ def _get_metric_inputs(
     return kwargs
 
 
-def _run_metric_test(
+def _run_metric_test_simple(
     base_config: BaseTestConfig,
     runtime_config: RuntimeTestConfig,
     metric_func: Callable,
@@ -138,12 +138,17 @@ def _run_metric_test_simple_mt(
             per_target_scores.append(output)
 
     else:
-        per_target_scores = []
-        for attr, tgt in zip(
-            kwargs.pop("attributions"), kwargs.pop("target"), strict=True
-        ):
-            output = metric_func(attributions=attr, target=tgt, **kwargs)
-            per_target_scores.append(output)
+        target = kwargs.pop("target", None)
+        if target is not None:
+            per_target_scores = []
+            for attr, tgt in zip(kwargs.pop("attributions"), target, strict=True):
+                output = metric_func(attributions=attr, target=tgt, **kwargs)
+                per_target_scores.append(output)
+        else:
+            per_target_scores = []
+            for attr in kwargs.pop("attributions"):
+                output = metric_func(attributions=attr, **kwargs)
+                per_target_scores.append(output)
 
     per_target_scores = [
         score if isinstance(score, tuple) else (score,) for score in per_target_scores
@@ -168,6 +173,7 @@ def _run_metric_test_looped_mt(
     comparison_func: Callable,
     explanation_step_outputs: ExplanationStepOutputs | None = None,
     explainer: Explainer | None = None,
+    seed_outside_loop: bool = False,
     **other_kwargs,
 ):
     n_perturbations_per_feature = _format_to_list(
@@ -211,17 +217,23 @@ def _run_metric_test_looped_mt(
         if explainer is not None:
             per_target_scores = []
             explainer.multi_target = False
-            for tgt in kwargs.pop("target"):
+            if seed_outside_loop:
                 _set_all_random_seeds(1234)
+            for tgt in kwargs.pop("target"):
+                if not seed_outside_loop:
+                    _set_all_random_seeds(1234)
                 output = metric_func(target=tgt, **kwargs)
                 per_target_scores.append(output)
 
         else:
+            if seed_outside_loop:
+                _set_all_random_seeds(1234)
             per_target_scores = []
             for attr, tgt in zip(
                 kwargs.pop("attributions"), kwargs.pop("target"), strict=True
             ):
-                _set_all_random_seeds(1234)
+                if not seed_outside_loop:
+                    _set_all_random_seeds(1234)
                 output = metric_func(attributions=attr, target=tgt, **kwargs)
                 per_target_scores.append(output)
 

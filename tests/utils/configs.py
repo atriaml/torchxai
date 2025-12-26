@@ -62,6 +62,8 @@ class RuntimeTestConfig(BaseModel):
     max_features_processed_per_batch: int | list[int | None] | None = None
     perturb_func: Callable | None = None
     percentage_feature_removal_per_step: float = 0.0
+    zero_variance_threshold: float = 1e-5
+    return_ratio: bool = False
 
     @model_validator(mode="before")
     @classmethod
