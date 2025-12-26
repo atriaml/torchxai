@@ -17,6 +17,7 @@ from captum.metrics._utils.batching import _divide_and_aggregate_metrics
 from torch import Tensor
 
 from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
+from torchxai.data_types._target import ExplanationTarget, NoTarget
 from torchxai.metrics._utils.perturbation import default_infidelity_perturb_fn
 from torchxai.metrics.faithfulness.multi_target.infidelity import (
     _multi_target_infidelity,
@@ -250,7 +251,7 @@ def infidelity(
     attributions: list[TensorOrTupleOfTensorsGeneric] | TensorOrTupleOfTensorsGeneric,
     baselines: BaselineType = None,
     additional_forward_args: Any = None,
-    target: TargetType = None,
+    target: ExplanationTarget | list[ExplanationTarget] = NoTarget(),
     feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
     frozen_features: list[torch.Tensor] | None = None,
     perturb_func: Callable | None = None,
@@ -548,7 +549,9 @@ def infidelity(
         ),
         baselines=baselines,
         additional_forward_args=additional_forward_args,
-        **{"targets_list": target} if multi_target else {"target": target},
+        **{"targets_list": [t.value for t in target]}
+        if multi_target
+        else {"target": target.value},
         feature_mask=feature_mask,
         frozen_features=frozen_features,
         n_perturb_samples=n_perturb_samples,

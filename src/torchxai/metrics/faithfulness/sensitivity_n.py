@@ -6,7 +6,8 @@ import torch
 from captum._utils.common import _format_tensor_into_tuples
 from torch import Tensor
 
-from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import BaselineType, TensorOrTupleOfTensorsGeneric
+from torchxai.data_types._target import ExplanationTarget, NoTarget
 from torchxai.metrics._utils.common import (
     _construct_default_feature_mask,
     _validate_feature_mask,
@@ -26,7 +27,7 @@ def sensitivity_n(
     baselines: BaselineType,
     feature_mask: TensorOrTupleOfTensorsGeneric = None,
     additional_forward_args: Any = None,
-    target: TargetType = None,
+    target: ExplanationTarget | list[ExplanationTarget] = NoTarget(),
     n_perturb_samples: int = 10,
     max_examples_per_batch: int | None = None,
     frozen_features: list[torch.Tensor] | None = None,
@@ -359,7 +360,9 @@ def sensitivity_n(
         ),
         baselines=baselines,
         additional_forward_args=additional_forward_args,
-        **{"targets_list": target} if multi_target else {"target": target},
+        **{"targets_list": [t.value for t in target]}
+        if multi_target
+        else {"target": target.value},
         feature_mask=feature_mask,
         frozen_features=frozen_features,
         n_perturb_samples=n_perturb_samples,

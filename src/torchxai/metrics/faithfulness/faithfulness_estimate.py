@@ -16,7 +16,12 @@ from captum._utils.common import (
 )
 from torch import Tensor
 
-from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
+from torchxai.data_types._target import ExplanationTarget, NoTarget
+from torchxai.data_types.common import (
+    BaselineType,
+    TargetType,
+    TensorOrTupleOfTensorsGeneric,
+)
 from torchxai.metrics._utils.batching import _divide_and_aggregate_metrics_n_features
 from torchxai.metrics._utils.common import (
     _construct_default_feature_mask,
@@ -180,11 +185,11 @@ def faithfulness_estimate(
     baselines: BaselineType = None,
     feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
     additional_forward_args: Any = None,
-    target: TargetType = None,
+    target: ExplanationTarget | list[ExplanationTarget] = NoTarget(),
     max_features_processed_per_batch: int | None = None,
     percentage_feature_removal_per_step: float = 0.0,
     frozen_features: list[torch.Tensor] | None = None,
-    multi_target: bool = False,
+    is_multi_target: bool = False,
     show_progress: bool = False,
     return_intermediate_results: bool = False,
     return_dict: bool = False,
@@ -342,7 +347,7 @@ def faithfulness_estimate(
                 This can be useful for ignoring the input structure features like padding, etc. Default: None
                 In case CLS,PAD,SEP tokens are present in the input, they can be frozen by passing the indices
                 of feature masks that correspond to these tokens.
-        multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
+        is_multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
                 multi-target explanations. if set to true, the targets are required to be a list of integers
                 each corresponding to a required target class in the output. The corresponding metric outputs
                 are then returned as a list of metric outputs corresponding to each target class.
@@ -378,7 +383,7 @@ def faithfulness_estimate(
         >>> # Computes the faithfulness estimate scores for saliency maps
         >>> faithfulness_estimate, attr_sums, p_fwds = faithfulness_estimate(net, input, attribution, baselines)
     """
-    if multi_target:
+    if is_multi_target:
         # faithfulness_estimate computation cannot be batched across targets, this is because it requires the removal
         # of attribution features for each target in an desencding order of their importance. Since for each target
         # the order of importance of features can be different, we cannot batch the computation across targets.
@@ -412,7 +417,7 @@ def faithfulness_estimate(
                 baselines=baselines,
                 feature_mask=feature_mask,
                 additional_forward_args=additional_forward_args,
-                target=target,
+                target=target.value,
                 max_features_processed_per_batch=max_features_processed_per_batch,
                 percentage_feature_removal_per_step=percentage_feature_removal_per_step,
                 frozen_features=frozen_features,

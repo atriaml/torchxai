@@ -16,6 +16,7 @@ from captum._utils.common import (
 from torch import Tensor
 
 from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
+from torchxai.data_types._target import ExplanationTarget, NoTarget
 from torchxai.metrics._utils.batching import _divide_and_aggregate_metrics_n_features
 from torchxai.metrics._utils.common import (
     _construct_default_feature_mask,
@@ -281,7 +282,7 @@ def monotonicity(
     baselines: BaselineType,
     feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
     additional_forward_args: Any = None,
-    target: TargetType | list[TargetType] = None,
+    target: ExplanationTarget | list[ExplanationTarget] = NoTarget(),
     max_features_processed_per_batch: int | None = None,
     percentage_feature_removal_per_step: float = 0.01,
     frozen_features: list[torch.Tensor] | None = None,
@@ -526,7 +527,7 @@ def monotonicity(
             baselines=baselines,
             feature_mask=feature_mask,
             additional_forward_args=additional_forward_args,
-            target=t,
+            target=t.value,
             max_features_processed_per_batch=max_features_processed_per_batch,
             percentage_feature_removal_per_step=percentage_feature_removal_per_step,
             frozen_features=frozen_features,

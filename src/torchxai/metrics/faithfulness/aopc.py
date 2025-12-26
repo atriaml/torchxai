@@ -16,6 +16,7 @@ from captum._utils.common import (
 from torch import Tensor
 
 from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
+from torchxai.data_types._target import ExplanationTarget, NoTarget
 from torchxai.metrics._utils.batching import (
     _divide_and_aggregate_metrics_n_perturbations_per_feature,
 )
@@ -550,13 +551,13 @@ def aopc(
     baselines: BaselineType,
     feature_mask: TensorOrTupleOfTensorsGeneric = None,
     additional_forward_args: Any = None,
-    target: TargetType = None,
+    target: ExplanationTarget | list[ExplanationTarget] = NoTarget(),
     max_features_processed_per_batch: int | None = None,
     total_feature_bins: int = 100,
     frozen_features: list[torch.Tensor] | None = None,
     n_random_perms: int = 10,
     seed: int | None = None,
-    multi_target: bool = False,
+    is_multi_target: bool = False,
     show_progress: bool = False,
     return_intermediate_results: bool = False,
     return_dict: bool = False,
@@ -735,7 +736,7 @@ def aopc(
         n_random_perms (int, optional): The number of random permutations of the feature importance scores
             that will be used to compute the AOPC scores for the random runs. Default: 10
         seed (int, optional): The seed value for the random number generator for reproducibility. Default: None
-        multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
+        is_multi_target (bool, optional): A boolean flag that indicates whether the metric computation is for
                 multi-target explanations. if set to true, the targets are required to be a list of integers
                 each corresponding to a required target class in the output. The corresponding metric outputs
                 are then returned as a list of metric outputs corresponding to each target class.
@@ -774,7 +775,7 @@ def aopc(
 
     is_attributions_list = isinstance(attributions, list)
     is_targets_list = isinstance(target, list)
-    if multi_target:
+    if is_multi_target:
         assert is_attributions_list, (
             "attributions must be a list of tensors or list of tuples of tensors"
         )
@@ -819,7 +820,7 @@ def aopc(
             baselines=baselines,
             feature_mask=feature_mask,
             additional_forward_args=additional_forward_args,
-            target=t,
+            target=t.value,
             max_features_processed_per_batch=max_features_processed_per_batch,
             total_feature_bins=total_feature_bins,
             frozen_features=frozen_features,
