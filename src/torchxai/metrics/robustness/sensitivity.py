@@ -5,22 +5,34 @@ from typing import Any, cast
 
 import torch
 from captum._utils.common import (
+    ExpansionTypes,
     _expand_and_update_additional_forward_args,
     _expand_and_update_baselines,
     _expand_and_update_feature_mask,
-    _expand_and_update_target,
+    _expand_target,
     _format_baseline,
     _format_tensor_into_tuples,
 )
 from captum.attr import Attribution
 from captum.metrics._utils.batching import _divide_and_aggregate_metrics
 from torch import Tensor
-from torchxai.data_types import TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import ExplanationTarget, TensorOrTupleOfTensorsGeneric
 from torchxai.explainers._explainer import Explainer
 from torchxai.metrics.robustness.multi_target.sensitivity import (
     _multi_target_sensitivity_scores,
 )
 from torchxai.metrics.robustness.utilities import default_perturb_func
+
+
+def _expand_and_update_target(n_samples: int, kwargs: dict):
+    if "target" not in kwargs:
+        return
+    target = kwargs["target"].value
+    target = _expand_target(
+        target, n_samples, expansion_type=ExpansionTypes.repeat_interleave
+    )
+    # update kwargs with expanded baseline
+    kwargs["target"] = ExplanationTarget.from_raw_input(target)
 
 
 def _sensitivity_scores(
@@ -161,6 +173,11 @@ def _sensitivity_scores(
         explainer.explain if isinstance(explainer, Explainer) else explainer.attribute
     )
     with torch.no_grad():
+        kwargs = {
+            k: v
+            for k, v in kwargs.items()
+            if k in signature(explanation_func).parameters
+        }
         expl_inputs = explanation_func(inputs, **kwargs)
         scores = _divide_and_aggregate_metrics(
             cast(tuple[Tensor, ...], inputs),

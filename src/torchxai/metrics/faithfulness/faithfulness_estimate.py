@@ -519,9 +519,9 @@ def faithfulness_estimate(
                 else None
             ),
             target=(
-                target[sample_idx]
-                if isinstance(target, (list, torch.Tensor))
-                else target
+                target.value[sample_idx]
+                if isinstance(target.value, (list, torch.Tensor))
+                else target.value
             ),
             max_features_processed_per_batch=max_features_processed_per_batch,
             percentage_feature_removal_per_step=percentage_feature_removal_per_step,
