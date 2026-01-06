@@ -445,14 +445,11 @@ class OcclusionExplainer(Explainer):
         >>> # Returns: [OrderedDict({"image": torch.Tensor}), OrderedDict({"image": torch.Tensor})]
     """
 
+    __repr_attrs__ = ["_multi_target", "_internal_batch_size", "_show_progress"]
+
     def __init__(
         self,
         model: Module,
-        sliding_window_shapes: tuple[int, ...] | tuple[tuple[int, ...], ...],
-        strides: None
-        | int
-        | tuple[int, ...]
-        | tuple[int | tuple[int, ...], ...] = None,
         multi_target: bool = False,
         internal_batch_size: int = 1,
         show_progress: bool = False,
@@ -466,8 +463,6 @@ class OcclusionExplainer(Explainer):
             multi_target: Whether to use multi-target mode. Defaults to False.
             internal_batch_size: Batch size for internal computations. Defaults to 1.
         """
-        self._sliding_window_shapes = sliding_window_shapes
-        self._strides = strides if strides is not None else sliding_window_shapes
         self._show_progress = show_progress
 
         super().__init__(model, multi_target, internal_batch_size)
@@ -480,8 +475,6 @@ class OcclusionExplainer(Explainer):
         """
         return partial(
             Occlusion(self._model).attribute,
-            sliding_window_shapes=self._sliding_window_shapes,
-            strides=self._strides,
             perturbations_per_eval=self._internal_batch_size,
             show_progress=self._show_progress,
         )
@@ -494,8 +487,6 @@ class OcclusionExplainer(Explainer):
         """
         return partial(
             MultiTargetOcclusion(self._model).attribute,
-            sliding_window_shapes=self._sliding_window_shapes,
-            strides=self._strides,
             perturbations_per_eval=self._internal_batch_size,
             show_progress=self._show_progress,
         )
@@ -504,6 +495,11 @@ class OcclusionExplainer(Explainer):
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
         target: ExplanationTargetType,
+        sliding_window_shapes: tuple[int, ...] | tuple[tuple[int, ...], ...],
+        strides: None
+        | int
+        | tuple[int, ...]
+        | tuple[int | tuple[int, ...], ...] = None,
         baselines: TensorOrTupleOfTensorsGeneric | None = None,
         additional_forward_args: tuple[Any, ...] | None = None,
     ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
@@ -542,6 +538,8 @@ class OcclusionExplainer(Explainer):
         return self._default_explain(
             inputs=inputs,
             target=target,
+            sliding_window_shapes=sliding_window_shapes,
+            strides=strides,
             baselines=baselines,
             additional_forward_args=additional_forward_args,
         )

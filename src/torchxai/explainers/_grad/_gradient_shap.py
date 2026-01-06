@@ -218,6 +218,15 @@ class GradientShapExplainer(Explainer):
         >>> # Returns: [OrderedDict({"input": torch.Tensor}), OrderedDict({"input": torch.Tensor})]
     """
 
+    __repr_attrs__ = [
+        "_multi_target",
+        "_internal_batch_size",
+        "_grad_batch_size",
+        "_n_samples",
+        "_return_convergence_delta",
+        "_stdevs",
+    ]
+
     def __init__(
         self,
         model: Module,

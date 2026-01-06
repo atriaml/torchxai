@@ -703,6 +703,13 @@ class FeatureAblationExplainer(Explainer):
         >>> # Returns: [OrderedDict({"features": torch.Tensor}), OrderedDict({"features": torch.Tensor})]
     """
 
+    __repr_attrs__ = [
+        "_multi_target",
+        "_internal_batch_size",
+        "_weight_attributions",
+        "_show_progress",
+    ]
+
     def __init__(
         self,
         model: torch.nn.Module,

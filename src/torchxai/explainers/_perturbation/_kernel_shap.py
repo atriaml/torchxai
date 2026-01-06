@@ -268,6 +268,13 @@ class KernelShapExplainer(Explainer):
         >>> # Returns: [OrderedDict({"features": torch.Tensor}), OrderedDict({"features": torch.Tensor})]
     """
 
+    __repr_attrs__ = [
+        "_multi_target",
+        "_internal_batch_size",
+        "_n_samples",
+        "_weight_attributions",
+    ]
+
     def __init__(
         self,
         model: Module,

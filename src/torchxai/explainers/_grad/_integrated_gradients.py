@@ -305,6 +305,14 @@ class IntegratedGradientsExplainer(Explainer):
         >>> # Returns: [OrderedDict({"input": torch.Tensor}), OrderedDict({"input": torch.Tensor})]
     """
 
+    __repr_attrs__ = [
+        "_multi_target",
+        "_internal_batch_size",
+        "_grad_batch_size",
+        "n_steps",
+        "return_convergence_delta",
+    ]
+
     def __init__(
         self,
         model: Module,

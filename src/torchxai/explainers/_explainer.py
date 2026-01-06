@@ -45,6 +45,8 @@ class Explainer(ABC):
         >>> attributions = explainer.explain(explanation_inputs)
     """
 
+    __repr_attrs__ = ["_multi_target", "_internal_batch_size", "_grad_batch_size"]
+
     def __init__(
         self,
         model: torch.nn.Module,
@@ -239,3 +241,9 @@ class Explainer(ABC):
         Raises:
             AssertionError: If target format doesn't match the explainer mode or batch size requirements.
         """
+
+    def __repr__(self) -> str:
+        attr_str = ", ".join(
+            f"{attr.lstrip('_')}={getattr(self, attr)}" for attr in self.__repr_attrs__
+        )
+        return f"{self.__class__.__name__}({attr_str})"

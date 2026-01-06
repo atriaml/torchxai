@@ -634,6 +634,15 @@ class LimeExplainer(Explainer):
         >>> # Returns: [OrderedDict({"features": torch.Tensor}), OrderedDict({"features": torch.Tensor})]
     """
 
+    __repr_attrs__ = [
+        "_multi_target",
+        "_internal_batch_size",
+        "_n_samples",
+        "_alpha",
+        "_weight_attributions",
+        "_show_progress",
+    ]
+
     def __init__(
         self,
         model: Module,
