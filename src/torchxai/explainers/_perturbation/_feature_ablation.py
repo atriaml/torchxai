@@ -70,7 +70,7 @@ class FeatureAblation(CaptumFeatureAblation):
         additional_forward_args: Any = None,
         feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         perturbations_per_eval: int = 1,
-        show_progress: bool = True,
+        show_progress: bool = False,
         **kwargs: Any,
     ) -> TensorOrTupleOfTensorsGeneric:
         # Keeps track whether original input is a tuple or not before
@@ -275,7 +275,7 @@ class MultiTargetFeatureAblation(FeatureAblation):
         additional_forward_args: Any = None,
         feature_mask: None | Tensor | tuple[Tensor, ...] = None,
         perturbations_per_eval: int = 1,
-        show_progress: bool = True,
+        show_progress: bool = False,
         **kwargs: Any,
     ) -> list[TensorOrTupleOfTensorsGeneric]:
         is_inputs_tuple = _is_tuple(inputs)
@@ -464,7 +464,7 @@ class MultiTargetFeatureAblation(FeatureAblation):
             if self.use_weights:
                 attrib = tuple(
                     single_attrib.float()
-                    / weight.repeat((output_shape[1],) + (weights[0].dim() - 1) * (1,))
+                    / weight.repeat((output_shape[1],) + (weight.dim() - 1) * (1,))
                     for single_attrib, weight in zip(
                         total_attrib, weights, strict=False
                     )
@@ -716,7 +716,7 @@ class FeatureAblationExplainer(Explainer):
         multi_target: bool = False,
         internal_batch_size: int = 64,
         weight_attributions: bool = False,
-        show_progress: bool = True,
+        show_progress: bool = False,
     ) -> None:
         """Initialize the FeatureAblationExplainer.
 
