@@ -97,7 +97,7 @@ def frozen_features_perturb_func(original_inp, **kwargs):
                 0
             ]  # this will always have a batch size of 1
         ), "Frozen features must be less than num_interp_features"
-        perturbation[0, frozen_features] = (
+        perturbation[0, frozen_features[0]] = (
             1  # freeze the features, useful for padding/cls/sep tokens in sequences
         )
     return perturbation

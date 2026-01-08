@@ -40,7 +40,10 @@ def kernel_shap_frozen_features_perturb_generator(
     yield torch.ones(1, num_features, device=device, dtype=torch.long)
     perturbed = torch.zeros(1, num_features, device=device, dtype=torch.long)
     if "frozen_features" in kwargs and kwargs["frozen_features"] is not None:
-        perturbed[0, kwargs["frozen_features"]] = (
+        assert len(kwargs["frozen_features"]) == 1, (
+            "Only single frozen features tensor is supported"
+        )
+        perturbed[0, kwargs["frozen_features"][0]] = (
             1  # freeze the features, useful for padding/cls/sep tokens in sequences
         )
     yield perturbed
@@ -52,7 +55,10 @@ def kernel_shap_frozen_features_perturb_generator(
         ).values.item()
         perturbed = (rand_vals > threshold).to(device=device).long()
         if "frozen_features" in kwargs and kwargs["frozen_features"] is not None:
-            perturbed[0, kwargs["frozen_features"]] = 1
+            assert len(kwargs["frozen_features"]) == 1, (
+                "Only single frozen features tensor is supported"
+            )
+            perturbed[0, kwargs["frozen_features"][0]] = 1
         yield perturbed
 
 
