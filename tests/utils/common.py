@@ -153,7 +153,6 @@ def _assert_tensor_containers_almost_equal(
 ) -> None:
     t1 = _flatten_tensor_container(actual_container)
     t2 = _flatten_tensor_container(expected_container)
-    print(f"Comparing containers with {len(t1)} and {len(t2)} tensors.")
     assert len(t1) == len(t2), "Containers do not have the same number of tensors."
     for tensor1, tensor2 in zip(t1, t2, strict=True):
         _assert_tensor_almost_equal(tensor1, tensor2, delta=delta, mode=mode)

@@ -47,6 +47,8 @@ class ExplanationInputs(BaseModel):
     feature_mask: tuple[torch.Tensor, ...] | None = None
     target: ExplanationTargetType | list[ExplanationTargetType] = NoTarget()
     frozen_features: list[torch.Tensor] | None = None
+    strides: Any | None = None
+    sliding_window_shapes: Any | None = None
 
     @property
     def model_inputs(self) -> tuple[Any, ...]:

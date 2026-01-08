@@ -83,7 +83,6 @@ def run_explainer_test_with_config(
             ),
             runtime_config.model_copy(update={"expected": curr_expected}),
         )
-        print("explanations", explanations, curr_target)
 
         if runtime_config.check_multi_target_list_against_single_target:
             multi_target_explanations_2 = run_single_test(
@@ -96,11 +95,6 @@ def run_explainer_test_with_config(
                 ),
                 runtime_config.model_copy(update={"expected": [curr_expected]}),
                 is_multi_target=True,
-            )
-            print(
-                "multi_target_explanations_2",
-                multi_target_explanations_2,
-                [curr_target],
             )
             if multi_target_explanations_2 is None:
                 assert explanations is None
@@ -158,11 +152,9 @@ def run_single_test(
             explanation_step(explanation_inputs=base_config.explanation_inputs)
         return
 
-    print("base_config.explanation_inputs", base_config.explanation_inputs)
     explanations = explanation_step(
         explanation_inputs=base_config.explanation_inputs
     ).explanations
-    print("explanations", explanations)
 
     has_expected = (
         runtime_config.expected is not None

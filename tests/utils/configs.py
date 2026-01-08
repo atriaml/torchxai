@@ -99,3 +99,5 @@ class ExplainersTestRuntimeConfig(RuntimeTestConfig):
     grad_batch_size: int = 64
     visualize: bool = False
     check_multi_target_list_against_single_target: bool = True
+    strides: Any | None = None
+    sliding_window_shapes: Any | None = None

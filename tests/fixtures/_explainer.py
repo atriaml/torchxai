@@ -19,4 +19,15 @@ def explainer_runtime_test_configuration(request):
             update={"explanation_inputs": explanation_inputs}
         )
         base_config.model_validate(base_config, strict=True)
+    if runtime_config.strides is not None:
+        base_config = base_config.model_copy(
+            update={
+                "explanation_inputs": base_config.explanation_inputs.model_copy(
+                    update={
+                        "strides": runtime_config.strides,
+                        "sliding_window_shapes": runtime_config.sliding_window_shapes,
+                    }
+                )
+            }
+        )
     yield base_config, runtime_config

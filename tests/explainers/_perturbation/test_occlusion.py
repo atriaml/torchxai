@@ -13,13 +13,11 @@ def _make_config_for_explainer(*args, **kwargs):
         ExplainersTestRuntimeConfig(
             *args,
             **kwargs,
-            explainer_kwargs={
-                "internal_batch_size": internal_batch_size,
-                "strides": strides,
-                "sliding_window_shapes": sliding_window_shapes,
-            },
+            explainer_kwargs={"internal_batch_size": internal_batch_size},
             explainer="occlusion",
             test_name=f"internal_batch_size_{internal_batch_size}",
+            strides=strides,
+            sliding_window_shapes=sliding_window_shapes,
         )
         for internal_batch_size in [1, 20, 100]
     ]
