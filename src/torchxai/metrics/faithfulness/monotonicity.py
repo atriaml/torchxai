@@ -38,7 +38,7 @@ def _eval_monotonicity_single_sample(
     percentage_feature_removal_per_step: float = 0.01,
     max_features_processed_per_batch: int | None = None,
     frozen_features: torch.Tensor | None = None,
-    show_progress: bool = False,
+    show_progress: bool = True
 ) -> tuple:
     def _generate_perturbations(
         current_n_perturbed_features: int, current_perturbation_mask: torch.Tensor
@@ -186,7 +186,7 @@ def _monotonicity(
     max_features_processed_per_batch: int | None = None,
     percentage_feature_removal_per_step: float = 0.01,
     frozen_features: list[torch.Tensor] | None = None,
-    show_progress: bool = False,
+    show_progress: bool = True
 ) -> tuple | dict:
     with torch.no_grad():
         # perform argument formattings
@@ -286,7 +286,7 @@ def monotonicity(
     max_features_processed_per_batch: int | None = None,
     percentage_feature_removal_per_step: float = 0.01,
     multi_target: bool = False,
-    show_progress: bool = False,
+    show_progress: bool = True,
     return_intermediate_results: bool = False,
     return_dict: bool = False,
 ) -> tuple | dict | torch.Tensor | list[torch.Tensor]:

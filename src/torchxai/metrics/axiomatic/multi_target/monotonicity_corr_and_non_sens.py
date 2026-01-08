@@ -53,7 +53,7 @@ def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
     zero_variance_threshold: float = 0.01,
     use_percentage_attribution_threshold: bool = True,
     return_ratio: bool = True,
-    show_progress: bool = False,
+    show_progress: bool = True,
 ) -> tuple[Any, ...]:
     def _generate_perturbations(
         current_n_perturbed_features: int, current_perturbation_mask: Tensor
@@ -432,7 +432,7 @@ def _multi_target_monotonicity_corr_and_non_sens(
     zero_variance_threshold: float = 1e-5,
     use_percentage_attribution_threshold: bool = False,
     return_ratio: bool = True,
-    show_progress: bool = False,
+    show_progress: bool = True,
 ) -> tuple[TensorOrTupleOfTensorsOrListOfTensorsGeneric, ...]:
     with torch.no_grad():
         assert isinstance(attributions_list, list), (

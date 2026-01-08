@@ -41,7 +41,7 @@ def _multi_target_faithfulness_corr(
     max_examples_per_batch: int = None,
     frozen_features: list[torch.Tensor] | None = None,
     percent_features_perturbed: float = 0.1,
-    show_progress: bool = False,
+    show_progress: bool = True,
 ) -> tuple[Tensor, Tensor, Tensor]:
     def _generate_perturbations(
         current_n_perturb_samples: int, current_n_step: int

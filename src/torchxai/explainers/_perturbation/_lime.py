@@ -148,7 +148,7 @@ class Lime(LimeBase):
         perturbations_per_eval: int = 1,
         frozen_features: list[torch.Tensor] | None = None,
         return_input_shape: bool = True,
-        show_progress: bool = False,
+        show_progress: bool = True,
     ) -> TensorOrTupleOfTensorsGeneric:
         return self._attribute_kwargs(
             inputs=inputs,
@@ -174,7 +174,7 @@ class Lime(LimeBase):
         perturbations_per_eval: int = 1,
         frozen_features: list[torch.Tensor] | None = None,
         return_input_shape: bool = True,
-        show_progress: bool = False,
+        show_progress: bool = True,
         **kwargs,
     ) -> TensorOrTupleOfTensorsGeneric:
         is_inputs_tuple = _is_tuple(inputs)
@@ -378,7 +378,7 @@ class MultiTargetLime(MultiTargetLimeBase):
         n_samples: int = 25,
         perturbations_per_eval: int = 1,
         frozen_features: list[torch.Tensor] | None = None,
-        show_progress: bool = False,
+        show_progress: bool = True,
     ) -> list[TensorOrTupleOfTensorsGeneric]:
         return self._attribute_kwargs(
             inputs=inputs,
@@ -402,7 +402,7 @@ class MultiTargetLime(MultiTargetLimeBase):
         n_samples: int = 25,
         perturbations_per_eval: int = 1,
         frozen_features: list[torch.Tensor] | None = None,
-        show_progress: bool = False,
+        show_progress: bool = True,
         **kwargs,
     ) -> list[TensorOrTupleOfTensorsGeneric]:
         is_inputs_tuple = _is_tuple(inputs)
@@ -651,7 +651,7 @@ class LimeExplainer(Explainer):
         n_samples: int = 100,
         alpha: float = 0.01,
         weight_attributions: bool = True,
-        show_progress: bool = False,
+        show_progress: bool = True,
     ) -> None:
         """Initialize the LimeExplainer.
 

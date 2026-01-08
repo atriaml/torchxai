@@ -119,7 +119,7 @@ def eval_aopcs_single_sample(
     frozen_features: list[torch.Tensor] | None = None,
     n_random_perms: int = 10,
     seed: int | None = None,
-    show_progress: bool = False,
+    show_progress: bool = True,
 ) -> Tensor:
     def _generate_perturbations(
         current_n_perturbed_features: int,
@@ -422,7 +422,7 @@ def _aopc(
     frozen_features: list[torch.Tensor] | None = None,
     n_random_perms: int = 10,
     seed: int | None = None,
-    show_progress: bool = False,
+    show_progress: bool = True,
 ) -> Any:
     # perform argument formattings
     inputs = _format_tensor_into_tuples(inputs)  # type: ignore
@@ -557,7 +557,7 @@ def aopc(
     n_random_perms: int = 10,
     seed: int | None = None,
     multi_target: bool = False,
-    show_progress: bool = False,
+    show_progress: bool = True,
     return_intermediate_results: bool = False,
     return_dict: bool = False,
 ) -> Any:

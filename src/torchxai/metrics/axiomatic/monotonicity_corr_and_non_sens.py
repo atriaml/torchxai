@@ -59,7 +59,7 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
     use_percentage_attribution_threshold: bool = True,
     remove_features_in_ascending_order: bool = False,
     return_ratio: bool = True,
-    show_progress: bool = False,
+    show_progress: bool = True,
 ) -> Any:
     def _generate_perturbations(
         current_n_perturbed_features: int, current_perturbation_mask: Tensor
@@ -403,7 +403,7 @@ def _monotonicity_corr_and_non_sens(
     zero_variance_threshold: float = 1e-5,
     use_percentage_attribution_threshold: bool = False,
     return_ratio: bool = True,
-    show_progress: bool = False,
+    show_progress: bool = True,
 ) -> tuple[TensorOrTupleOfTensorsOrListOfTensorsGeneric, ...]:
     with torch.no_grad():
         # perform argument formattings
@@ -535,7 +535,7 @@ def monotonicity_corr_and_non_sens(
     zero_variance_threshold: float = 1e-5,
     use_percentage_attribution_threshold: bool = False,
     return_ratio: bool = True,
-    show_progress: bool = False,
+    show_progress: bool = True,
     return_intermediate_results: bool = False,
     return_dict: bool = False,
     multi_target: bool = False,

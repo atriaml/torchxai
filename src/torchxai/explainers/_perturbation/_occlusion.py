@@ -49,7 +49,7 @@ class Occlusion(FeatureAblation):
         target: TargetType = None,
         additional_forward_args: Any = None,
         perturbations_per_eval: int = 1,
-        show_progress: bool = False,
+        show_progress: bool = True,
     ) -> TensorOrTupleOfTensorsGeneric:
         formatted_inputs = _format_tensor_into_tuples(inputs)
 
@@ -207,7 +207,7 @@ class MultiTargetOcclusion(MultiTargetFeatureAblation):
         baselines: BaselineType = None,
         additional_forward_args: Any = None,
         perturbations_per_eval: int = 1,
-        show_progress: bool = False,
+        show_progress: bool = True,
     ) -> list[TensorOrTupleOfTensorsGeneric]:
         formatted_inputs = _format_tensor_into_tuples(inputs)
 
@@ -452,7 +452,7 @@ class OcclusionExplainer(Explainer):
         model: Module,
         multi_target: bool = False,
         internal_batch_size: int = 1,
-        show_progress: bool = False,
+        show_progress: bool = True,
     ) -> None:
         """Initialize the OcclusionExplainer.
 

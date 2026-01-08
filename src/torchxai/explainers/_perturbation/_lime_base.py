@@ -48,7 +48,7 @@ class MultiTargetLimeBase(LimeBase):
         additional_forward_args: Any = None,
         n_samples: int = 50,
         perturbations_per_eval: int = 1,
-        show_progress: bool = False,
+        show_progress: bool = True,
         **kwargs,
     ) -> list[Tensor]:
         with torch.no_grad():

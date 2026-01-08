@@ -60,7 +60,7 @@ def _divide_and_aggregate_metrics(
     metric_func: Callable,
     agg_func: Callable = torch.add,
     max_examples_per_batch: int | None = None,
-    show_progress: bool = False,
+    show_progress: bool = True,
 ) -> torch.Tensor:
     r"""
     This function is used to slice large number of samples `n_perturb_samples` per
@@ -149,7 +149,7 @@ def _divide_and_aggregate_metrics_n_perturbations_per_feature(
     # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
     agg_func: Callable = torch.add,
     max_features_processed_per_batch: int | None = None,
-    show_progress: bool = False,
+    show_progress: bool = True,
 ) -> torch.Tensor:
     r"""
     This function is used to slice large number of samples `n_perturbations_per_feature` per
@@ -233,7 +233,7 @@ def _divide_and_aggregate_metrics_n_features(
     # pyre-fixme[24]: Generic type `Callable` expects 2 type parameters.
     agg_func: Callable = torch.add,
     max_features_processed_per_batch: int | None = None,
-    show_progress: bool = False,
+    show_progress: bool = True,
 ) -> torch.Tensor:
     r"""
     This function is used to slice large number of samples `n_features` per

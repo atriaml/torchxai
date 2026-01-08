@@ -45,7 +45,7 @@ def _eval_effective_complexity_single_sample(
     frozen_features: torch.Tensor | None = None,
     zero_variance_threshold: float = 0.01,
     return_ratio: bool = False,
-    show_progress: bool = False,
+    show_progress: bool = True,
 ) -> tuple:
     def _generate_perturbations(
         current_n_perturbed_features: int, current_perturbation_mask: torch.Tensor
@@ -315,7 +315,7 @@ def _effective_complexity(
     frozen_features: list[torch.Tensor] | None = None,
     zero_variance_threshold: float = 0.01,
     return_ratio: bool = False,
-    show_progress: bool = False,
+    show_progress: bool = True,
 ) -> tuple:
     with torch.no_grad():
         # perform argument formattings
@@ -438,7 +438,7 @@ def effective_complexity(
     zero_variance_threshold: float = 0.01,
     return_ratio: bool = False,
     multi_target: bool = False,
-    show_progress: bool = False,
+    show_progress: bool = True,
     return_intermediate_results: bool = False,
     return_dict: bool = False,
 ) -> dict | tuple | torch.Tensor | list[torch.Tensor]:

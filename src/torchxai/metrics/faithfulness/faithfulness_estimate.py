@@ -43,7 +43,7 @@ def eval_faithfulness_estimate_single_sample(
     max_features_processed_per_batch: int | None = None,
     percentage_feature_removal_per_step: float = 0.0,
     frozen_features: torch.Tensor | None = None,
-    show_progress: bool = False,
+    show_progress: bool = True,
 ) -> tuple:
     def _next_faithfulness_estimate_tensors(
         current_n_perturbed_features: int, current_n_steps: int
@@ -189,7 +189,7 @@ def faithfulness_estimate(
     max_features_processed_per_batch: int | None = None,
     percentage_feature_removal_per_step: float = 0.0,
     multi_target: bool = False,
-    show_progress: bool = False,
+    show_progress: bool = True,
     return_intermediate_results: bool = False,
     return_dict: bool = False,
 ) -> dict | tuple | torch.Tensor | list[torch.Tensor]:

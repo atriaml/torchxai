@@ -97,7 +97,7 @@ class KernelShap(Lime):
         perturbations_per_eval: int = 1,
         frozen_features: list[torch.Tensor] | None = None,
         return_input_shape: bool = True,
-        show_progress: bool = False,
+        show_progress: bool = True,
     ) -> TensorOrTupleOfTensorsGeneric:
         formatted_inputs, baselines = _format_input_baseline(inputs, baselines)
         feature_mask, num_interp_features = construct_feature_mask(
@@ -175,7 +175,7 @@ class MultiTargetKernelShap(MultiTargetLime):
         perturbations_per_eval: int = 1,
         frozen_features: list[torch.Tensor] | None = None,
         return_input_shape: bool = True,
-        show_progress: bool = False,
+        show_progress: bool = True,
     ) -> list[TensorOrTupleOfTensorsGeneric] | TensorOrTupleOfTensorsGeneric:
         formatted_inputs, baselines = _format_input_baseline(inputs, baselines)
         feature_mask, num_interp_features = construct_feature_mask(
