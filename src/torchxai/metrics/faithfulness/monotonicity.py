@@ -502,7 +502,7 @@ def monotonicity(
             "attributions must be a list of tensors or list of tuples of tensors"
         )
         assert is_targets_list, "targets must be a list of targets"
-        assert all(isinstance(x, (tuple, int)) for x in target), (
+        assert all(isinstance(x, ExplanationTarget) for x in target), (
             "targets must be a list of ints"
         )
         assert len(target) == len(

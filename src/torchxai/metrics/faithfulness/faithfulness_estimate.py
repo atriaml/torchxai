@@ -392,9 +392,6 @@ def faithfulness_estimate(
             "attributions must be a list of tensors or list of tuples of tensors"
         )
         assert isinstance(targets_list, list), "targets must be a list of targets"
-        assert all(isinstance(x, (tuple, int)) for x in targets_list), (
-            "targets must be a list of ints"
-        )
         assert len(targets_list) == len(
             attributions_list
         ), f"""The number of targets in the targets_list and
@@ -416,7 +413,7 @@ def faithfulness_estimate(
                 baselines=baselines,
                 feature_mask=feature_mask,
                 additional_forward_args=additional_forward_args,
-                target=target.value,
+                target=target,
                 max_features_processed_per_batch=max_features_processed_per_batch,
                 percentage_feature_removal_per_step=percentage_feature_removal_per_step,
                 frozen_features=frozen_features,
@@ -453,10 +450,6 @@ def faithfulness_estimate(
     assert not isinstance(attributions, list), (
         "attributions must be a single tensor or a tuple of tensors"
     )
-    assert not isinstance(target, list), (
-        "targets must be a single target or a tuple of targets"
-    )
-
     # perform argument formattings
     inputs = _format_tensor_into_tuples(inputs)  # type: ignore
     if baselines is None:
