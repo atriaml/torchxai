@@ -56,7 +56,7 @@ class MultiTargetGuidedBackprop(GradientAttribution):
         use_relu_grad_output: bool = False,
         gradient_func=(
             _compute_gradients_vmap_autograd
-            if torch.__version__ >= "2.3.0"
+            if torch.__version__ >= "2.0.0"
             else _compute_gradients_sequential_autograd
         ),
         grad_batch_size: int = 10,
