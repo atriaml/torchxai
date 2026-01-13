@@ -537,7 +537,6 @@ def _multi_target_monotonicity_corr_and_non_sens(
                 return_ratio=return_ratio,
                 show_progress=show_progress,
             )
-
             monotonicity_corr_list_batch.append(monotonicity_corr_list)
             non_sens_list_batch.append(non_sens_list)
             n_features_list_batch.append(n_features_list)
@@ -557,13 +556,13 @@ def _multi_target_monotonicity_corr_and_non_sens(
             torch.tensor(x) for x in list(zip(*non_sens_list_batch, strict=True))
         ]
         perturbed_fwd_diffs_relative_vars_batch_list = [
-            torch.tensor(x)
+            x
             for x in list(
                 zip(*perturbed_fwd_diffs_relative_vars_list_batch, strict=True)
             )
         ]
         feature_group_attribution_scores_batch_list = [
-            torch.tensor(x)
+            x
             for x in list(
                 zip(*feature_group_attribution_scores_list_batch, strict=True)
             )
