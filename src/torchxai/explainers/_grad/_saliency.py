@@ -41,7 +41,7 @@ class MultiTargetSaliency(GradientAttribution):
         forward_func: Callable,
         gradient_func=(
             _compute_gradients_vmap_autograd
-            if torch.__version__ >= "2.1.2"
+            if torch.__version__ >= "2.1.0"
             else _compute_gradients_sequential_autograd
         ),
         grad_batch_size: int = 10,

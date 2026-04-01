@@ -439,7 +439,7 @@ def _multi_target_monotonicity_corr_and_non_sens(
             "attributions must be a list of tensors or list of tuples of tensors",
         )
         assert isinstance(targets_list, list), "targets must be a list of targets"
-        assert all(isinstance(x, (tuple, int)) for x in targets_list), (
+        assert all(isinstance(x, (tuple, int, list)) for x in targets_list), (
             "targets must be a list of ints"
         )
         assert len(targets_list) == len(
@@ -480,6 +480,7 @@ def _multi_target_monotonicity_corr_and_non_sens(
         n_features_list_batch = []
         perturbed_fwd_diffs_relative_vars_list_batch = []
         feature_group_attribution_scores_list_batch = []
+
         for sample_idx in tqdm.tqdm(range(bsz), disable=not show_progress):
             (
                 monotonicity_corr_list,
@@ -516,7 +517,11 @@ def _multi_target_monotonicity_corr_and_non_sens(
                     if additional_forward_args is not None
                     else None
                 ),
-                targets_list=targets_list,
+                targets_list=(
+                    [torch.tensor(t[sample_idx], device=inputs[0].device) for t in targets_list]
+                    if isinstance(targets_list, (list, torch.Tensor))
+                    else targets_list
+                ),
                 frozen_features=(
                     frozen_features[sample_idx]
                     if frozen_features is not None
@@ -532,7 +537,6 @@ def _multi_target_monotonicity_corr_and_non_sens(
                 return_ratio=return_ratio,
                 show_progress=show_progress,
             )
-
             monotonicity_corr_list_batch.append(monotonicity_corr_list)
             non_sens_list_batch.append(non_sens_list)
             n_features_list_batch.append(n_features_list)
@@ -552,13 +556,13 @@ def _multi_target_monotonicity_corr_and_non_sens(
             torch.tensor(x) for x in list(zip(*non_sens_list_batch, strict=True))
         ]
         perturbed_fwd_diffs_relative_vars_batch_list = [
-            torch.tensor(x)
+            x
             for x in list(
                 zip(*perturbed_fwd_diffs_relative_vars_list_batch, strict=True)
             )
         ]
         feature_group_attribution_scores_batch_list = [
-            torch.tensor(x)
+            x
             for x in list(
                 zip(*feature_group_attribution_scores_list_batch, strict=True)
             )

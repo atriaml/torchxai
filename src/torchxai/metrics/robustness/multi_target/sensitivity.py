@@ -17,6 +17,7 @@ from torch import Tensor
 from torchxai.data_types import TensorOrTupleOfTensorsGeneric
 from torchxai.explainers._explainer import Explainer
 from torchxai.metrics.robustness.utilities import default_perturb_func
+from torchxai.data_types._target import ExplanationTarget
 
 
 def _multi_target_sensitivity_scores(
@@ -161,7 +162,7 @@ def _multi_target_sensitivity_scores(
     )
     target = kwargs.get("target", None)
     assert isinstance(target, list), "targets must be a list of targets"
-    assert all(isinstance(x, (tuple, int)) for x in target), (
+    assert all(isinstance(x, ExplanationTarget) for x in target), (
         "targets must be a list of ints"
     )
 
@@ -176,6 +177,11 @@ def _multi_target_sensitivity_scores(
         ]
 
     with torch.no_grad():
+        kwargs = {
+            k: v
+            for k, v in kwargs.items()
+            if k in signature(explanation_func.explain).parameters
+        }
         expl_inputs_list = explanation_func.explain(inputs, **kwargs)
         metric_scores_list = _divide_and_aggregate_metrics(
             cast(tuple[Tensor, ...], inputs),

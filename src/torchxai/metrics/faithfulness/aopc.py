@@ -775,11 +775,12 @@ def aopc(
     is_attributions_list = isinstance(attributions, list)
     is_targets_list = isinstance(target, list)
     if multi_target:
+        target = [t.value for t in target]
         assert is_attributions_list, (
             "attributions must be a list of tensors or list of tuples of tensors"
         )
         assert is_targets_list, "targets must be a list of targets"
-        assert all(isinstance(x, (tuple, int)) for x in target), (
+        assert all(isinstance(x, (tuple, int, list)) for x in target), (
             "targets must be a list of ints"
         )
         assert len(target) == len(
@@ -819,7 +820,7 @@ def aopc(
             baselines=baselines,
             feature_mask=feature_mask,
             additional_forward_args=additional_forward_args,
-            target=t.value,
+            target=t,
             max_features_processed_per_batch=max_features_processed_per_batch,
             total_feature_bins=total_feature_bins,
             frozen_features=frozen_features,
