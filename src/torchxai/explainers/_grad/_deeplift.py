@@ -35,7 +35,7 @@ from torchxai.data_types import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
-from torchxai.explainers._explainer import Explainer
+from torchxai.explainers._explainer import FeatureAttributionExplainer
 from torchxai.explainers._utils import (
     _compute_gradients_sequential_autograd,
     _compute_gradients_vmap_autograd,
@@ -281,7 +281,7 @@ class MultiTargetDeepLift(DeepLift):
         return multipliers
 
 
-class DeepLiftExplainer(Explainer):
+class DeepLiftExplainer(FeatureAttributionExplainer):
     """DeepLIFT explainer for computing reference-based attributions.
 
     This explainer computes attributions using DeepLIFT (Deep Learning Important FeaTures),

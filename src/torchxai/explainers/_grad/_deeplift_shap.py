@@ -24,7 +24,7 @@ from torchxai.data_types import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
-from torchxai.explainers._explainer import Explainer
+from torchxai.explainers._explainer import FeatureAttributionExplainer
 from torchxai.explainers._grad._deeplift import MultiTargetDeepLift
 from torchxai.explainers._utils import (
     _compute_gradients_sequential_autograd,
@@ -554,7 +554,7 @@ class MultiTargetDeepLiftShapBatched(MultiTargetDeepLift):
         return torch.mean(attribution.view(attr_shape), dim=1, keepdim=False)
 
 
-class DeepLiftShapExplainer(Explainer):
+class DeepLiftShapExplainer(FeatureAttributionExplainer):
     """DeepLIFT SHAP explainer for computing Shapley values with DeepLIFT.
 
     This explainer computes attributions using DeepLIFT SHAP, which combines DeepLIFT

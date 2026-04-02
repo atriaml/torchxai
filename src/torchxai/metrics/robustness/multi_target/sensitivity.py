@@ -15,9 +15,9 @@ from captum.metrics._utils.batching import _divide_and_aggregate_metrics
 from torch import Tensor
 
 from torchxai.data_types import TensorOrTupleOfTensorsGeneric
+from torchxai.data_types._target import ExplanationTarget
 from torchxai.explainers._explainer import Explainer
 from torchxai.metrics.robustness.utilities import default_perturb_func
-from torchxai.data_types._target import ExplanationTarget
 
 
 def _multi_target_sensitivity_scores(

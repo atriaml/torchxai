@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from torch import nn
 
-from torchxai.explainers._explainer import Explainer
+from torchxai.explainers._explainer import FeatureAttributionExplainer
 from torchxai.explainers._grad._deeplift import DeepLiftExplainer
 from torchxai.explainers._grad._deeplift_shap import DeepLiftShapExplainer
 from torchxai.explainers._grad._gradient_shap import GradientShapExplainer
@@ -38,7 +38,9 @@ AVAILABLE_EXPLAINERS = {
 
 class ExplainerFactory:
     @staticmethod
-    def create(explanation_method: str, model: nn.Module, **kwargs) -> Explainer:
+    def create(
+        explanation_method: str, model: nn.Module, **kwargs
+    ) -> FeatureAttributionExplainer:
         """
         Creates an explainer object based on the given explanation method.
         Args:

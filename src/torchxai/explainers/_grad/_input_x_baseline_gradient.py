@@ -17,7 +17,7 @@ from torchxai.data_types import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
-from torchxai.explainers._explainer import Explainer
+from torchxai.explainers._explainer import FeatureAttributionExplainer
 from torchxai.explainers._utils import (
     _compute_gradients_sequential_autograd,
     _compute_gradients_vmap_autograd,
@@ -148,7 +148,7 @@ class MultiTargetInputBaselineXGradient(GradientAttribution):
         return self._multiply_by_inputs
 
 
-class InputXBaselineGradientExplainer(Explainer):
+class InputXBaselineGradientExplainer(FeatureAttributionExplainer):
     """Input × Baseline Gradient explainer for computing scaled baseline-gradient attributions.
 
     This explainer computes attributions by multiplying (input - baseline) with their

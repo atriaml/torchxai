@@ -15,7 +15,7 @@ from torchxai.data_types import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
-from torchxai.explainers._explainer import Explainer
+from torchxai.explainers._explainer import FeatureAttributionExplainer
 from torchxai.explainers._grad._input_x_baseline_gradient import (
     MultiTargetInputBaselineXGradient,
 )
@@ -163,7 +163,7 @@ class MultiTargetGradientShap(GradientShap):
         return attributions
 
 
-class GradientShapExplainer(Explainer):
+class GradientShapExplainer(FeatureAttributionExplainer):
     """GradientShap explainer for computing noise-based Shapley value approximations.
 
     This explainer computes attributions using GradientShap, which combines ideas from

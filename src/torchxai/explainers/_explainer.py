@@ -16,6 +16,89 @@ class Explainer(ABC):
 
     Args:
         model: The PyTorch model for which explanations will be computed.
+
+    Attributes:
+        model: The model used for attribution computation.
+
+    Examples:
+        >>> import torch
+        >>> from collections import OrderedDict
+        >>> from torchxai.data_types import ExplanationInputs
+        >>>
+        >>> model = torch.nn.Linear(10, 2)
+        >>> explainer = MyExplainer(model, multi_target=False)
+        >>>
+        >>> inputs = torch.randn(2, 10)
+        >>> explanation_inputs = ExplanationInputs(
+        ...     inputs=OrderedDict({"features": inputs}), target=torch.tensor([0, 1])
+        ... )
+        >>> attributions = explainer.explain(explanation_inputs)
+    """
+
+    __repr_attrs__ = []
+
+    def __init__(self, model: torch.nn.Module) -> None:
+        self._model = model
+
+    @abstractmethod
+    def explain(
+        self, *args, **kwargs
+    ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
+        """Compute attributions for the given structured inputs.
+
+        This is the main method for generating explanations. It automatically handles
+        both single-target and multi-target modes based on the explainer configuration.
+        Accepts either ExplanationInputs object or individual keyword arguments.
+
+        Args:
+            *args: Positional arguments (typically ExplanationInputs object).
+            **kwargs: Keyword arguments that can include:
+                - inputs: OrderedDict mapping feature names to tensors
+                - target: Target tensor (single-target) or list of tensors (multi-target)
+                - additional_forward_args: Optional additional arguments for model forward pass
+                - baselines: Optional baseline tensors for attribution methods
+                - feature_mask: Optional feature masks for attribution computation
+
+        Returns:
+            For single-target mode: OrderedDict mapping feature names to attribution tensors.
+            For multi-target mode: List of OrderedDicts, one per target.
+
+        Examples:
+            Using ExplanationInputs object:
+            >>> from torchxai.data_types import ExplanationInputs
+            >>> explanation_inputs = ExplanationInputs(
+            ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
+            ...     target=torch.tensor([0, 1]),
+            ... )
+            >>> attributions = explainer.explain(explanation_inputs)
+            >>> # Returns: OrderedDict({"input": torch.Tensor})
+
+            Using keyword arguments:
+            >>> attributions = explainer.explain(
+            ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
+            ...     target=torch.tensor([0, 1]),
+            ... )
+
+        Raises:
+            AssertionError: If target format doesn't match the explainer mode or batch size requirements.
+        """
+
+    def __repr__(self) -> str:
+        attr_str = ", ".join(
+            f"{attr.lstrip('_')}={getattr(self, attr)}" for attr in self.__repr_attrs__
+        )
+        return f"{self.__class__.__name__}({attr_str})"
+
+
+class FeatureAttributionExplainer(Explainer):
+    """Abstract base class for TorchXAI explainers.
+
+    This class provides a common interface for all explanation methods in TorchXAI.
+    It supports both single-target and multi-target explanations with automatic
+    function inspection and structured input handling via ExplanationInputs.
+
+    Args:
+        model: The PyTorch model for which explanations will be computed.
         multi_target: Whether to use the multi-target version of the explainer.
             When True, the explainer can compute attributions for multiple targets
             simultaneously. Defaults to False.
@@ -54,7 +137,7 @@ class Explainer(ABC):
         internal_batch_size: int = 64,
         grad_batch_size: int = 64,
     ) -> None:
-        self._model = model
+        super().__init__(model)
         self._multi_target = multi_target
         self._internal_batch_size = internal_batch_size
         self._grad_batch_size = grad_batch_size

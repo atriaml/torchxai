@@ -94,7 +94,16 @@ def default_infidelity_perturb_fn(noise_scale: float = 0.003):
         baselines: TensorOrTupleOfTensorsGeneric | None = None,
     ) -> tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
         inputs = _format_tensor_into_tuples(inputs)
-        noise = tuple(torch.randn_like(x) * noise_scale for x in inputs)
+        for x in inputs:
+            if x.dtype in [torch.int32, torch.int64]:
+                print(x)
+                raise ValueError(
+                    "default_infidelity_perturb_fn does not support integer input tensors. Please provide a custom perturbation function that can handle integer tensors."
+                )
+
+        noise = tuple(
+            torch.randn_like(x, dtype=torch.float) * noise_scale for x in inputs
+        )
         if frozen_features is not None and feature_masks is not None:
             for n_batch, feature_mask_batch in zip(
                 noise, feature_masks, strict=True

@@ -7,14 +7,14 @@ import tqdm
 
 from tests.utils.types import ExplanationInputs, ExplanationStepOutputs
 from torchxai.data_types import ExplanationTarget
-from torchxai.explainers._explainer import Explainer
+from torchxai.explainers._explainer import FeatureAttributionExplainer
 
 
 class ExplanationStep:
     def __init__(
         self,
         model: torch.nn.Module,
-        explainer: Explainer,
+        explainer: FeatureAttributionExplainer,
         device: str | torch.device,
         with_amp: bool = False,
         only_allow_tensors_as_targets: bool = False,
@@ -33,7 +33,9 @@ class ExplanationStep:
             return self._model(*explanation_input.model_inputs)
 
     def _run_explainer_forward(
-        self, explainer: Explainer, explanation_inputs: ExplanationInputs
+        self,
+        explainer: FeatureAttributionExplainer,
+        explanation_inputs: ExplanationInputs,
     ) -> tuple[torch.Tensor, ...]:
         # filster args here so there is no error on fowrard
         # verify that impossible args are not set
@@ -70,7 +72,7 @@ class MultiTargetExplanationStep(ExplanationStep):
     def __init__(
         self,
         model: torch.nn.Module,
-        explainer: Explainer,
+        explainer: FeatureAttributionExplainer,
         device: str | torch.device,
         with_amp: bool = False,
         iterative_computation: bool = False,
@@ -87,7 +89,9 @@ class MultiTargetExplanationStep(ExplanationStep):
         self._explainer.multi_target = True
 
     def _run_explainer_forward(  # type: ignore
-        self, explainer: Explainer, explanation_inputs: ExplanationInputs
+        self,
+        explainer: FeatureAttributionExplainer,
+        explanation_inputs: ExplanationInputs,
     ) -> list[tuple[torch.Tensor, ...]]:
         assert isinstance(explainer.multi_target, bool) and explainer.multi_target, (
             "Explainer must be set to multi-target mode for MultiTargetExplanationStep."
@@ -126,7 +130,7 @@ class MultiTargetExplanationStep(ExplanationStep):
     def __call__(  # type: ignore
         self, explanation_inputs: ExplanationInputs
     ) -> ExplanationStepOutputs:
-        assert isinstance(self._explainer, Explainer), (
+        assert isinstance(self._explainer, FeatureAttributionExplainer), (
             "Multi-target explainer must be an instance of Explainer."
         )
         explanation_inputs = explanation_inputs.to(self._device)

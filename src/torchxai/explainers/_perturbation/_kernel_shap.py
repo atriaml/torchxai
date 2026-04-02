@@ -17,7 +17,7 @@ from torchxai.data_types import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
-from torchxai.explainers._explainer import Explainer
+from torchxai.explainers._explainer import FeatureAttributionExplainer
 from torchxai.explainers._perturbation._lime import Lime, MultiTargetLime
 from torchxai.explainers._utils import (
     _expand_feature_mask_to_target,
@@ -220,7 +220,7 @@ class MultiTargetKernelShap(MultiTargetLime):
         return torch.tensor([similarities])
 
 
-class KernelShapExplainer(Explainer):
+class KernelShapExplainer(FeatureAttributionExplainer):
     """Kernel SHAP explainer for computing Shapley values using LIME framework.
 
     This explainer computes attributions using Kernel SHAP, which uses the LIME framework

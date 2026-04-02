@@ -33,7 +33,7 @@ from torchxai.data_types import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
-from torchxai.explainers._explainer import Explainer
+from torchxai.explainers._explainer import FeatureAttributionExplainer
 from torchxai.explainers._perturbation._lime_base import MultiTargetLimeBase
 from torchxai.explainers._utils import (
     _expand_feature_mask_to_target,
@@ -581,7 +581,7 @@ class MultiTargetLime(MultiTargetLimeBase):
         return _format_output(is_inputs_tuple, tuple(attr))
 
 
-class LimeExplainer(Explainer):
+class LimeExplainer(FeatureAttributionExplainer):
     """LIME explainer for local interpretable model-agnostic explanations.
 
     This explainer computes attributions using LIME (Local Interpretable Model-agnostic

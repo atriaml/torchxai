@@ -8,14 +8,14 @@ from tests.metrics.utils import prepare_explainer, prepare_explanations
 from tests.utils.common import _grid_segmenter, _set_all_random_seeds
 from tests.utils.configs import BaseTestConfig, RuntimeTestConfig
 from tests.utils.types import ExplanationStepOutputs
-from torchxai.explainers._explainer import Explainer
+from torchxai.explainers._explainer import FeatureAttributionExplainer
 
 
 def _get_metric_inputs(
     base_config: BaseTestConfig,
     runtime_config: RuntimeTestConfig,
     explanation_step_outputs: ExplanationStepOutputs | None = None,
-    explainer: Explainer | None = None,
+    explainer: FeatureAttributionExplainer | None = None,
 ):
     kwargs = {
         "forward_func": base_config.model,
@@ -42,7 +42,7 @@ def _run_metric_test_simple(
     metric_func: Callable,
     comparison_func: Callable,
     explanation_step_outputs: ExplanationStepOutputs | None = None,
-    explainer: Explainer | None = None,
+    explainer: FeatureAttributionExplainer | None = None,
     **other_kwargs,
 ):
     # yield base_config, runtime_config, explanation_step_outputs
@@ -65,7 +65,7 @@ def _run_metric_test_looped(
     metric_func: Callable,
     comparison_func: Callable,
     explanation_step_outputs: ExplanationStepOutputs | None = None,
-    explainer: Explainer | None = None,
+    explainer: FeatureAttributionExplainer | None = None,
     **other_kwargs,
 ):
     n_perturbations_per_feature = _format_to_list(
@@ -109,7 +109,7 @@ def _run_metric_test_simple_mt(
     metric_func: Callable,
     comparison_func: Callable,
     explanation_step_outputs: ExplanationStepOutputs | None = None,
-    explainer: Explainer | None = None,
+    explainer: FeatureAttributionExplainer | None = None,
     **other_kwargs,
 ):
     kwargs = _get_metric_inputs(base_config, runtime_config, explanation_step_outputs)
@@ -172,7 +172,7 @@ def _run_metric_test_looped_mt(
     metric_func: Callable,
     comparison_func: Callable,
     explanation_step_outputs: ExplanationStepOutputs | None = None,
-    explainer: Explainer | None = None,
+    explainer: FeatureAttributionExplainer | None = None,
     seed_outside_loop: bool = False,
     **other_kwargs,
 ):

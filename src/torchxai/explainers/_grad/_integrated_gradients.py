@@ -26,7 +26,7 @@ from torchxai.data_types import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
-from torchxai.explainers._explainer import Explainer
+from torchxai.explainers._explainer import FeatureAttributionExplainer
 from torchxai.explainers._utils import (
     _batch_attribution_multi_target,
     _compute_gradients_sequential_autograd,
@@ -255,7 +255,7 @@ class MultiTargetIntegratedGradients(IntegratedGradients):
         return multi_target_gradients
 
 
-class IntegratedGradientsExplainer(Explainer):
+class IntegratedGradientsExplainer(FeatureAttributionExplainer):
     """Integrated Gradients explainer for computing path-integrated attributions.
 
     This explainer computes attributions using Integrated Gradients, which integrates

@@ -14,6 +14,7 @@ from captum._utils.common import (
     _run_forward,
 )
 from torch import Tensor
+
 from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.data_types._target import ExplanationTarget, NoTarget
 from torchxai.metrics._utils.batching import (
@@ -792,7 +793,7 @@ def aopc(
     if not is_attributions_list:
         attributions = [attributions]
     if not is_targets_list:
-        target = [target]
+        target = [target.value]
     inputs_perturbed_aopc_desc_batch = []
     inputs_perturbed_aopc_asc_batch = []
     inputs_perturbed_aopc_rand_batch = []

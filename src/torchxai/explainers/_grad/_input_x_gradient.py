@@ -14,7 +14,7 @@ from torchxai.data_types import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
-from torchxai.explainers._explainer import Explainer
+from torchxai.explainers._explainer import FeatureAttributionExplainer
 from torchxai.explainers._utils import (
     _compute_gradients_sequential_autograd,
     _compute_gradients_vmap_autograd,
@@ -105,7 +105,7 @@ class MultiTargetInputXGradient(GradientAttribution):
         ]
 
 
-class InputXGradientExplainer(Explainer):
+class InputXGradientExplainer(FeatureAttributionExplainer):
     """Input × Gradient explainer for computing input-scaled gradient attributions.
 
     This explainer computes attributions by multiplying input features with their

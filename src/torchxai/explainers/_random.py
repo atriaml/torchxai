@@ -5,10 +5,10 @@ import torch
 from captum._utils.common import _format_tensor_into_tuples
 
 from torchxai.data_types import TargetType, TensorOrTupleOfTensorsGeneric
-from torchxai.explainers._explainer import Explainer
+from torchxai.explainers._explainer import FeatureAttributionExplainer
 
 
-class RandomExplainer(Explainer):
+class RandomExplainer(FeatureAttributionExplainer):
     """Random explainer for generating baseline attributions using random noise.
 
     This explainer generates random attributions with the same shape as the input tensors.

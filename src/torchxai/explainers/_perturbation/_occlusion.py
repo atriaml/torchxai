@@ -18,7 +18,7 @@ from torchxai.data_types import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
-from torchxai.explainers._explainer import Explainer
+from torchxai.explainers._explainer import FeatureAttributionExplainer
 from torchxai.explainers._perturbation._feature_ablation import (
     FeatureAblation,
     MultiTargetFeatureAblation,
@@ -382,7 +382,7 @@ class MultiTargetOcclusion(MultiTargetFeatureAblation):
         return tuple(np.prod(counts).astype(int) for counts in kwargs["shift_counts"])
 
 
-class OcclusionExplainer(Explainer):
+class OcclusionExplainer(FeatureAttributionExplainer):
     """Occlusion explainer for computing sliding-window perturbation attributions.
 
     This explainer computes attributions using the Occlusion method, which systematically

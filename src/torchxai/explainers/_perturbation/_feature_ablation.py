@@ -26,7 +26,7 @@ from torchxai.data_types import (
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
-from torchxai.explainers._explainer import Explainer
+from torchxai.explainers._explainer import FeatureAttributionExplainer
 from torchxai.explainers._utils import (
     _expand_feature_mask_to_target,
     _run_forward_multi_target,
@@ -647,7 +647,7 @@ class MultiTargetFeatureAblation(FeatureAblation):
             num_features_processed += current_num_ablated_features
 
 
-class FeatureAblationExplainer(Explainer):
+class FeatureAblationExplainer(FeatureAttributionExplainer):
     """Feature Ablation explainer for computing systematic feature removal attributions.
 
     This explainer computes attributions using Feature Ablation, which systematically
