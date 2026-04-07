@@ -480,8 +480,18 @@ def _multi_target_monotonicity_corr_and_non_sens(
         n_features_list_batch = []
         perturbed_fwd_diffs_relative_vars_list_batch = []
         feature_group_attribution_scores_list_batch = []
-
         for sample_idx in tqdm.tqdm(range(bsz), disable=not show_progress):
+            sample_targets_list = None
+            if isinstance(targets_list, (list, torch.Tensor)) and not isinstance(
+                targets_list[0][0], tuple
+            ):
+                sample_targets_list = [
+                    torch.tensor(t[sample_idx], device=inputs[0].device)
+                    for t in targets_list
+                ]
+            else:
+                sample_targets_list = [t[sample_idx] for t in targets_list]
+
             (
                 monotonicity_corr_list,
                 non_sens_list,
@@ -517,11 +527,7 @@ def _multi_target_monotonicity_corr_and_non_sens(
                     if additional_forward_args is not None
                     else None
                 ),
-                targets_list=(
-                    [torch.tensor(t[sample_idx], device=inputs[0].device) for t in targets_list]
-                    if isinstance(targets_list, (list, torch.Tensor))
-                    else targets_list
-                ),
+                targets_list=sample_targets_list,
                 frozen_features=(
                     frozen_features[sample_idx]
                     if frozen_features is not None
