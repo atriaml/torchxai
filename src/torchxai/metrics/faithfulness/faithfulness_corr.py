@@ -14,6 +14,7 @@ from captum._utils.common import (
     _run_forward,
 )
 from torch import Tensor
+
 from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.data_types._target import ExplanationTarget, NoTarget
 from torchxai.metrics._utils.batching import _divide_and_aggregate_metrics
@@ -253,9 +254,16 @@ def _faithfulness_corr(
         )
         perturbed_fwd_diffs = agg_tensors[0].detach().cpu()
         attributions_expanded_perturbed_sum = agg_tensors[1].detach().cpu()
+
+        def _safe_pearsonr(x, y):
+            try:
+                return scipy.stats.pearsonr(x, y)[0]
+            except ValueError:
+                return float("nan")
+
         faithfulness_corr_scores = torch.tensor(
             [
-                scipy.stats.pearsonr(x, y)[0]
+                _safe_pearsonr(x, y)
                 for x, y in zip(
                     attributions_expanded_perturbed_sum.numpy(),
                     perturbed_fwd_diffs.numpy(),

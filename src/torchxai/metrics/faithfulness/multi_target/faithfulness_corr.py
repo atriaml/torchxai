@@ -294,10 +294,16 @@ def _multi_target_faithfulness_corr(
             x.detach().cpu() for x in agg_tensors[1]
         ]
 
+        def _safe_pearsonr(x, y):
+            try:
+                return scipy.stats.pearsonr(x, y)[0]
+            except ValueError:
+                return float("nan")
+
         faithfulness_corr_scores_list = [
             torch.tensor(
                 [
-                    scipy.stats.pearsonr(x, y)[0]
+                    _safe_pearsonr(x, y)
                     for x, y in zip(
                         attributions_expanded_perturbed_sum.numpy(),
                         perturbed_fwd_diffs.numpy(),

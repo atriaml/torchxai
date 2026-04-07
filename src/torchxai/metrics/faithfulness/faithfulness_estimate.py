@@ -15,11 +15,8 @@ from captum._utils.common import (
     _run_forward,
 )
 from torch import Tensor
-from torchxai.data_types import (
-    BaselineType,
-    TargetType,
-    TensorOrTupleOfTensorsGeneric,
-)
+
+from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.data_types._target import ExplanationTarget, NoTarget
 from torchxai.metrics._utils.batching import _divide_and_aggregate_metrics_n_features
 from torchxai.metrics._utils.common import (
@@ -166,9 +163,12 @@ def eval_faithfulness_estimate_single_sample(
 
         agg_tensors = tuple(np.array(x).flatten() for x in agg_tensors)
         inputs_perturbed_fwd_diffs = agg_tensors[0]
-        faithfulness_estimate_score = scipy.stats.pearsonr(
-            inputs_perturbed_fwd_diffs, chunk_reduced_attributions.cpu().numpy()
-        )[0]
+        try:
+            faithfulness_estimate_score = scipy.stats.pearsonr(
+                inputs_perturbed_fwd_diffs, chunk_reduced_attributions.cpu().numpy()
+            )[0]
+        except ValueError:
+            faithfulness_estimate_score = float("nan")
 
     return (
         torch.tensor(faithfulness_estimate_score),
