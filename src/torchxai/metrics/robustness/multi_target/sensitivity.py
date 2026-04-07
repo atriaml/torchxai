@@ -16,7 +16,7 @@ from torch import Tensor
 
 from torchxai.data_types import TensorOrTupleOfTensorsGeneric
 from torchxai.data_types._target import ExplanationTarget
-from torchxai.explainers._explainer import Explainer
+from torchxai.explainers._explainer import Explainer, FeatureAttributionExplainer
 from torchxai.metrics.robustness.utilities import default_perturb_func
 
 
@@ -157,9 +157,10 @@ def _multi_target_sensitivity_scores(
         "Explanation function must be an instance of "
         f"`torchxai.explainers.Explainer`. Found = {explanation_func}"
     )
-    assert explanation_func._multi_target, (
-        "Explanation function must be a multi-target explainer."
-    )
+    if isinstance(explanation_func, FeatureAttributionExplainer):
+        assert explanation_func._multi_target, (
+            "Explanation function must be a multi-target explainer."
+        )
     target = kwargs.get("target", None)
     assert isinstance(target, list), "targets must be a list of targets"
     assert all(isinstance(x, ExplanationTarget) for x in target), (

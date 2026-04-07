@@ -1,5 +1,5 @@
 # _grad
-from torchxai.explainers._explainer import FeatureAttributionExplainer
+from torchxai.explainers._explainer import Explainer, FeatureAttributionExplainer
 from torchxai.explainers._grad._deeplift import DeepLiftExplainer
 from torchxai.explainers._grad._deeplift_shap import DeepLiftShapExplainer
 from torchxai.explainers._grad._gradient_shap import GradientShapExplainer
@@ -21,6 +21,8 @@ from torchxai.explainers._perturbation._occlusion import OcclusionExplainer
 from torchxai.explainers._random import RandomExplainer
 
 __all__ = [
+    "Explainer",
+    "FeatureAttributionExplainer",
     "DeepLiftExplainer",
     "DeepLiftShapExplainer",
     "GradientShapExplainer",
