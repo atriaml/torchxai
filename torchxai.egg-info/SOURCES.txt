@@ -45,6 +45,7 @@ src/torchxai/metrics/complexity/complexity_entropy.py
 src/torchxai/metrics/complexity/complexity_sundararajan.py
 src/torchxai/metrics/complexity/effective_complexity.py
 src/torchxai/metrics/complexity/sparseness.py
+src/torchxai/metrics/diagnosis/modality_topk_fraction.py
 src/torchxai/metrics/faithfulness/abpc.py
 src/torchxai/metrics/faithfulness/aopc.py
 src/torchxai/metrics/faithfulness/faithfulness_corr.py
