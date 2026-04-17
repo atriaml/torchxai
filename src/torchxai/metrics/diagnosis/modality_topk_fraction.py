@@ -27,7 +27,6 @@ from torch import Tensor
 from torchxai.metrics._utils.common import (
     _construct_default_feature_mask,
     _reduce_attribution_over_features,
-    _split_tensors_to_tuple_tensors,
 )
 
 
@@ -114,12 +113,16 @@ def _modality_topk_fraction_single_sample(
     )  # [n_k_fractions, n_modalities]
 
 
-def _modality_topk_fraction(
+def _modality_topk_fraction_per_target(
     attributions: tuple[Tensor, ...],
     feature_mask: tuple[Tensor, ...] | None = None,
     k_fractions: list[float] = (0.10,),
     reduce_mode: str = "sum",
 ) -> Tensor:
+    if not isinstance(attributions, tuple):
+        attributions = (attributions,)
+    if not isinstance(feature_mask, tuple) and feature_mask is not None:
+        feature_mask = (feature_mask,)
     use_weighted_sum = reduce_mode == "weighted_sum"
     bsz = attributions[0].shape[0]
 
@@ -146,50 +149,6 @@ def _modality_topk_fraction(
 def modality_topk_fraction(
     attributions: tuple[Tensor, ...] | list[tuple[Tensor, ...]],
     feature_mask: tuple[Tensor, ...] | None = None,
-    k_fractions: list[float] = (0.05, 0.10, 0.20),
-    reduce_mode: str = "sum",
-    multi_target: bool = False,
-    return_dict: bool = False,
-) -> dict | Tensor | list[Tensor]:
-    """
-    Returns
-    -------
-    Tensor of shape [batch_size, n_k_fractions, n_modalities], or list thereof.
-
-    Examples
-    --------
-    >>> text_attr = torch.randn(2, 50)
-    >>> img_attr  = torch.randn(2, 100)
-    >>> result = modality_topk_fraction((text_attr, img_attr), k_fractions=[0.05, 0.10, 0.20])
-    >>> result.shape
-    torch.Size([2, 3, 2])
-    """
-    is_list = isinstance(attributions, list)
-    if multi_target:
-        assert is_list, "attributions must be a list of tuples when multi_target=True"
-    if not is_list:
-        attributions = [attributions]
-
-    scores = [
-        _modality_topk_fraction(
-            attrs,
-            feature_mask=feature_mask,
-            k_fractions=k_fractions,
-            reduce_mode=reduce_mode,
-        )
-        for attrs in attributions
-    ]
-
-    if not is_list:
-        scores = scores[0]
-    if return_dict:
-        return {"score": scores}
-    return scores
-
-
-def modality_topk_fraction(
-    attributions: tuple[Tensor, ...] | list[tuple[Tensor, ...]],
-    feature_mask: tuple[Tensor, ...] | None = None,
     modality_names: list[str] | None = None,
     k_fractions: list[float] = (0.05, 0.10, 0.20),
     reduce_mode: str = "sum",
@@ -207,7 +166,7 @@ def modality_topk_fraction(
     Examples
     --------
     >>> text_attr = torch.randn(2, 50)
-    >>> img_attr  = torch.randn(2, 100)
+    >>> img_attr = torch.randn(2, 100)
     >>> result = modality_topk_fraction(
     ...     (text_attr, img_attr),
     ...     modality_names=["text", "image"],
@@ -228,12 +187,12 @@ def modality_topk_fraction(
         if modality_names is not None
         else [f"modality_{i}" for i in range(n_modalities)]
     )
-    assert (
-        len(names) == n_modalities
-    ), f"modality_names length {len(names)} must match n_modalities {n_modalities}"
+    assert len(names) == n_modalities, (
+        f"modality_names length {len(names)} must match n_modalities {n_modalities}"
+    )
 
     scores = [
-        _modality_topk_fraction(
+        _modality_topk_fraction_per_target(
             attrs,
             feature_mask=feature_mask,
             k_fractions=k_fractions,
@@ -260,14 +219,3 @@ def modality_topk_fraction(
             }
 
     return scores
-
-
-# result = modality_topk_fraction(
-#     attributions=attributions,
-#     feature_mask=feature_mask,
-#     reduce_mode="sum",
-# )
-
-
-# for key, value in result.items():
-#     print(f"{key}: {value}")
