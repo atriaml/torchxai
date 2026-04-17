@@ -421,3 +421,69 @@ def _draw_perturbated_inputs_sequences_images(perturbed_inputs):
             ax.imshow(combined_image.permute(1, 2, 0).numpy(), cmap="viridis")
     plt.tight_layout()
     plt.show()
+
+
+def _sum_tensor_with_indices_non_deterministic(
+    source: torch.Tensor, indices: torch.Tensor
+) -> tuple[torch.Tensor, int]:
+    source = source.flatten()
+    reduced_attributions = torch.zeros(
+        (indices.max() + 1).tolist(), dtype=source.dtype, device=source.device
+    )
+    reduced_attributions.index_add_(
+        0, indices, source,
+    )
+    n_features = int((indices.max() + 1).item())
+
+    return reduced_attributions, n_features
+
+
+def _reduce_attribution_over_features(
+    attributions: TensorOrTupleOfTensorsGeneric,
+    feature_mask: TensorOrTupleOfTensorsGeneric | None,
+    use_weighted_sum: bool = False,
+):
+    if not isinstance(attributions, tuple):
+        attributions = (attributions,)
+
+    bsz = attributions[0].shape[0]
+    assert bsz == 1
+
+    if feature_mask is None:
+        feature_mask = _construct_default_feature_mask(attributions)
+
+    # flatten all feature masks in the input
+    feature_mask_flattened, flattened_mask_shape = _tuple_tensors_to_tensors(
+        feature_mask
+    )
+
+    # flatten all attributions in the input, this must be done after the feature masks are flattened as
+    # feature masks may depened on attribution
+    flat_attributions, _ = _tuple_tensors_to_tensors(attributions)
+
+    # validate feature masks are increasing non-negative
+    _validate_feature_mask(feature_mask_flattened)
+
+    # flatten the feature mask
+    feature_mask_flattened = feature_mask_flattened.squeeze()
+
+    # gather attribution scores of feature groups
+    # this can be useful for efficiently summing up attributions of feature groups
+    # this is why we need a single batch size as gathered attributes and number of features for each
+    # sample can be different
+    if use_weighted_sum:
+        reduced_attributions, _ = (
+            _reduce_tensor_with_indices_non_deterministic(
+                flat_attributions[0], indices=feature_mask_flattened
+            )
+        )
+    else:
+        reduced_attributions, _ = (
+            _sum_tensor_with_indices_non_deterministic(
+                flat_attributions[0], indices=feature_mask_flattened
+            )
+        )
+
+    return reduced_attributions
+
+
