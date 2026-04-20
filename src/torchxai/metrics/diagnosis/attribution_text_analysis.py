@@ -1,6 +1,7 @@
 import nltk
+import numpy as np
 import torch
-from nltk.corpus import stopwords, wordnet as wn
+from nltk.corpus import stopwords
 from torch import Tensor
 
 from torchxai.metrics._utils.common import (
@@ -91,37 +92,69 @@ def _compute_ner_attribution(
     return result
 
 
-def _compute_topk_semantic_coherence(topk_words: list[str]) -> float:
+def _compute_semantic_attribution_correlation(
+    attr: Tensor,  # [G], already normalized
+    embeddings: Tensor,  # [G, hidden_size], precomputed word-level
+    target_index: int,
+    other_mask: Tensor,  # [G], bool
+) -> float:
+    from scipy.stats import spearmanr
+    from torch.nn import functional as F
+
+    target_emb = embeddings[target_index]
+
+    similarities = F.cosine_similarity(
+        target_emb.unsqueeze(0),  # [1, hidden_size]
+        embeddings,  # [G, hidden_size]
+        dim=-1,
+    )  # [G]
+
+    mask = other_mask & ~torch.isnan(similarities)
+    if mask.sum() < 3:
+        return float("nan")
+
+    corr, _ = spearmanr(similarities[mask].cpu().numpy(), attr[mask].cpu().numpy())
+    return float(corr)
+
+
+def _compute_label_attribution_correlation(
+    attr: Tensor,  # [G], already normalized
+    ner_labels: list[str],  # [G]
+    target_index: int,
+    other_mask: Tensor,  # [G], bool
+) -> float:
     """
-    Mean pairwise WordNet path similarity among top-k content words.
-    1.0 = identical meaning, 0.0 = no relation found.
+    Spearman correlation between label match with target and attribution score.
+    High positive = model attends to tokens with same NER type as target.
     """
-    # get first noun synset for each word, skip if not found
-    synsets = []
-    for word in topk_words:
-        syns = wn.synsets(word, pos=wn.NOUN)
-        if syns:
-            synsets.append(syns[0])
+    from anls import anls_score
+    from scipy.stats import spearmanr
 
-    if len(synsets) < 2:
-        return 0.0
+    target_label = ner_labels[target_index]
 
-    scores = []
-    for i in range(len(synsets)):
-        for j in range(i + 1, len(synsets)):
-            sim = synsets[i].path_similarity(synsets[j])
-            if sim is not None:
-                scores.append(sim)
-
-    return float(sum(scores) / len(scores)) if scores else 0.0
+    # find anls score between the target token and all other tokens based on whether they share the same NER label
+    anls_scores = [
+        anls_score(
+            prediction=ner_labels[i].name,
+            gold_labels=[target_label.name],
+            threshold=0.5,
+        )
+        for i in range(len(ner_labels))
+    ]
+    anls_scores = np.array(anls_scores)
+    corr, _ = spearmanr(
+        anls_scores[other_mask.cpu().numpy()], attr[other_mask].cpu().numpy()
+    )
+    return float(corr)
 
 
 def _compute_text_scores(
     attr: Tensor,  # [G]
     tokens: list[str],  # [G]
-    token_labels: list[str],  # [G]
+    token_embeddings: Tensor,  # [G, hidden_size]
     target_index: int,
     k: int,
+    token_labels: list[str] | None = None,
 ) -> dict:
     attr = attr.clamp(min=0)
     attr = attr / (attr.sum() + 1e-8)
@@ -145,7 +178,17 @@ def _compute_text_scores(
         "content_stop_ratio": content_stop_ratio,
         "span_mean_gap": span[0],
         "span_n_runs": span[1],
-        "ner": _compute_ner_attribution(attr_others, token_labels, other_mask),
+        "ner": _compute_ner_attribution(attr_others, token_labels, other_mask)
+        if token_labels is not None
+        else None,
+        "ner_corr": _compute_label_attribution_correlation(
+            attr_others, token_labels, target_index, other_mask
+        )
+        if token_labels is not None
+        else None,
+        "semantic_corr": _compute_semantic_attribution_correlation(
+            attr_others, token_embeddings, target_index, other_mask
+        ),
     }
 
 
@@ -153,9 +196,10 @@ def _text_analysis_single_sample(
     attributions_single_sample: tuple[Tensor, ...],
     feature_mask_single_sample: tuple[Tensor, ...] | None,
     tokens: list[str],
-    token_labels: list[str],
+    token_embeddings: Tensor,  # [G, hidden_size]
     target_index: int,
     k: int,
+    token_labels: list[str] | None = None,
     use_weighted_sum: bool = False,
 ) -> dict:
     if not isinstance(attributions_single_sample, tuple):
@@ -178,6 +222,7 @@ def _text_analysis_single_sample(
         attr=reduced_attributions.squeeze(0),
         tokens=tokens,
         token_labels=token_labels,
+        token_embeddings=token_embeddings,
         target_index=target_index,
         k=k,
     )
@@ -186,8 +231,9 @@ def _text_analysis_single_sample(
 def attribution_text_analysis(
     attributions: tuple[Tensor, ...] | list[tuple[Tensor, ...]],
     tokens: list[str],
-    token_labels: list[str],
+    token_embeddings: list[Tensor],
     target_indices: list[int],
+    token_labels: list[str] | None = None,
     feature_mask: tuple[Tensor, ...] | None = None,
     k: int = 10,
     use_weighted_sum: bool = False,
@@ -237,6 +283,7 @@ def attribution_text_analysis(
                     ),
                     tokens=tokens[i],
                     token_labels=token_labels[i],
+                    token_embeddings=token_embeddings[i],
                     target_index=target_index,
                     k=k,
                     use_weighted_sum=use_weighted_sum,
