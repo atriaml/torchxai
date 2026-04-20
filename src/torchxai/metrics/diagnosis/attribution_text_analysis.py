@@ -151,16 +151,32 @@ def _compute_label_attribution_correlation(
 def _compute_text_scores(
     attr: Tensor,  # [G]
     tokens: list[str],  # [G]
-    token_embeddings: Tensor,  # [G, hidden_size]
-    target_index: int,
     k: int,
+    token_embeddings: Tensor | None = None,  # [G, hidden_size]
+    target_index: int | None = None,
     token_labels: list[str] | None = None,
 ) -> dict:
+    if len(attr.shape) == 0:
+        return {
+            "target_word": tokens[target_index] if target_index is not None else None,
+            "topk_words": [],
+            "topk_scores": [],
+            "topk_indices": [],
+            "topk_is_stopword": [],
+            "content_stop_ratio": 0.0,
+            "span_mean_gap": 0.0,
+            "span_n_runs": 0,
+            "ner": None,
+            "ner_corr": None,
+            "semantic_corr": None,
+        }
+
     attr = attr.clamp(min=0)
     attr = attr / (attr.sum() + 1e-8)
 
     other_mask = torch.ones(attr.shape[0], dtype=torch.bool, device=attr.device)
-    other_mask[target_index] = False
+    if target_index is not None:
+        other_mask[target_index] = False
     attr_others = attr * other_mask
 
     topk = _compute_topk_words(attr_others, tokens, k=k)
@@ -168,7 +184,7 @@ def _compute_text_scores(
     span = _compute_span_structure(attr_others, k=k)
 
     return {
-        "target_word": tokens[target_index],
+        "target_word": tokens[target_index] if target_index is not None else None,
         "topk_words": topk["words"],
         "topk_scores": topk["scores"],
         "topk_indices": topk["indices"],
@@ -184,11 +200,13 @@ def _compute_text_scores(
         "ner_corr": _compute_label_attribution_correlation(
             attr_others, token_labels, target_index, other_mask
         )
-        if token_labels is not None
+        if token_labels is not None and target_index is not None
         else None,
         "semantic_corr": _compute_semantic_attribution_correlation(
             attr_others, token_embeddings, target_index, other_mask
-        ),
+        )
+        if token_embeddings is not None and target_index is not None
+        else None,
     }
 
 
@@ -196,9 +214,9 @@ def _text_analysis_single_sample(
     attributions_single_sample: tuple[Tensor, ...],
     feature_mask_single_sample: tuple[Tensor, ...] | None,
     tokens: list[str],
-    token_embeddings: Tensor,  # [G, hidden_size]
-    target_index: int,
     k: int,
+    token_embeddings: Tensor | None = None,
+    target_index: int | None = None,
     token_labels: list[str] | None = None,
     use_weighted_sum: bool = False,
 ) -> dict:
@@ -230,10 +248,10 @@ def _text_analysis_single_sample(
 
 def attribution_text_analysis(
     attributions: tuple[Tensor, ...] | list[tuple[Tensor, ...]],
-    tokens: list[str],
-    token_embeddings: list[Tensor],
-    target_indices: list[int],
-    token_labels: list[str] | None = None,
+    tokens: list[list[str]],
+    token_embeddings: list[Tensor] | None = None,
+    target_indices: list[int] | None = None,
+    token_labels: list[list[str]] | None = None,
     feature_mask: tuple[Tensor, ...] | None = None,
     k: int = 10,
     use_weighted_sum: bool = False,
@@ -259,6 +277,9 @@ def attribution_text_analysis(
         if not is_list:
             attributions = [attributions]
 
+        if target_indices is None:
+            target_indices = [None] * len(attributions)
+
         assert len(attributions) == len(target_indices)
 
         results = []
@@ -282,8 +303,10 @@ def attribution_text_analysis(
                         else None
                     ),
                     tokens=tokens[i],
-                    token_labels=token_labels[i],
-                    token_embeddings=token_embeddings[i],
+                    token_labels=token_labels[i] if token_labels is not None else None,
+                    token_embeddings=token_embeddings[i]
+                    if token_embeddings is not None
+                    else None,
                     target_index=target_index,
                     k=k,
                     use_weighted_sum=use_weighted_sum,
