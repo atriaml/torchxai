@@ -13,6 +13,7 @@ def _compute_locality_scores(
     target_index: int,
     x_threshold: float,
     y_threshold: float,
+    add_self: bool = True,
 ) -> Tensor:
     attr = attr.clamp(min=0)
 
@@ -25,13 +26,15 @@ def _compute_locality_scores(
 
     # Mask out the target token itself
     other_mask = torch.ones(attr.shape[0], dtype=torch.bool, device=attr.device)
-    other_mask[target_index] = False
+
+    if not add_self:
+        other_mask[target_index] = False
 
     vertical_locality = attr[(dx.abs() <= x_threshold) & other_mask].sum()
     horizontal_locality = attr[(dy.abs() <= y_threshold) & other_mask].sum()
-    rms_distance = torch.sqrt((attr * (dx**2 + dy**2)).sum())
+    spread = torch.sqrt((attr * (dx**2 + dy**2)).sum())
 
-    return torch.stack([vertical_locality, horizontal_locality, rms_distance])
+    return torch.stack([vertical_locality, horizontal_locality, spread])
 
 
 def _locality_single_sample(
@@ -110,9 +113,9 @@ def attribution_locality(
     Returns
     -------
     Tensor of shape [batch_size, n_modalities, 3] where dim -1 is
-    [x_locality, y_locality, rms_distance], or list thereof (multi_target).
+    [x_locality, y_locality, spread], or list thereof (multi_target).
     If return_dict=True:
-        {"x_locality": [batch, n_mod], "y_locality": [batch, n_mod], "rms_distance": [batch, n_mod]}
+        {"x_locality": [batch, n_mod], "y_locality": [batch, n_mod], "spread": [batch, n_mod]}
     """
     with torch.no_grad():
         is_list = isinstance(attributions, list)
@@ -160,12 +163,12 @@ def attribution_locality(
                 return {
                     "x_locality": [s[..., 0] for s in scores],
                     "y_locality": [s[..., 1] for s in scores],
-                    "rms_distance": [s[..., 2] for s in scores],
+                    "spread": [s[..., 2] for s in scores],
                 }
             return {
                 "x_locality": scores[..., 0],  # [batch_size, n_modalities]
                 "y_locality": scores[..., 1],
-                "rms_distance": scores[..., 2],
+                "spread": scores[..., 2],
             }
 
         return scores
