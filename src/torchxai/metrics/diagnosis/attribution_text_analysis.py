@@ -17,12 +17,16 @@ STOPWORDS = frozenset(stopwords.words("english"))
 def _compute_topk_words(
     attr: Tensor,  # [G]
     tokens: list[str],  # [G]
-    k: int,
+    k: int | float,  # int for top-k, float (0.0–1.0) for top-%
 ) -> dict:
     """Top-k words by attribution magnitude."""
+    if isinstance(k, float):
+        if not 0.0 < k <= 1.0:
+            raise ValueError(f"k as a fraction must be in (0.0, 1.0], got {k}")
+        k = max(1, int(len(tokens) * k))
+
     attr_clamped = attr.clamp(min=0)
     attr_norm = attr_clamped / (attr_clamped.sum() + 1e-8)
-
     topk_vals, topk_idx = torch.topk(attr_norm, k=min(k, len(tokens)))
     return {
         "indices": topk_idx,
@@ -54,29 +58,6 @@ def _compute_content_stop_ratio(
     return content_mean / (stop_mean + 1e-10)
 
 
-def _compute_span_structure(
-    attr: Tensor,  # [G]
-    k: int,
-) -> Tensor:
-    """
-    Mean gap and number of runs among top-k attributed tokens.
-    Distinguishes clustered-phrase vs scattered-keyword reasoning.
-    Returns [mean_gap, n_runs].
-    """
-    topk_idx = torch.topk(attr.abs(), k=min(k, attr.shape[0])).indices
-    topk_idx, _ = topk_idx.sort()
-
-    if len(topk_idx) > 1:
-        gaps = topk_idx[1:].float() - topk_idx[:-1].float()
-        mean_gap = gaps.mean()
-        n_runs = 1 + (gaps > 1).sum()
-    else:
-        mean_gap = torch.tensor(0.0, device=attr.device)
-        n_runs = torch.tensor(len(topk_idx), device=attr.device)
-
-    return torch.stack([mean_gap, n_runs.float()])
-
-
 def _compute_ner_attribution(
     attr: Tensor,  # [G], already normalized
     token_labels: list[str],
@@ -86,9 +67,6 @@ def _compute_ner_attribution(
     result = {}
     for i, label in enumerate(token_labels):
         result[label] = result.get(label, 0.0) + attr_masked[i].item()
-    entity_mass = sum(v for k, v in result.items() if k != "O")
-    o_mass = result.get("O", 0.0)
-    result["entity_focus_ratio"] = entity_mass / (o_mass + 1e-10)
     return result
 
 
@@ -122,6 +100,7 @@ def _compute_label_attribution_correlation(
     ner_labels: list[str],  # [G]
     target_index: int,
     other_mask: Tensor,  # [G], bool
+    threshold: float = 0.75,
 ) -> float:
     """
     Spearman correlation between label match with target and attribution score.
@@ -135,9 +114,7 @@ def _compute_label_attribution_correlation(
     # find anls score between the target token and all other tokens based on whether they share the same NER label
     anls_scores = [
         anls_score(
-            prediction=ner_labels[i].name,
-            gold_labels=[target_label.name],
-            threshold=0.5,
+            prediction=ner_labels[i], gold_labels=[target_label], threshold=threshold
         )
         for i in range(len(ner_labels))
     ]
@@ -146,6 +123,25 @@ def _compute_label_attribution_correlation(
         anls_scores[other_mask.cpu().numpy()], attr[other_mask].cpu().numpy()
     )
     return float(corr)
+
+
+def _compute_topk_target_distance(
+    attr: Tensor,  # [G]
+    k: int | float,  # int for top-k, float (0.0–1.0) for top-%
+    target_index: int,
+) -> Tensor:
+    """
+    Mean and max absolute distance of top-k attributed tokens from the target token.
+    Returns [mean_dist, max_dist].
+    """
+    if isinstance(k, float):
+        if not 0.0 < k <= 1.0:
+            raise ValueError(f"k as a fraction must be in (0.0, 1.0], got {k}")
+        k = max(1, int(attr.shape[0] * k))
+
+    topk_idx = torch.topk(attr.abs(), k=min(k, attr.shape[0])).indices.float()
+    dists = (topk_idx - target_index).abs()
+    return torch.stack([dists.mean(), dists.max()])
 
 
 def _compute_text_scores(
@@ -181,10 +177,17 @@ def _compute_text_scores(
 
     topk = _compute_topk_words(attr_others, tokens, k=k)
     content_stop_ratio = _compute_content_stop_ratio(attr_others, tokens)
-    span = _compute_span_structure(attr_others, k=k)
+    topk_dist = (
+        _compute_topk_target_distance(attr_others, k=k, target_index=target_index)
+        if target_index is not None
+        else torch.zeros(2, device=attr.device)
+    )
 
     return {
         "target_word": tokens[target_index] if target_index is not None else None,
+        "target_label": token_labels[target_index]
+        if token_labels is not None and target_index is not None
+        else None,
         "topk_words": topk["words"],
         "topk_scores": topk["scores"],
         "topk_indices": topk["indices"],
@@ -192,8 +195,8 @@ def _compute_text_scores(
             tokens[i].lower().strip() in STOPWORDS for i in topk["indices"].tolist()
         ],
         "content_stop_ratio": content_stop_ratio,
-        "span_mean_gap": span[0],
-        "span_n_runs": span[1],
+        "topk_mean_dist": topk_dist[0],
+        "topk_max_dist": topk_dist[1],
         "ner": _compute_ner_attribution(attr_others, token_labels, other_mask)
         if token_labels is not None
         else None,
@@ -253,7 +256,7 @@ def attribution_text_analysis(
     target_indices: list[int] | None = None,
     token_labels: list[list[str]] | None = None,
     feature_mask: tuple[Tensor, ...] | None = None,
-    k: int = 10,
+    k: int = 0.1,
     use_weighted_sum: bool = False,
 ) -> list[dict] | dict:
     """
