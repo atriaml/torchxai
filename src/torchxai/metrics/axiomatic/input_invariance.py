@@ -7,7 +7,7 @@ from captum.attr import Attribution
 
 from torchxai.data_types import TensorOrTupleOfTensorsGeneric
 from torchxai.data_types._target import ExplanationTarget, NoTarget
-from torchxai.explainers._explainer import Explainer
+from torchxai.explainers._explainer import FeatureAttributionExplainer
 from torchxai.metrics.axiomatic.multi_target.input_invariance import (
     _multi_target_input_invariance,
 )
@@ -18,7 +18,7 @@ from torchxai.metrics.axiomatic.utilities import (
 
 
 def _input_invariance(
-    explainer: Explainer | Attribution,
+    explainer: FeatureAttributionExplainer | Attribution,
     inputs: TensorOrTupleOfTensorsGeneric,
     constant_shifts: TensorOrTupleOfTensorsGeneric,
     input_layer_names: tuple[str],
@@ -66,11 +66,12 @@ def _input_invariance(
     )
 
     with torch.no_grad():
-        if isinstance(explainer, Explainer):
-            assert isinstance(shifted_explainer, Explainer), (
-                "The shifted explainer must be an instance of Explainer."
+        if isinstance(explainer, FeatureAttributionExplainer):
+            assert isinstance(shifted_explainer, FeatureAttributionExplainer), (
+                "The shifted explainer must be an instance of FeatureAttributionExplainer."
             )
             possible_args = inspect.signature(explainer.explain).parameters
+            print("possible_args", possible_args)
             kwargs_copy = {k: v for k, v in kwargs_copy.items() if k in possible_args}
             shifted_kwargs_copy = {
                 k: v for k, v in shifted_kwargs_copy.items() if k in possible_args
@@ -94,7 +95,7 @@ def _input_invariance(
             )
         else:
             raise ValueError(
-                "Explanation function must be an instance of Attribution or FusionExplainer"
+                "Explanation function must be an instance of FeatureAttributionExplainer or Attribution"
             )
 
         # Format the explanations into tuples for consistent handling
@@ -133,7 +134,7 @@ def _input_invariance(
 
 
 def input_invariance(
-    explainer: Explainer | Attribution,
+    explainer: FeatureAttributionExplainer | Attribution,
     inputs: TensorOrTupleOfTensorsGeneric,
     constant_shifts: TensorOrTupleOfTensorsGeneric,
     input_layer_names: tuple[str],
@@ -146,6 +147,8 @@ def input_invariance(
     feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
     additional_forward_args: Any = None,
     target: ExplanationTarget | list[ExplanationTarget] = NoTarget(),
+    sliding_window_shapes: Any | None = None,
+    strides: Any | None = None,
 ) -> dict | tuple | torch.Tensor | list[torch.Tensor]:
     """
     Implementation of Input Invariance test by Kindermans et al., 2017. This implementation
@@ -239,7 +242,7 @@ def input_invariance(
 
     """
     if multi_target:
-        assert isinstance(explainer, Explainer), (
+        assert isinstance(explainer, FeatureAttributionExplainer), (
             "The explainer must be an instance of Explainer."
         )
         assert explainer.multi_target, "The explainer must be a multi-target explainer."
@@ -257,6 +260,8 @@ def input_invariance(
                 feature_mask=feature_mask,
                 additional_forward_args=additional_forward_args,
                 target=target,
+                sliding_window_shapes=sliding_window_shapes,
+                strides=strides,
             )
         )
     else:
@@ -273,6 +278,8 @@ def input_invariance(
             feature_mask=feature_mask,
             additional_forward_args=additional_forward_args,
             target=target,
+            sliding_window_shapes=sliding_window_shapes,
+            strides=strides,
         )
 
     if return_intermediate_results:

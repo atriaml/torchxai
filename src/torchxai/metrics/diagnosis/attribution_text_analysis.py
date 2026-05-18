@@ -1,3 +1,5 @@
+from typing import Any
+
 import nltk
 import numpy as np
 import torch
@@ -64,7 +66,7 @@ def _compute_ner_attribution(
     other_mask: Tensor,  # [G], bool
 ) -> dict[str, float]:
     attr_masked = attr * other_mask
-    result = {}
+    result: dict[str, float] = {}
     for i, label in enumerate(token_labels):
         result[label] = result.get(label, 0.0) + attr_masked[i].item()
     return result
@@ -147,7 +149,7 @@ def _compute_topk_target_distance(
 def _compute_text_scores(
     attr: Tensor,  # [G]
     tokens: list[str],  # [G]
-    k: int,
+    k: int | float,  # int for top-k, float (0.0–1.0) for top-%
     token_embeddings: Tensor | None = None,  # [G, hidden_size]
     target_index: int | None = None,
     token_labels: list[str] | None = None,
@@ -217,7 +219,7 @@ def _text_analysis_single_sample(
     attributions_single_sample: tuple[Tensor, ...],
     feature_mask_single_sample: tuple[Tensor, ...] | None,
     tokens: list[str],
-    k: int,
+    k: int | float,  # int for top-k, float (0.0–1.0) for top-%
     token_embeddings: Tensor | None = None,
     target_index: int | None = None,
     token_labels: list[str] | None = None,
@@ -256,9 +258,9 @@ def attribution_text_analysis(
     target_indices: list[int] | None = None,
     token_labels: list[list[str]] | None = None,
     feature_mask: tuple[Tensor, ...] | None = None,
-    k: int = 0.1,
+    k: int | float = 0.1,  # int for top-k, float (0.0–1.0) for top-%
     use_weighted_sum: bool = False,
-) -> list[dict] | dict:
+) -> list[list[dict[Any, Any]]] | list[dict[Any, Any]]:
     """
     Parameters
     ----------
@@ -266,8 +268,8 @@ def attribution_text_analysis(
         Word-level tokens, length G (must match attribution feature groups).
     target_indices : list[int]
         Index of the target token per sample.
-    k : int
-        Number of top tokens to extract.
+    k : float
+        Fraction of top tokens to extract.
 
     Returns
     -------
@@ -278,15 +280,17 @@ def attribution_text_analysis(
     with torch.no_grad():
         is_list = isinstance(attributions, list)
         if not is_list:
-            attributions = [attributions]
+            attributions = [attributions]  # type: ignore
 
-        if target_indices is None:
-            target_indices = [None] * len(attributions)
-
-        assert len(attributions) == len(target_indices)
+        target_indices_formatted = (
+            [None] * len(attributions) if target_indices is None else target_indices
+        )
+        assert len(attributions) == len(target_indices_formatted)
 
         results = []
-        for target_index, attribution in zip(target_indices, attributions, strict=True):
+        for target_index, attribution in zip(
+            target_indices_formatted, attributions, strict=True
+        ):
             if not isinstance(attribution, tuple):
                 attribution = (attribution,)
             if not isinstance(feature_mask, tuple) and feature_mask is not None:

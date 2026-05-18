@@ -4,7 +4,6 @@ import torch
 from tests.fixtures._metric import _run_metric_test_simple
 from tests.utils.common import _assert_tensor_almost_equal
 from tests.utils.configs import RuntimeTestConfig
-from torchxai.metrics._utils.visualization import visualize_attribution
 from torchxai.metrics.axiomatic.input_invariance import input_invariance
 
 
@@ -67,7 +66,8 @@ test_configurations = [
         explainer="occlusion",
         expected=torch.tensor([0.0, 0.0, 0.0, 0.0]),
         set_baselines_to_type="black",
-        explainer_kwargs={"sliding_window_shapes": (1, 4, 4), "strides": None},
+        sliding_window_shapes=(1, 4, 4),
+        strides=None,
     ),
     # here apply the same logic as in the paper: https://arxiv.org/pdf/1711.00867
     # a 3-layer linear model is trained on MNIST, input invariance is computed for lime
@@ -99,17 +99,8 @@ def test_input_invariance(explainer_based_metrics_runtime_test_configuration):
         explainer_based_metrics_runtime_test_configuration
     )
 
-    viz = False
-
     def comparison_func(output: tuple, expected: tuple):
-        output_invariance, expl_inputs, expl_shifted_inputs = output
-        if viz:
-            # here explanations can be visualized for debugging purposes
-            for input, expl_input, expl_shifted_input in zip(
-                base_config.inputs, expl_inputs, expl_shifted_inputs, strict=True
-            ):
-                visualize_attribution(input, expl_input, "Original")
-                visualize_attribution(input, expl_shifted_input, "Shifted")
+        output_invariance, _, _ = output
         _assert_tensor_almost_equal(
             output_invariance.float(),
             runtime_config.expected.float(),

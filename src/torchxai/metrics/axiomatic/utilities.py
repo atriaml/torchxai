@@ -19,16 +19,16 @@ def _create_model_with_shifted_bias(
         shifted_model.eval()
 
         # add hooks to save the output of the input layers
-        forward_hooks = []
-        saved_outputs = {}
+        forward_hooks: list[torch.utils.hooks.RemovableHandle] = []
+        saved_outputs: dict[nn.Module, torch.Tensor] = {}
         for input_layer_name in input_layer_names:
             module = reduce(getattr, [shifted_model, *input_layer_name.split(".")])
 
             def output_saver(saved_outputs):
-                def hook(module, input, output):
-                    saved_outputs[module] = output
+                def _hook(m, input, output):
+                    saved_outputs[m] = output
 
-                return hook
+                return _hook  # type: ignore
 
             hook = module.register_forward_hook(output_saver(saved_outputs))
             forward_hooks.append(hook)

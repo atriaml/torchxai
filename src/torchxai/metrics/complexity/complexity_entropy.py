@@ -170,21 +170,25 @@ def complexity_entropy(
         >>> # Computes the monotonicity correlation and non-sensitivity scores for saliency maps
         >>> complexity_entropy_scores = complexity(attribution)
     """
-    is_attributions_list = isinstance(attributions, list)
     if multi_target:
-        assert is_attributions_list, (
+        assert isinstance(attributions, list), (
             "attributions must be a list of tensors or list of tuples of tensors"
         )
-    if not is_attributions_list:
-        attributions = [attributions]
-    score = [
-        _complexity_entropy(attributions=attribution) for attribution in attributions
-    ]
-    if not is_attributions_list:
-        score = score[0]
-    if return_dict:
-        return {"score": score}
-    return score
+        score = [
+            _complexity_entropy(attributions=attribution)
+            for attribution in attributions
+        ]
+        if return_dict:
+            return {"score": score}
+        return score
+    else:
+        assert not isinstance(attributions, list), (
+            "attributions must be a single tensor or tuple of tensors when multi_target is False"
+        )
+        score = _complexity_entropy(attributions=attributions)
+        if return_dict:
+            return {"score": score}
+        return score
 
 
 def complexity_entropy_feature_grouped(
@@ -261,21 +265,26 @@ def complexity_entropy_feature_grouped(
         >>> # Computes the monotonicity correlation and non-sensitivity scores for saliency maps
         >>> complexity_scores = complexity(attribution)
     """
-    is_attributions_list = isinstance(attributions, list)
     if multi_target:
-        assert is_attributions_list, (
+        assert isinstance(attributions, list), (
             "attributions must be a list of tensors or list of tuples of tensors"
         )
-    if not is_attributions_list:
-        attributions = [attributions]
-    score = [
-        _complexity_entropy_feature_grouped(
-            attributions=attribution, feature_mask=feature_mask
+        score = [
+            _complexity_entropy_feature_grouped(
+                attributions=attribution, feature_mask=feature_mask
+            )
+            for attribution in attributions
+        ]
+        if return_dict:
+            return {"score": score}
+        return score
+    else:
+        assert not isinstance(attributions, list), (
+            "attributions must be a single tensor or tuple of tensors when multi_target is False"
         )
-        for attribution in attributions
-    ]
-    if not is_attributions_list:
-        score = score[0]
-    if return_dict:
-        return {"score": score}
-    return score
+        score = _complexity_entropy_feature_grouped(
+            attributions=attributions, feature_mask=feature_mask
+        )
+        if return_dict:
+            return {"score": score}
+        return score

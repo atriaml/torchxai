@@ -55,6 +55,10 @@ def _run_metric_test_simple(
     if explainer is not None:
         kwargs["explainer"] = explainer
     kwargs.update(other_kwargs)
+    if runtime_config.sliding_window_shapes is not None:
+        kwargs["sliding_window_shapes"] = runtime_config.sliding_window_shapes
+    if runtime_config.strides is not None:
+        kwargs["strides"] = runtime_config.strides
     metric_output = metric_func(**kwargs)
     comparison_func(metric_output, runtime_config.expected)
 
@@ -121,6 +125,11 @@ def _run_metric_test_simple_mt(
     if explainer is not None:
         kwargs["explainer"] = explainer
     kwargs.update(other_kwargs)
+
+    if runtime_config.sliding_window_shapes is not None:
+        kwargs["sliding_window_shapes"] = runtime_config.sliding_window_shapes
+    if runtime_config.strides is not None:
+        kwargs["strides"] = runtime_config.strides
 
     # multi target metric output
     if explainer is not None:

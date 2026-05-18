@@ -24,15 +24,15 @@ def _multi_target_infidelity(
     perturb_func: Callable,
     inputs: TensorOrTupleOfTensorsGeneric,
     attributions_list: list[TensorOrTupleOfTensorsGeneric],
+    targets_list: list[TargetType],
     baselines: BaselineType = None,
     additional_forward_args: Any = None,
-    targets_list: list[TargetType] = None,
     feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
     frozen_features: list[torch.Tensor] | None = None,
     n_perturb_samples: int = 10,
-    max_examples_per_batch: int = None,
+    max_examples_per_batch: int | None = None,
     normalize: bool = False,
-) -> list[Tensor]:
+) -> list[tuple[Tensor, ...]]:
     def _generate_perturbations(
         current_n_perturb_samples: int,
     ) -> tuple[TensorOrTupleOfTensorsGeneric, TensorOrTupleOfTensorsGeneric]:
@@ -48,7 +48,6 @@ def _multi_target_infidelity(
         def call_perturb_func():
             r""" """
             baselines_pert = None
-            inputs_pert: Tensor | tuple[Tensor, ...]
             if len(inputs_expanded) == 1:
                 inputs_pert = inputs_expanded[0]
                 if baselines_expanded is not None:
@@ -60,11 +59,11 @@ def _multi_target_infidelity(
             valid_args = inspect.signature(perturb_func).parameters.keys()
             perturb_kwargs = {"inputs": inputs_pert}
             if "baselines" in valid_args:
-                perturb_kwargs["baselines"] = baselines_pert
+                perturb_kwargs["baselines"] = baselines_pert  # type: ignore
             if "feature_masks" in valid_args:
-                perturb_kwargs["feature_masks"] = feature_mask_expanded
+                perturb_kwargs["feature_masks"] = feature_mask_expanded  # type: ignore
             if "frozen_features" in valid_args:
-                perturb_kwargs["frozen_features"] = frozen_features_expanded
+                perturb_kwargs["frozen_features"] = frozen_features_expanded  # type: ignore
             return perturb_func(**perturb_kwargs)
 
         inputs_expanded = tuple(
@@ -203,7 +202,7 @@ def _multi_target_infidelity(
             # in order to normalize, we have to aggregate the following tensors
             # to calculate MSE in its polynomial expansion:
             # (a-b)^2 = a^2 - 2ab + b^2
-            return [
+            return [  # type: ignore
                 (
                     attr_times_perturb_sums.pow(2).sum(-1),
                     (attr_times_perturb_sums * perturbed_fwd_diffs).sum(-1),
@@ -215,7 +214,7 @@ def _multi_target_infidelity(
             ]
         else:
             # returns (a-b)^2 if no need to normalize
-            return [
+            return [  # type: ignore
                 ((attr_times_perturb_sums - perturbed_fwd_diffs).pow(2).sum(-1),)
                 for perturbed_fwd_diffs, attr_times_perturb_sums in zip(
                     perturbed_fwd_diffs_list, attr_times_perturb_list, strict=False

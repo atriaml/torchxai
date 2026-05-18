@@ -40,10 +40,10 @@ def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
     forward_func: Callable,
     inputs: tuple[Tensor, ...],
     attributions_list: list[tuple[Tensor, ...]],
+    targets_list: list[TargetType],
     baselines: BaselineType = None,
     feature_mask: tuple[Tensor, ...] | None = None,
     additional_forward_args: Any = None,
-    targets_list: list[TargetType] | None = None,
     frozen_features: torch.Tensor | None = None,
     perturb_func: Callable = default_fixed_baseline_perturb_func(),
     n_perturbations_per_feature: int = 10,
@@ -70,7 +70,6 @@ def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
         def call_perturb_func():
             r""" """
             baselines_pert = None
-            inputs_pert: Tensor | tuple[Tensor, ...]
             if len(inputs_expanded) == 1:
                 inputs_pert = inputs_expanded[0]
                 perturbation_masks = perturbation_mask_expanded[0]
@@ -174,11 +173,11 @@ def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
         )
         targets_expanded_list = [
             _expand_target(
-                target,  # type: ignore[arg-type]
+                target,
                 current_n_perturbed_features,
                 expansion_type=ExpansionTypes.repeat_interleave,
             )
-            for target in targets_list  # type: ignore[arg-type]
+            for target in targets_list
         ]
         inputs_fwd = _run_forward_multi_target(
             forward_func, inputs, targets_expanded_list, additional_forward_args
@@ -419,10 +418,10 @@ def _multi_target_monotonicity_corr_and_non_sens(
     forward_func: Callable,
     inputs: TensorOrTupleOfTensorsGeneric,
     attributions_list: list[TensorOrTupleOfTensorsGeneric],
+    targets_list: list[TargetType],
     baselines: BaselineType = None,
     feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
     additional_forward_args: Any = None,
-    targets_list: list[TargetType] | None = None,
     frozen_features: list[torch.Tensor] | None = None,
     perturb_func: Callable = default_fixed_baseline_perturb_func(),
     n_perturbations_per_feature: int = 10,
@@ -561,18 +560,12 @@ def _multi_target_monotonicity_corr_and_non_sens(
         non_sens_batch_list = [
             torch.tensor(x) for x in list(zip(*non_sens_list_batch, strict=True))
         ]
-        perturbed_fwd_diffs_relative_vars_batch_list = [
-            x
-            for x in list(
-                zip(*perturbed_fwd_diffs_relative_vars_list_batch, strict=True)
-            )
-        ]
-        feature_group_attribution_scores_batch_list = [
-            x
-            for x in list(
-                zip(*feature_group_attribution_scores_list_batch, strict=True)
-            )
-        ]
+        perturbed_fwd_diffs_relative_vars_batch_list = list(
+            zip(*perturbed_fwd_diffs_relative_vars_list_batch, strict=True)
+        )
+        feature_group_attribution_scores_batch_list = list(
+            zip(*feature_group_attribution_scores_list_batch, strict=True)
+        )
         n_features_list_batch = [
             torch.tensor(x) for x in list(zip(*n_features_list_batch, strict=True))
         ]

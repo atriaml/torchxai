@@ -13,10 +13,10 @@ from torch import Tensor
 from torchxai.data_types import (
     BaselineType,
     ExplanationTarget,
-    NoTarget,
     TargetType,
     TensorOrTupleOfTensorsGeneric,
 )
+from torchxai.data_types._target import NO_TARGET
 from torchxai.metrics.axiomatic.multi_target.completeness import (
     _multi_target_completeness,
 )
@@ -80,7 +80,7 @@ def completeness(
     attributions: list[TensorOrTupleOfTensorsGeneric] | TensorOrTupleOfTensorsGeneric,
     baselines: BaselineType,
     additional_forward_args: Any = None,
-    target: ExplanationTarget | list[ExplanationTarget] = NoTarget(),
+    target: ExplanationTarget | list[ExplanationTarget] = NO_TARGET,
     multi_target: bool = False,
     return_dict: bool = False,
 ) -> Tensor | list[Tensor] | dict[str, Tensor | list[Tensor]]:

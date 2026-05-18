@@ -62,7 +62,6 @@ def _eval_effective_complexity_single_sample(
         def call_perturb_func():
             r""" """
             baselines_pert = None
-            inputs_pert: Tensor | tuple[Tensor, ...]
             if len(inputs_expanded) == 1:
                 inputs_pert = inputs_expanded[0]
                 perturbation_masks = perturbation_mask_expanded[0]

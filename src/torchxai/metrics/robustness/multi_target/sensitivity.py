@@ -27,7 +27,7 @@ def _multi_target_sensitivity_scores(
     perturb_radius: float = 0.02,
     n_perturb_samples: int = 10,
     norm_ord: str = "fro",
-    max_examples_per_batch: int = None,
+    max_examples_per_batch: int | None = None,
     **kwargs: Any,
 ) -> list[Tensor]:
     def _generate_perturbations(

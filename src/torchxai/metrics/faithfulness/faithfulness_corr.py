@@ -61,7 +61,6 @@ def _faithfulness_corr(
 
         def call_perturb_func():
             baselines_arg = None
-            inputs_arg: Tensor | tuple[Tensor, ...]
             if len(inputs_expanded) == 1:
                 inputs_arg = inputs_expanded[0]
                 if baselines_expanded is not None:
@@ -79,7 +78,7 @@ def _faithfulness_corr(
                 inspect.signature(perturb_func).parameters.get("baselines")
                 and baselines_arg is not None
             ):
-                pertub_kwargs["baselines"] = baselines_arg
+                pertub_kwargs["baselines"] = baselines_arg  # type: ignore
             return perturb_func(**pertub_kwargs)
 
         pert_start = current_n_step - current_n_perturb_samples
@@ -183,7 +182,7 @@ def _faithfulness_corr(
         attributions_expanded_perturbed_sum = attributions_expanded_perturbed_sum.view(
             bsz, -1
         )
-        return perturbed_fwd_diffs, attributions_expanded_perturbed_sum
+        return perturbed_fwd_diffs, attributions_expanded_perturbed_sum  # type: ignore
 
     def _agg_faithfulness_corr_tensors(agg_tensors, tensors):
         return tuple(
@@ -295,7 +294,12 @@ def faithfulness_corr(
     multi_target: bool = False,
     return_intermediate_results: bool = False,
     return_dict: bool = False,
-) -> tuple[Tensor | list[Tensor], Tensor | list[Tensor], Tensor | list[Tensor]]:
+) -> (
+    tuple[Tensor | list[Tensor], Tensor | list[Tensor], Tensor | list[Tensor]]
+    | dict[str, Tensor | list[Tensor]]
+    | Tensor
+    | list[Tensor]
+):
     """
     Implementation of faithfulness correlation by Bhatt et al., 2020. This implementation
     reuses the batch-computation ideas from captum and therefore it is fully compatible with the Captum library.
@@ -556,36 +560,60 @@ def faithfulness_corr(
         >>> # outputs
         >>> faithfulness_corr, attribution_sums, perturbation_fwd_diffs = aopc(net, input, attribution)
     """
-    metric_func = (
-        _multi_target_faithfulness_corr if multi_target else _faithfulness_corr
-    )
-    (
-        faithfulness_corr_scores,
-        attributions_expanded_perturbed_sum,
-        perturbed_fwd_diffs,
-    ) = metric_func(
-        forward_func=forward_func,
-        inputs=inputs,
-        **(
-            {"attributions_list": attributions}
-            if multi_target
-            else {"attributions": attributions}
-        ),
-        baselines=baselines,
-        feature_mask=feature_mask,
-        additional_forward_args=additional_forward_args,
-        **(
-            {"targets_list": [t.value for t in target]}
-            if multi_target
-            else {"target": target.value}
-        ),
-        perturb_func=perturb_func,
-        n_perturb_samples=n_perturb_samples,
-        max_examples_per_batch=max_examples_per_batch,
-        frozen_features=frozen_features,
-        percent_features_perturbed=percent_features_perturbed,
-        show_progress=show_progress,
-    )
+    if multi_target:
+        assert isinstance(target, list), (
+            "For multi-target faithfulness correlation, target should be a list of targets"
+        )
+        assert isinstance(attributions, list), (
+            "For multi-target faithfulness correlation, attributions should be a list of attributions"
+        )
+        (
+            faithfulness_corr_scores,
+            attributions_expanded_perturbed_sum,
+            perturbed_fwd_diffs,
+        ) = _multi_target_faithfulness_corr(
+            forward_func=forward_func,
+            inputs=inputs,
+            attributions_list=attributions,
+            baselines=baselines,
+            feature_mask=feature_mask,
+            additional_forward_args=additional_forward_args,
+            targets_list=[t.value for t in target],
+            perturb_func=perturb_func,
+            n_perturb_samples=n_perturb_samples,
+            max_examples_per_batch=10
+            if max_examples_per_batch is None
+            else max_examples_per_batch,
+            frozen_features=frozen_features,
+            percent_features_perturbed=percent_features_perturbed,
+            show_progress=show_progress,
+        )
+    else:
+        assert isinstance(target, ExplanationTarget), (
+            "For single-target faithfulness correlation, target should be a single target"
+        )
+        assert isinstance(attributions, (Tensor, tuple)), (
+            "For single-target faithfulness correlation, attributions should be a single attribution"
+        )
+        (
+            faithfulness_corr_scores,
+            attributions_expanded_perturbed_sum,
+            perturbed_fwd_diffs,
+        ) = _faithfulness_corr(
+            forward_func=forward_func,
+            inputs=inputs,
+            attributions=attributions,
+            baselines=baselines,
+            feature_mask=feature_mask,
+            additional_forward_args=additional_forward_args,
+            target=target.value,
+            perturb_func=perturb_func,
+            n_perturb_samples=n_perturb_samples,
+            max_examples_per_batch=max_examples_per_batch,
+            frozen_features=frozen_features,
+            percent_features_perturbed=percent_features_perturbed,
+            show_progress=show_progress,
+        )
 
     if return_intermediate_results:
         if return_dict:

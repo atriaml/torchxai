@@ -21,7 +21,7 @@ def train_mnist_model(model, dataloader, n_epochs: int = 10, lr: float = 0.01):
     model.train()
     pbar = tqdm.tqdm(range(n_epochs))
     for epoch in pbar:
-        for i, (images, labels) in enumerate(dataloader):
+        for images, labels in dataloader:
             optimizer.zero_grad()
             images = images.to(device)
             labels = labels.to(device)

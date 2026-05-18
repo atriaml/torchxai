@@ -21,6 +21,8 @@ Output:
 Category: characterization
 """
 
+from collections.abc import Sequence
+
 import torch
 from torch import Tensor
 
@@ -34,7 +36,7 @@ def _compute_topk_mass_fractions(
     all_reduced: Tensor,
     modality_ids: Tensor,
     n_modalities: int,
-    k_fractions: list[float],
+    k_fractions: Sequence[float] = (0.10,),
 ) -> Tensor:
     """Compute attribution mass fractions for each k and modality.
 
@@ -72,7 +74,7 @@ def _compute_topk_mass_fractions(
 def _modality_topk_fraction_single_sample(
     attributions_single_sample: tuple[Tensor, ...],
     feature_mask_single_sample: tuple[Tensor, ...] | None,
-    k_fractions: list[float],
+    k_fractions: Sequence[float],
     use_weighted_sum: bool,
 ) -> Tensor:
     """
@@ -116,7 +118,7 @@ def _modality_topk_fraction_single_sample(
 def _modality_topk_fraction_per_target(
     attributions: tuple[Tensor, ...],
     feature_mask: tuple[Tensor, ...] | None = None,
-    k_fractions: list[float] = (0.10,),
+    k_fractions: Sequence[float] = (0.10,),
     reduce_mode: str = "sum",
 ) -> Tensor:
     if not isinstance(attributions, tuple):
@@ -150,7 +152,7 @@ def modality_topk_fraction(
     attributions: tuple[Tensor, ...] | list[tuple[Tensor, ...]],
     feature_mask: tuple[Tensor, ...] | None = None,
     modality_names: list[str] | None = None,
-    k_fractions: list[float] = (0.05, 0.10, 0.20),
+    k_fractions: Sequence[float] = (0.05, 0.10, 0.20),
     reduce_mode: str = "sum",
     multi_target: bool = False,
     return_dict: bool = True,
@@ -179,7 +181,7 @@ def modality_topk_fraction(
     if multi_target:
         assert is_list, "attributions must be a list of tuples when multi_target=True"
     if not is_list:
-        attributions = [attributions]
+        attributions = [attributions]  # type: ignore
 
     n_modalities = len(attributions[0])
     names = (

@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
-import torch
 from pydantic import BaseModel, ConfigDict, field_validator
+
+if TYPE_CHECKING:
+    import torch
+
+RawTargetType: TypeAlias = (
+    int | list[int] | tuple[int, ...] | list[tuple[int, ...]] | None
+)
 
 
 class ExplanationTarget(BaseModel, ABC):
@@ -26,26 +32,44 @@ class ExplanationTarget(BaseModel, ABC):
         Returns:
             Appropriate TargetType instance.
         """
+        import torch
+
         if raw_target is None:
             return NoTarget()
-        if isinstance(raw_target, torch.Tensor):
-            raw_target = (
-                raw_target.item() if raw_target.numel() == 1 else raw_target.tolist()
-            )
-        if isinstance(raw_target, int):
-            return SingleTargetAcrossBatch(index=raw_target)
-        if isinstance(raw_target, tuple) and all(
-            isinstance(i, int) for i in raw_target
-        ):
-            return MultiIndexTargetAcrossBatch(indices=raw_target)
-        if isinstance(raw_target, list) and all(isinstance(i, int) for i in raw_target):
-            return SingleTargetPerSample(indices=raw_target)
-        if isinstance(raw_target, list) and all(
+
+        def _sanitize_tensor(value: RawTargetType | torch.Tensor) -> RawTargetType:
+            """Convert torch.Tensor to Python native types."""
+
+            if isinstance(value, torch.Tensor):
+                if value.numel() == 1:
+                    scalar = value.item()
+                    assert isinstance(scalar, int), (
+                        "Expected single integer value from tensor."
+                    )
+                    return scalar
+                else:
+                    result: list[Any] = value.tolist()  # type: ignore[attr-defined]
+                    assert all(isinstance(i, int) for i in result), (
+                        "Expected list of integers from tensor."
+                    )
+                    return result
+            return value
+
+        sanitized: RawTargetType = _sanitize_tensor(raw_target)
+        if isinstance(sanitized, int):
+            return SingleTargetAcrossBatch(index=sanitized)
+        if isinstance(sanitized, tuple) and all(isinstance(i, int) for i in sanitized):
+            return MultiIndexTargetAcrossBatch(indices=sanitized)
+        if isinstance(sanitized, list) and all(isinstance(i, int) for i in sanitized):
+            return SingleTargetPerSample(indices=cast(list[int], sanitized))
+        if isinstance(sanitized, list) and all(
             isinstance(i, tuple) and all(isinstance(j, int) for j in i)
-            for i in raw_target
+            for i in sanitized
         ):
-            return MultiIndexTargetPerSample(indices=raw_target)
-        raise ValueError(f"Cannot convert raw target of type {type(raw_target)}.")
+            return MultiIndexTargetPerSample(
+                indices=cast(list[tuple[int, ...]], sanitized)
+            )
+        raise ValueError(f"Cannot convert raw target of type {type(sanitized)}.")
 
     @abstractmethod
     def select(self, output: torch.Tensor) -> torch.Tensor:
@@ -67,7 +91,7 @@ class NoTarget(ExplanationTarget):
         return output
 
     @property
-    def value(self):
+    def value(self) -> None:
         return None
 
 
@@ -78,7 +102,7 @@ class SingleTargetAcrossBatch(ExplanationTarget):
 
     @field_validator("index")
     @classmethod
-    def validate_index(cls, v):
+    def validate_index(cls, v: int) -> int:
         if v < 0:
             raise ValueError("Target index must be non-negative")
         return v
@@ -144,10 +168,7 @@ class MultiIndexTargetPerSample(ExplanationTarget):
             "Target list length does not match output!"
         )
         return torch.stack(
-            [
-                output[(i,) + cast(tuple, targ_elem)]
-                for i, targ_elem in enumerate(self.indices)
-            ]
+            [output[(i,) + targ_elem] for i, targ_elem in enumerate(self.indices)]
         )
 
     @property
@@ -155,7 +176,8 @@ class MultiIndexTargetPerSample(ExplanationTarget):
         return self.indices
 
 
-ExplanationTargetType = (
+NO_TARGET = NoTarget()
+ExplanationTargetType: TypeAlias = (
     NoTarget
     | SingleTargetAcrossBatch
     | MultiIndexTargetAcrossBatch

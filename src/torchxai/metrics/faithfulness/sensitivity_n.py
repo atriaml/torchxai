@@ -5,6 +5,7 @@ from typing import Any
 import torch
 from captum._utils.common import _format_tensor_into_tuples
 from torch import Tensor
+
 from torchxai.data_types import BaselineType, TensorOrTupleOfTensorsGeneric
 from torchxai.data_types._target import ExplanationTarget, NoTarget
 from torchxai.metrics._utils.common import (
@@ -33,7 +34,7 @@ def sensitivity_n(
     normalize: bool = False,
     multi_target: bool = False,
     return_dict: bool = False,
-) -> Tensor:
+) -> Tensor | list[Tensor] | dict[str, Tensor] | dict[str, list[Tensor]]:
     r"""
     A wrapper around the Captum library's infidelity metric that computes senstivity_n.
     The metric returns a list of senstivity_n scores if multi_target is True using the
@@ -347,28 +348,56 @@ def sensitivity_n(
             )
         )
 
-    metric_func = _multi_target_infidelity if multi_target else _infidelity
-    score = metric_func(
-        forward_func=forward_func,
-        perturb_func=sensitivity_perturb_function,
-        inputs=inputs,
-        **(
-            {"attributions_list": attributions}
-            if multi_target
-            else {"attributions": attributions}
-        ),
-        baselines=baselines,
-        additional_forward_args=additional_forward_args,
-        **{"targets_list": [t.value for t in target]}
-        if multi_target
-        else {"target": target.value},
-        feature_mask=feature_mask,
-        frozen_features=frozen_features,
-        n_perturb_samples=n_perturb_samples,
-        max_examples_per_batch=max_examples_per_batch,
-        normalize=normalize,
-    )
+    if multi_target:
+        assert isinstance(target, list), (
+            "For multi-target infidelity, target should be a list of targets"
+        )
+        assert all(isinstance(t, ExplanationTarget) for t in target), (
+            "All targets in the target list should be instances of ExplanationTarget"
+        )
+        assert isinstance(attributions, list), (
+            "For multi-target infidelity, attributions should be a list of attributions corresponding to each target"
+        )
+        score = _multi_target_infidelity(
+            forward_func=forward_func,
+            perturb_func=sensitivity_perturb_function,
+            inputs=inputs,
+            attributions_list=attributions,
+            baselines=baselines,
+            additional_forward_args=additional_forward_args,
+            targets_list=[t.value for t in target],
+            feature_mask=feature_mask,
+            frozen_features=frozen_features,
+            n_perturb_samples=n_perturb_samples,
+            max_examples_per_batch=max_examples_per_batch,
+            normalize=normalize,
+        )
+        if return_dict:
+            return {"sensitivity_n_score": score}
+        return score
 
-    if return_dict:
-        return {"sensitivity_n_score": score}
-    return score
+    else:
+        assert isinstance(target, ExplanationTarget), (
+            "For single-target infidelity, target should be a single target"
+        )
+        assert isinstance(attributions, (Tensor, tuple)), (
+            "For single-target infidelity, attributions should be a single attribution"
+        )
+        score = _infidelity(
+            forward_func=forward_func,
+            perturb_func=sensitivity_perturb_function,
+            inputs=inputs,
+            attributions=attributions,
+            baselines=baselines,
+            additional_forward_args=additional_forward_args,
+            target=target.value,
+            feature_mask=feature_mask,
+            frozen_features=frozen_features,
+            n_perturb_samples=n_perturb_samples,
+            max_examples_per_batch=max_examples_per_batch,
+            normalize=normalize,
+        )
+
+        if return_dict:
+            return {"sensitivity_n_score": score}
+        return score

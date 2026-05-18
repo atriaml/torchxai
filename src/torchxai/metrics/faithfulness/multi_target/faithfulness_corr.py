@@ -32,13 +32,13 @@ def _multi_target_faithfulness_corr(
     forward_func: Callable,
     inputs: TensorOrTupleOfTensorsGeneric,
     attributions_list: list[TensorOrTupleOfTensorsGeneric],
+    targets_list: list[TargetType],
     baselines: BaselineType = None,
     feature_mask: TensorOrTupleOfTensorsGeneric = None,
     additional_forward_args: Any = None,
-    targets_list: list[TargetType] = None,
     perturb_func: Callable = default_fixed_baseline_perturb_func(),
     n_perturb_samples: int = 10,
-    max_examples_per_batch: int = None,
+    max_examples_per_batch: int | None = None,
     frozen_features: list[torch.Tensor] | None = None,
     percent_features_perturbed: float = 0.1,
     show_progress: bool = True,
@@ -57,7 +57,6 @@ def _multi_target_faithfulness_corr(
 
         def call_perturb_func():
             baselines_arg = None
-            inputs_arg: Tensor | tuple[Tensor, ...]
             if len(inputs_expanded) == 1:
                 inputs_arg = inputs_expanded[0]
                 if baselines_expanded is not None:
@@ -75,7 +74,7 @@ def _multi_target_faithfulness_corr(
                 inspect.signature(perturb_func).parameters.get("baselines")
                 and baselines_arg is not None
             ):
-                pertub_kwargs["baselines"] = baselines_arg
+                pertub_kwargs["baselines"] = baselines_arg  # type: ignore
             return perturb_func(**pertub_kwargs)
 
         pert_start = current_n_step - current_n_perturb_samples
@@ -196,7 +195,7 @@ def _multi_target_faithfulness_corr(
             attributions_expanded_perturbed_sum.view(bsz, -1)
             for attributions_expanded_perturbed_sum in attributions_expanded_perturbed_sum_list
         ]
-        return perturbed_fwd_diffs_list, attributions_expanded_perturbed_sum_list
+        return perturbed_fwd_diffs_list, attributions_expanded_perturbed_sum_list  # type: ignore
 
     def _agg_faithfulness_corr_tensors(agg_tensors, tensors):
         return tuple(

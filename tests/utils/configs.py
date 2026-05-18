@@ -64,6 +64,8 @@ class RuntimeTestConfig(BaseModel):
     percentage_feature_removal_per_step: float = 0.0
     zero_variance_threshold: float = 1e-5
     return_ratio: bool = False
+    sliding_window_shapes: Any | None = None
+    strides: Any | None = None
 
     @model_validator(mode="before")
     @classmethod

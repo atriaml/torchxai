@@ -181,9 +181,8 @@ def sparseness(
         assert is_attributions_list, (
             "attributions must be a list of tensors or list of tuples of tensors"
         )
-    if not is_attributions_list:
-        attributions = [attributions]
-    score = [_sparseness(attributions=attribution) for attribution in attributions]
+    attributions_list = [attributions] if not is_attributions_list else attributions
+    score = [_sparseness(attributions=attribution) for attribution in attributions_list]
     if not is_attributions_list:
         score = score[0]
     if return_dict:
@@ -279,11 +278,10 @@ def sparseness_feature_grouped(
         assert is_attributions_list, (
             "attributions must be a list of tensors or list of tuples of tensors"
         )
-    if not is_attributions_list:
-        attributions = [attributions]
+    attributions_list = [attributions] if not is_attributions_list else attributions
     score = [
         _sparseness_feature_grouped(attributions=attribution, feature_mask=feature_mask)
-        for attribution in attributions
+        for attribution in attributions_list
     ]
     if not is_attributions_list:
         score = score[0]

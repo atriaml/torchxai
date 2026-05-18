@@ -35,7 +35,7 @@ class Explainer(ABC):
         >>> attributions = explainer.explain(explanation_inputs)
     """
 
-    __repr_attrs__ = []
+    __repr_attrs__: list[str] = []
 
     def __init__(self, model: torch.nn.Module) -> None:
         self._model = model

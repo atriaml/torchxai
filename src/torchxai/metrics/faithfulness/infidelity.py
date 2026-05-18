@@ -53,7 +53,6 @@ def _infidelity(
         def call_perturb_func():
             r""" """
             baselines_pert = None
-            inputs_pert: Tensor | tuple[Tensor, ...]
             if len(inputs_expanded) == 1:
                 inputs_pert = inputs_expanded[0]
                 if baselines_expanded is not None:
@@ -65,11 +64,11 @@ def _infidelity(
             valid_args = inspect.signature(perturb_func).parameters.keys()
             perturb_kwargs = {"inputs": inputs_pert}
             if "baselines" in valid_args:
-                perturb_kwargs["baselines"] = baselines_pert
+                perturb_kwargs["baselines"] = baselines_pert  # type: ignore
             if "feature_masks" in valid_args:
-                perturb_kwargs["feature_masks"] = feature_mask_expanded
+                perturb_kwargs["feature_masks"] = feature_mask_expanded  # type: ignore
             if "frozen_features" in valid_args:
-                perturb_kwargs["frozen_features"] = frozen_features_expanded
+                perturb_kwargs["frozen_features"] = frozen_features_expanded  # type: ignore
             return perturb_func(**perturb_kwargs)
 
         inputs_expanded = tuple(
@@ -260,7 +259,7 @@ def infidelity(
     normalize: bool = True,
     multi_target: bool = False,
     return_dict: bool = False,
-) -> Tensor:
+) -> Tensor | list[Tensor] | dict[str, Tensor | list[Tensor]]:
     r"""
     A wrapper around the Captum library's infidelity metric. The metric returns a list of infidelity
     scores if multi_target is True using the `torchxai.metrics.faithfulness.multi_target._multi_target_infidelity`,
@@ -537,27 +536,48 @@ def infidelity(
     if perturb_func is None:
         perturb_func = default_infidelity_perturb_fn()
 
-    metric_func = _multi_target_infidelity if multi_target else _infidelity
-    score = metric_func(
-        forward_func=forward_func,
-        perturb_func=perturb_func,
-        inputs=inputs,
-        **(
-            {"attributions_list": attributions}
-            if multi_target
-            else {"attributions": attributions}
-        ),
-        baselines=baselines,
-        additional_forward_args=additional_forward_args,
-        **{"targets_list": [t.value for t in target]}
-        if multi_target
-        else {"target": target.value},
-        feature_mask=feature_mask,
-        frozen_features=frozen_features,
-        n_perturb_samples=n_perturb_samples,
-        max_examples_per_batch=max_examples_per_batch,
-        normalize=normalize,
-    )
+    if multi_target:
+        assert isinstance(target, list), (
+            "For multi-target infidelity, target should be a list of targets"
+        )
+        assert isinstance(attributions, list), (
+            "For multi-target infidelity, attributions should be a list of attributions"
+        )
+        score = _multi_target_infidelity(
+            forward_func=forward_func,
+            perturb_func=perturb_func,
+            inputs=inputs,
+            attributions_list=attributions,
+            baselines=baselines,
+            additional_forward_args=additional_forward_args,
+            targets_list=[t.value for t in target],
+            feature_mask=feature_mask,
+            frozen_features=frozen_features,
+            n_perturb_samples=n_perturb_samples,
+            max_examples_per_batch=max_examples_per_batch,
+            normalize=normalize,
+        )
+    else:
+        assert isinstance(target, ExplanationTarget), (
+            "For single-target infidelity, target should be a single target"
+        )
+        assert isinstance(attributions, (Tensor, tuple)), (
+            "For single-target infidelity, attributions should be a single attribution"
+        )
+        score = _infidelity(
+            forward_func=forward_func,
+            perturb_func=perturb_func,
+            inputs=inputs,
+            attributions=attributions,
+            baselines=baselines,
+            additional_forward_args=additional_forward_args,
+            target=target.value,
+            feature_mask=feature_mask,
+            frozen_features=frozen_features,
+            n_perturb_samples=n_perturb_samples,
+            max_examples_per_batch=max_examples_per_batch,
+            normalize=normalize,
+        )
     if return_dict:
         return {"infidelity_score": score}
     return score

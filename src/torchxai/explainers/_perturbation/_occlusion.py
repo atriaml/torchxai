@@ -55,6 +55,7 @@ class Occlusion(FeatureAblation):
 
         # Formatting strides
         strides = _format_and_verify_strides(strides, formatted_inputs)
+        assert isinstance(strides, tuple), "Strides should be a tuple after formatting."
 
         # Formatting sliding window shapes
         sliding_window_shapes = _format_and_verify_sliding_window_shapes(
@@ -169,7 +170,7 @@ class Occlusion(FeatureAblation):
     def _get_feature_range_and_mask(
         self, input: Tensor, input_mask: Tensor, **kwargs: Any
     ) -> tuple[int, int, None]:
-        feature_max = np.prod(kwargs["shift_counts"])
+        feature_max = int(np.prod(kwargs["shift_counts"]))
         return 0, feature_max, None
 
     def _get_feature_counts(self, inputs, feature_mask, **kwargs):
@@ -213,6 +214,7 @@ class MultiTargetOcclusion(MultiTargetFeatureAblation):
 
         # Formatting strides
         strides = _format_and_verify_strides(strides, formatted_inputs)
+        assert isinstance(strides, tuple), "Strides should be a tuple after formatting."
 
         # Formatting sliding window shapes
         sliding_window_shapes = _format_and_verify_sliding_window_shapes(

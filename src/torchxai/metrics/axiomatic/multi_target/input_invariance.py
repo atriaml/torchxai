@@ -6,7 +6,7 @@ from captum._utils.common import _format_output, _format_tensor_into_tuples, _is
 from torch import Tensor
 
 from torchxai.data_types import TensorOrTupleOfTensorsGeneric
-from torchxai.explainers._explainer import Explainer
+from torchxai.explainers._explainer import Explainer, FeatureAttributionExplainer
 from torchxai.metrics.axiomatic.utilities import (
     _create_shifted_expainer,
     _prepare_kwargs_for_base_and_shifted_inputs,
@@ -87,7 +87,7 @@ def _multi_target_input_invariance(
     )
 
     with torch.no_grad():
-        if isinstance(explainer, Explainer):
+        if isinstance(explainer, FeatureAttributionExplainer):
             possible_args = inspect.signature(explainer.explain).parameters
             kwargs_copy = {k: v for k, v in kwargs_copy.items() if k in possible_args}
             shifted_kwargs_copy = {

@@ -446,104 +446,113 @@ def faithfulness_estimate(
             if return_dict:
                 return {"faithfulness_estimate_score": faithfulness_estimate_batch_list}
             return faithfulness_estimate_batch_list
-
-    assert not isinstance(attributions, list), (
-        "attributions must be a single tensor or a tuple of tensors"
-    )
-    # perform argument formattings
-    inputs = _format_tensor_into_tuples(inputs)  # type: ignore
-    if baselines is None:
-        baselines = tuple(torch.zeros_like(inp) for inp in inputs)
     else:
-        baselines = cast(tuple[Tensor, ...], _format_baseline(baselines, inputs))
-    additional_forward_args = _format_additional_forward_args(additional_forward_args)
-    attributions = _format_tensor_into_tuples(attributions)  # type: ignore
-    feature_mask = _format_tensor_into_tuples(feature_mask)  # type: ignore
-
-    # Make sure that inputs and corresponding attributions have matching sizes.
-    assert len(inputs) == len(attributions), f"""The number of tensors in the inputs and
-        attributions must match. Found number of tensors in the inputs is: {len(inputs)} and in the
-        attributions: {len(attributions)}"""
-    if feature_mask is not None:
-        assert len(feature_mask) == len(
-            feature_mask
-        ), f"""The number of tensors in the inputs and
-            feature_masks must match. Found number of tensors in the inputs is: {len(feature_mask)} and in the
-            attributions: {len(feature_mask)}"""
-        for input, attribution, mask in zip(
-            inputs, attributions, feature_mask, strict=True
-        ):
-            assert input.shape == mask.shape == attribution.shape, f"""
-                The shape of the input, attribution and feature mask must match. Found shapes are: input {input.shape}
-                attribution {attribution.shape} and feature mask {mask.shape}
-                """
-
-    bsz = inputs[0].size(0)
-    faithfulness_estimate_batch = []
-    attributions_sum_perturbed_batch = []
-    inputs_perturbed_fwd_diffs_batch = []
-    for sample_idx in tqdm.tqdm(range(bsz), disable=not show_progress):
-        (
-            faithfulness_estimate_score,
-            attributions_sum_perturbed,
-            inputs_perturbed_fwd_diffs,
-        ) = eval_faithfulness_estimate_single_sample(
-            forward_func=forward_func,
-            inputs=tuple(input[sample_idx].unsqueeze(0) for input in inputs),
-            attributions=tuple(attr[sample_idx].unsqueeze(0) for attr in attributions),
-            feature_mask=(
-                tuple(mask[sample_idx].unsqueeze(0) for mask in feature_mask)
-                if feature_mask is not None
-                else None
-            ),
-            baselines=(
-                tuple(baseline[sample_idx].unsqueeze(0) for baseline in baselines)
-            ),
-            additional_forward_args=(
-                tuple(
-                    (
-                        arg[sample_idx].unsqueeze(0)
-                        if isinstance(arg, torch.Tensor)
-                        else arg
-                    )
-                    for arg in additional_forward_args
-                )
-                if additional_forward_args is not None
-                else None
-            ),
-            target=(
-                target.value[sample_idx]
-                if isinstance(target.value, (list, torch.Tensor))
-                else target.value
-            ),
-            max_features_processed_per_batch=max_features_processed_per_batch,
-            percentage_feature_removal_per_step=percentage_feature_removal_per_step,
-            frozen_features=(
-                frozen_features[sample_idx]
-                if frozen_features is not None
-                else frozen_features
-            ),
-            show_progress=show_progress,
+        assert not isinstance(attributions, list), (
+            "attributions must be a single tensor or a tuple of tensors"
         )
-        faithfulness_estimate_batch.append(faithfulness_estimate_score)
-        attributions_sum_perturbed_batch.append(attributions_sum_perturbed)
-        inputs_perturbed_fwd_diffs_batch.append(inputs_perturbed_fwd_diffs)
-    faithfulness_estimate_batch = torch.tensor(faithfulness_estimate_batch)
-
-    if return_intermediate_results:
-        if return_dict:
-            return {
-                "faithfulness_estimate_score": faithfulness_estimate_batch,
-                "attributions_sum_perturbed": attributions_sum_perturbed_batch,
-                "inputs_perturbed_fwd_diffs": inputs_perturbed_fwd_diffs_batch,
-            }
+        assert isinstance(target, (ExplanationTarget)), (
+            "target must be a single target for single-target faithfulness_estimate"
+        )
+        # perform argument formattings
+        inputs = _format_tensor_into_tuples(inputs)  # type: ignore
+        if baselines is None:
+            baselines = tuple(torch.zeros_like(inp) for inp in inputs)
         else:
-            return (
-                faithfulness_estimate_batch,
-                attributions_sum_perturbed_batch,
-                inputs_perturbed_fwd_diffs_batch,
+            baselines = cast(tuple[Tensor, ...], _format_baseline(baselines, inputs))
+        additional_forward_args = _format_additional_forward_args(
+            additional_forward_args
+        )
+        attributions = _format_tensor_into_tuples(attributions)  # type: ignore
+        feature_mask = _format_tensor_into_tuples(feature_mask)  # type: ignore
+
+        # Make sure that inputs and corresponding attributions have matching sizes.
+        assert len(inputs) == len(
+            attributions
+        ), f"""The number of tensors in the inputs and
+            attributions must match. Found number of tensors in the inputs is: {len(inputs)} and in the
+            attributions: {len(attributions)}"""
+        if feature_mask is not None:
+            assert len(feature_mask) == len(
+                feature_mask
+            ), f"""The number of tensors in the inputs and
+                feature_masks must match. Found number of tensors in the inputs is: {len(feature_mask)} and in the
+                attributions: {len(feature_mask)}"""
+            for input, attribution, mask in zip(
+                inputs, attributions, feature_mask, strict=True
+            ):
+                assert input.shape == mask.shape == attribution.shape, f"""
+                    The shape of the input, attribution and feature mask must match. Found shapes are: input {input.shape}
+                    attribution {attribution.shape} and feature mask {mask.shape}
+                    """
+
+        bsz = inputs[0].size(0)
+        faithfulness_estimate_batch = []
+        attributions_sum_perturbed_batch = []
+        inputs_perturbed_fwd_diffs_batch = []
+        for sample_idx in tqdm.tqdm(range(bsz), disable=not show_progress):
+            (
+                faithfulness_estimate_score,
+                attributions_sum_perturbed,
+                inputs_perturbed_fwd_diffs,
+            ) = eval_faithfulness_estimate_single_sample(
+                forward_func=forward_func,
+                inputs=tuple(input[sample_idx].unsqueeze(0) for input in inputs),
+                attributions=tuple(
+                    attr[sample_idx].unsqueeze(0) for attr in attributions
+                ),
+                feature_mask=(
+                    tuple(mask[sample_idx].unsqueeze(0) for mask in feature_mask)
+                    if feature_mask is not None
+                    else None
+                ),
+                baselines=(
+                    tuple(baseline[sample_idx].unsqueeze(0) for baseline in baselines)
+                ),
+                additional_forward_args=(
+                    tuple(
+                        (
+                            arg[sample_idx].unsqueeze(0)
+                            if isinstance(arg, torch.Tensor)
+                            else arg
+                        )
+                        for arg in additional_forward_args
+                    )
+                    if additional_forward_args is not None
+                    else None
+                ),
+                target=(
+                    target.value[sample_idx]
+                    if isinstance(target.value, (list, torch.Tensor))
+                    else target.value
+                ),
+                max_features_processed_per_batch=max_features_processed_per_batch,
+                percentage_feature_removal_per_step=percentage_feature_removal_per_step,
+                frozen_features=(
+                    frozen_features[sample_idx]
+                    if frozen_features is not None
+                    else frozen_features
+                ),
+                show_progress=show_progress,
             )
-    else:
-        if return_dict:
-            return {"faithfulness_estimate_score": faithfulness_estimate_batch}
-        return faithfulness_estimate_batch
+            faithfulness_estimate_batch.append(faithfulness_estimate_score)
+            attributions_sum_perturbed_batch.append(attributions_sum_perturbed)
+            inputs_perturbed_fwd_diffs_batch.append(inputs_perturbed_fwd_diffs)
+        faithfulness_estimate_batch = torch.tensor(faithfulness_estimate_batch)
+
+        if return_intermediate_results:
+            if return_dict:
+                return {
+                    "faithfulness_estimate_score": faithfulness_estimate_batch,
+                    "attributions_sum_perturbed": attributions_sum_perturbed_batch,
+                    "inputs_perturbed_fwd_diffs": inputs_perturbed_fwd_diffs_batch,
+                }
+            else:
+                return (
+                    faithfulness_estimate_batch,
+                    attributions_sum_perturbed_batch,
+                    inputs_perturbed_fwd_diffs_batch,
+                )
+        else:
+            if return_dict:
+                return {"faithfulness_estimate_score": faithfulness_estimate_batch}
+            return faithfulness_estimate_batch

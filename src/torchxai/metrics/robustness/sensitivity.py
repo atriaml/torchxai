@@ -37,20 +37,23 @@ def _expand_and_update_target(n_samples: int, kwargs: dict):
 
 
 def _sensitivity_scores(
-    explainer: Callable,
+    explainer: Explainer | Attribution,
     inputs: TensorOrTupleOfTensorsGeneric,
     perturb_func: Callable = default_perturb_func,
     perturb_radius: float = 0.02,
     n_perturb_samples: int = 10,
     norm_ord: str = "fro",
-    max_examples_per_batch: int = None,
+    max_examples_per_batch: int | None = None,
     multi_target: bool = False,
     **kwargs: Any,
 ) -> Tensor | list[Tensor]:
     if multi_target:
+        assert isinstance(explainer, Explainer), (
+            "Multi-target sensitivity is only supported for explainers that are instances of the Explainer class."
+        )
         return _multi_target_sensitivity_scores(
-            explainer,
-            inputs,
+            explainer=explainer,
+            inputs=inputs,
             perturb_func=perturb_func,
             perturb_radius=perturb_radius,
             n_perturb_samples=n_perturb_samples,
@@ -120,10 +123,10 @@ def _sensitivity_scores(
         expl_perturbed_inputs = explanation_func(inputs_perturbed, **kwargs_copy)
 
         # tuplize `expl_perturbed_inputs` in case it is not
-        expl_perturbed_inputs = _format_tensor_into_tuples(expl_perturbed_inputs)
+        expl_perturbed_inputs = _format_tensor_into_tuples(expl_perturbed_inputs)  # type: ignore
 
         expl_inputs_expanded = tuple(
-            expl_input.repeat_interleave(current_n_perturb_samples, dim=0)
+            expl_input.repeat_interleave(current_n_perturb_samples, dim=0)  # type: ignore
             for expl_input in expl_inputs
         )
 
@@ -139,7 +142,7 @@ def _sensitivity_scores(
         # compute the norm of original input explanations
         expl_inputs_norm_expanded = torch.norm(
             torch.cat(
-                [expl_input.view(expl_input.size(0), -1) for expl_input in expl_inputs],
+                [expl_input.view(expl_input.size(0), -1) for expl_input in expl_inputs],  # type: ignore
                 dim=1,
             ),
             p=norm_ord,
@@ -184,7 +187,7 @@ def _sensitivity_scores(
             cast(tuple[Tensor, ...], inputs),
             n_perturb_samples,
             _next_sensitivity_max,
-            max_examples_per_batch=max_examples_per_batch,
+            max_examples_per_batch=max_examples_per_batch,  # type: ignore
             agg_func=_agg_tensors,
         )
     return scores
@@ -201,7 +204,14 @@ def sensitivity_max_and_avg(
     multi_target: bool = False,
     return_dict: bool = False,
     **kwargs: Any,
-) -> tuple[Tensor, Tensor]:
+) -> (
+    Tensor
+    | tuple[Tensor, Tensor]
+    | list[Tensor]
+    | tuple[list[Tensor], list[Tensor]]
+    | dict[str, Tensor]
+    | dict[str, list[Tensor]]
+):
     r"""
     This is a modified version of the captum `captum.metric.sensitivity_max` (see: from captum.metrics import sensitivity_max)
     function that repeats the feature masks when performing perturbations. This function returns the sensitivity
@@ -352,8 +362,8 @@ def sensitivity_max_and_avg(
     if "explainer_baselines" in kwargs:
         kwargs["baselines"] = kwargs.pop("explainer_baselines")
     sensitivity_scores = _sensitivity_scores(
-        explainer,
-        inputs,
+        explainer=explainer,
+        inputs=inputs,
         perturb_func=perturb_func,
         perturb_radius=perturb_radius,
         n_perturb_samples=n_perturb_samples,
@@ -363,27 +373,30 @@ def sensitivity_max_and_avg(
         **kwargs,
     )
     if multi_target:
+        assert isinstance(sensitivity_scores, list), (
+            "Expected sensitivity_scores to be a list of Tensors when multi_target is True."
+        )
+        sensitivity_max = [
+            torch.max(score, dim=-1).values for score in sensitivity_scores
+        ]
+        sensitivity_avg = [torch.mean(score, dim=-1) for score in sensitivity_scores]
         if return_dict:
             return {
-                "sensitivity_max": [
-                    torch.max(score, dim=1).values for score in sensitivity_scores
-                ],
-                "sensitivity_avg": [
-                    torch.mean(score, dim=1) for score in sensitivity_scores
-                ],
+                "sensitivity_max": sensitivity_max,
+                "sensitivity_avg": sensitivity_avg,
             }
         else:
-            return [torch.max(score, dim=1).values for score in sensitivity_scores], [
-                torch.mean(score, dim=1) for score in sensitivity_scores
-            ]
+            return sensitivity_max, sensitivity_avg
     else:
+        assert isinstance(sensitivity_scores, Tensor), (
+            "Expected sensitivity_scores to be a Tensor when multi_target is False."
+        )
+        sensitivity_max = torch.max(sensitivity_scores, dim=-1).values
+        sensitivity_avg = torch.mean(sensitivity_scores, dim=-1)
         if return_dict:
             return {
-                "sensitivity_max": torch.max(sensitivity_scores, dim=1).values,
-                "sensitivity_avg": torch.mean(sensitivity_scores, dim=1),
+                "sensitivity_max": sensitivity_max,
+                "sensitivity_avg": sensitivity_avg,
             }
         else:
-            return (
-                torch.max(sensitivity_scores, dim=1).values,
-                torch.mean(sensitivity_scores, dim=1),
-            )
+            return sensitivity_max, sensitivity_avg

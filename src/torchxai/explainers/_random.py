@@ -149,7 +149,7 @@ class RandomExplainer(FeatureAttributionExplainer):
             ...     f"Random attribution range: {random_attributions['features'].min():.3f} to {random_attributions['features'].max():.3f}"
             ... )
         """
-        return super().explain(
+        return self._default_explain(
             inputs=inputs,
             target=target,
             additional_forward_args=additional_forward_args,

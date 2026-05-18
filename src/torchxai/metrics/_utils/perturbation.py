@@ -208,15 +208,15 @@ def _generate_random_perturbation_masks(
         )
         perturbation_masks.append(perturbation_masks_per_sample)
     perturbation_masks = torch.cat(perturbation_masks, dim=0)
-    perturbation_masks = _split_tensors_to_tuple_tensors(
+    perturbation_masks_tuple = _split_tensors_to_tuple_tensors(
         perturbation_masks, flattened_feature_mask_base_shapes
     )
     bsz = flattened_feature_masks.shape[0]
-    perturbation_masks = tuple(
+    perturbation_masks_tuple = tuple(
         x.view(bsz, n_perturbations_per_sample, *x.shape[1:])
-        for x in perturbation_masks
+        for x in perturbation_masks_tuple
     )
-    return perturbation_masks
+    return perturbation_masks_tuple
 
 
 def perturb_fn_drop_batched_single_output(
@@ -261,34 +261,6 @@ def perturb_fn_drop_batched_single_output(
 
         # convert the perturbation masks to float
         perturbation_masks = tuple(x.float() for x in perturbation_masks)
-
-        # if debugging:
-        #     for x in inputs:
-        #         from torchvision.utils import make_grid
-
-        #         x = make_grid(x)
-        #         import matplotlib.pyplot as plt
-
-        #         plt.imshow(x.permute(1, 2, 0).cpu())
-        #         plt.show()
-
-        #     for x in inputs_perturbed:
-        #         from torchvision.utils import make_grid
-
-        #         x = make_grid(x)
-        #         import matplotlib.pyplot as plt
-
-        #         plt.imshow(x.permute(1, 2, 0).cpu())
-        #         plt.show()
-
-        # if debugging:
-        #     import matplotlib.pyplot as plt
-
-        #     for perturbation_mask, ptb in zip(perturbation_masks, inputs_perturbed):
-        #         fig, axes = plt.subplots(figsize=(50, 10), nrows=2)
-        #         axes[0].matshow(perturbation_mask[:, :, 0][:, :50].cpu().numpy())
-        #         axes[1].matshow(ptb[:, :, 0][:, :50].cpu().numpy())
-        #         plt.show()
 
         if len(perturbation_masks) == 1:
             perturbation_masks = perturbation_masks[0]

@@ -23,6 +23,7 @@ var/
 .installed.cfg
 **/**.egg
 MANIFEST
+torchxai.egg-info
 
 # Virtual environments
 .venv/

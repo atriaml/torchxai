@@ -39,8 +39,8 @@ def _feature_mask_to_feature_groups_and_counts(
     """
 
     batch_size = feature_mask[0].shape[0]
-    grouped_feature_counts = []
-    n_grouped_features = []
+    grouped_feature_counts: list[list[torch.Tensor]] = []
+    n_grouped_features: list[list[int]] = []
     for mask in feature_mask:
         grouped_feature_counts.append([])
         n_grouped_features.append([])

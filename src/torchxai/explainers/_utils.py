@@ -110,7 +110,6 @@ def _compute_gradients_sequential_autograd(
     additional_forward_args: Any = None,
     **kwargs,
 ) -> list[tuple[Tensor, ...]]:
-    print("Computing gradients with sequential autograd...")
     with torch.autograd.set_grad_enabled(True):  # type: ignore
         outputs = _run_forward_multi_target(
             forward_fn, inputs, target, additional_forward_args
@@ -146,7 +145,6 @@ def _compute_gradients_vmap_autograd_direct(
     target: list[TargetType] | None = None,
     additional_forward_args: Any = None,
 ) -> list[tuple[Tensor, ...]]:
-    print("Computing gradients with vmap autograd...")
     with torch.autograd.set_grad_enabled(True):  # type: ignore
         outputs = _run_forward_multi_target(
             forward_fn, inputs, target, additional_forward_args
@@ -190,9 +188,6 @@ def _compute_gradients_vmap_autograd(
     grad_batch_size: int = 1,
     show_progress: bool = True,
 ) -> list[tuple[Tensor, ...]]:
-    print(
-        "Computing gradients with vmap autograd..., grad_batch_size=", grad_batch_size
-    )
     with torch.autograd.set_grad_enabled(True):  # type: ignore
         outputs = _run_forward_multi_target(
             forward_fn, inputs, target, additional_forward_args

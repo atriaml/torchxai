@@ -402,75 +402,61 @@ class MultiTargetDeepLiftShapBatched(MultiTargetDeepLift):
                     custom_attribution_func=custom_attribution_func,
                 )
 
-                with torch.no_grad():
-                    if return_convergence_delta:
-                        multi_target_batch_attributions, batch_delta = cast(
-                            tuple[list[tuple[Tensor, ...]], list[Tensor]],
-                            multi_target_batch_attributions,
-                        )
-                        multi_target_delta = (
-                            [
-                                torch.cat((agg, curr), dim=0)
-                                for agg, curr in zip(
-                                    multi_target_delta, batch_delta, strict=False
-                                )
-                            ]
-                            if multi_target_delta is not None
-                            else batch_delta
-                        )
-                    else:
-                        multi_target_batch_attributions = cast(
-                            list[tuple[Tensor, ...]], multi_target_batch_attributions
-                        )
-
-                    # get the output attribution indices of this batch
-                    output_indices = output_sample_indices[
-                        batch_idx : batch_idx + internal_batch_size
-                    ]
-
-                    # update attributions sum batch-wise. The sum is taken across the baselines given the output index
-                    for target_idx in range(len(multi_target_attributions)):
-                        for idx in range(len(multi_target_attributions[target_idx])):
-                            multi_target_attributions[target_idx][idx].index_add_(
-                                0,
-                                torch.tensor(
-                                    output_indices,
-                                    device=exp_inp[0].device,
-                                    requires_grad=False,
-                                ),
-                                multi_target_batch_attributions[target_idx][idx],
+                if return_convergence_delta:
+                    multi_target_batch_attributions, batch_delta = cast(
+                        tuple[list[tuple[Tensor, ...]], list[Tensor]],
+                        multi_target_batch_attributions,
+                    )
+                    multi_target_delta = (
+                        [
+                            torch.cat((agg, curr), dim=0)
+                            for agg, curr in zip(
+                                multi_target_delta, batch_delta, strict=False
                             )
+                        ]
+                        if multi_target_delta is not None
+                        else batch_delta
+                    )
+                else:
+                    multi_target_batch_attributions = cast(
+                        list[tuple[Tensor, ...]], multi_target_batch_attributions
+                    )
 
-                    # print("Completed batch:", batch_idx // internal_batch_size + 1, len(multi_target_batch_attributions))
-                    # for target_idx in range(len(multi_target_attributions)):
-                    #     for idx in range(len(multi_target_attributions[target_idx])):
-                    #         x = multi_target_attributions[target_idx][idx]
-                    #         print("Attribution sum shape:", x.shape, x.requires_grad)
-                    #         print("size", x.element_size() * x.nelement())
-
-            with torch.no_grad():
-                # now find the average
-                multi_target_attributions_average = [
-                    tuple([x / base_bsz for x in attrib_single_target])
-                    for attrib_single_target in multi_target_attributions
+                # get the output attribution indices of this batch
+                output_indices = output_sample_indices[
+                    batch_idx : batch_idx + internal_batch_size
                 ]
+
+                # update attributions sum batch-wise. The sum is taken across the baselines given the output index
+                for target_idx in range(len(multi_target_attributions)):
+                    for idx in range(len(multi_target_attributions[target_idx])):
+                        multi_target_attributions[target_idx][idx].index_add_(
+                            0,
+                            torch.tensor(
+                                output_indices,
+                                device=exp_inp[0].device,
+                                requires_grad=False,
+                            ),
+                            multi_target_batch_attributions[target_idx][idx],
+                        )
+
+            # now find the average
+            multi_target_attributions_average = [
+                tuple([x / base_bsz for x in attrib_single_target])
+                for attrib_single_target in multi_target_attributions
+            ]
         else:
             multi_target_attributions = super().attribute(  # type: ignore
                 inputs=exp_inp,
                 baselines=exp_base,
                 target=exp_tgt,
                 additional_forward_args=exp_addit_args,
-                return_convergence_delta=cast(
-                    Literal[True, False], return_convergence_delta
-                ),
+                return_convergence_delta=return_convergence_delta,
                 custom_attribution_func=custom_attribution_func,
             )
 
             if return_convergence_delta:
-                multi_target_attributions = [
-                    tuple(x) for x in multi_target_attributions
-                ]
-                multi_target_attributions, delta = cast(
+                multi_target_batch_attributions, multi_target_delta = cast(
                     tuple[list[tuple[Tensor, ...]], list[Tensor]],
                     multi_target_attributions,
                 )
@@ -492,7 +478,7 @@ class MultiTargetDeepLiftShapBatched(MultiTargetDeepLift):
             return [
                 _format_output(is_inputs_tuple, per_target_attributions)
                 for per_target_attributions in multi_target_attributions_average
-            ], delta  # type: ignore
+            ], multi_target_delta  # type: ignore
         else:
             return [
                 _format_output(is_inputs_tuple, per_target_attributions)

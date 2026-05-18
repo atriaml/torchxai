@@ -76,7 +76,6 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
         def call_perturb_func():
             r""" """
             baselines_pert = None
-            inputs_pert: Tensor | tuple[Tensor, ...]
             if len(inputs_expanded) == 1:
                 inputs_pert = inputs_expanded[0]
                 perturbation_masks = perturbation_mask_expanded[0]
@@ -96,7 +95,7 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
                 assert baselines_pert is not None, (
                     f"""The perturb_func {perturb_func} requires baselines as an argument. Please provide baselines."""
                 )
-                perturb_kwargs["baselines"] = baselines_pert
+                perturb_kwargs["baselines"] = baselines_pert  # type: ignore[assignment]
             return perturb_func(**perturb_kwargs)
 
         # repeat each current_n_perturbed_features times
@@ -834,9 +833,15 @@ def monotonicity_corr_and_non_sens(
     }
 
     if multi_target:
+        assert isinstance(target, list), (
+            "For multi-target explanations, the target should be a list of ExplanationTarget objects."
+        )
         kwargs["attributions_list"] = attributions
         kwargs["targets_list"] = [t.value for t in target]
     else:
+        assert isinstance(target, ExplanationTarget), (
+            "For single-target explanations, the target should be a single ExplanationTarget object."
+        )
         kwargs["attributions"] = attributions
         kwargs["target"] = target.value
 

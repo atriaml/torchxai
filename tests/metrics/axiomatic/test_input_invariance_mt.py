@@ -43,7 +43,8 @@ test_configurations = [
     *setup_test_config_for_explainer(
         explainer="occlusion",
         set_baselines_to_type="black",
-        explainer_kwargs={"sliding_window_shapes": (1, 4, 4), "strides": None},
+        sliding_window_shapes=(1, 4, 4),
+        strides=None,
     ),
 ]
 

@@ -209,7 +209,7 @@ def eval_aopcs_single_sample(
             device=inputs[0].device,
         )
 
-        inputs_perturbed = {}
+        inputs_perturbed: dict = {}
         curr_perturbation_mask = []
         for (
             key,
@@ -233,7 +233,7 @@ def eval_aopcs_single_sample(
         curr_perturbation_mask = curr_perturbation_mask.view(
             -1, curr_perturbation_mask.shape[-1]
         )
-        inputs_perturbed = _generate_perturbations(
+        inputs_perturbed = _generate_perturbations(  # type: ignore
             current_n_perturbed_features, curr_perturbation_mask
         )
         baselines_perturbed = _generate_baseline_perturbations(
@@ -278,7 +278,7 @@ def eval_aopcs_single_sample(
         # on each feature group perturbation
         # the first element will be when the feature with lowest importance is added to the baseline
         # the last element will be when all features are added to the baseline
-        return inputs_perturbed_fwd, baselines_perturbed_fwd
+        return inputs_perturbed_fwd, baselines_perturbed_fwd  # type: ignore
 
     def _cat_aopc_tensors(agg_tensors, tensors):
         return tuple(
@@ -776,6 +776,9 @@ def aopc(
     is_attributions_list = isinstance(attributions, list)
     is_targets_list = isinstance(target, list)
     if multi_target:
+        assert is_targets_list, (
+            "For multi-target explanations, target must be a list of targets"
+        )
         target = [t.value for t in target]
         assert is_attributions_list, (
             "attributions must be a list of tensors or list of tuples of tensors"
@@ -793,7 +796,7 @@ def aopc(
     if not is_attributions_list:
         attributions = [attributions]
     if not is_targets_list:
-        target = [target.value]
+        target = [target.value]  # type: ignore
     inputs_perturbed_aopc_desc_batch = []
     inputs_perturbed_aopc_asc_batch = []
     inputs_perturbed_aopc_rand_batch = []
@@ -821,7 +824,7 @@ def aopc(
             baselines=baselines,
             feature_mask=feature_mask,
             additional_forward_args=additional_forward_args,
-            target=t,
+            target=t,  # type: ignore
             max_features_processed_per_batch=max_features_processed_per_batch,
             total_feature_bins=total_feature_bins,
             frozen_features=frozen_features,

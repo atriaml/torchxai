@@ -14,6 +14,7 @@ from captum._utils.common import (
     _run_forward,
 )
 from torch import Tensor
+
 from torchxai.data_types import BaselineType, TargetType, TensorOrTupleOfTensorsGeneric
 from torchxai.data_types._target import ExplanationTarget, NoTarget
 from torchxai.metrics._utils.batching import _divide_and_aggregate_metrics_n_features
@@ -38,7 +39,7 @@ def _eval_monotonicity_single_sample(
     percentage_feature_removal_per_step: float = 0.01,
     max_features_processed_per_batch: int | None = None,
     frozen_features: torch.Tensor | None = None,
-    show_progress: bool = True
+    show_progress: bool = True,
 ) -> tuple:
     def _generate_perturbations(
         current_n_perturbed_features: int, current_perturbation_mask: torch.Tensor
@@ -186,7 +187,7 @@ def _monotonicity(
     max_features_processed_per_batch: int | None = None,
     percentage_feature_removal_per_step: float = 0.01,
     frozen_features: list[torch.Tensor] | None = None,
-    show_progress: bool = True
+    show_progress: bool = True,
 ) -> tuple | dict:
     with torch.no_grad():
         # perform argument formattings
