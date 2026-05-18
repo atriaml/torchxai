@@ -32,9 +32,14 @@ def _compute_locality_scores(
 
     vertical_locality = attr[(dx.abs() <= x_threshold) & other_mask].sum()
     horizontal_locality = attr[(dy.abs() <= y_threshold) & other_mask].sum()
-    spread = torch.sqrt((attr * (dx**2 + dy**2)).sum())
 
-    return torch.stack([vertical_locality, horizontal_locality, spread])
+    # this is weighted rmse around the target center
+    # RMSE = \sqrt{\frac{1}{\sum_{i=1}^{N} w_i} \sum_{i=1}^{N} w_i * (x_i - x_ti)^2 + (y_i - y_ti)^2}
+    # where \sum_{i=1}^{N} w_i = 1 since we normalized the attributions to sum to 1, we can simplify this to:
+    # RMSE = \sqrt{\sum_{i=1}^{N} w_i * (x_i - x_ti)^2 + (y_i - y_ti)^2}
+    w_rmse = torch.sqrt((attr * (dx**2 + dy**2)).sum())
+
+    return torch.stack([vertical_locality, horizontal_locality, w_rmse])
 
 
 def _locality_single_sample(
