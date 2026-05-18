@@ -1,10 +1,11 @@
-import dataclasses
+import inspect
 import itertools
 from collections.abc import Callable
 
 import pytest  # noqa
 import torch
 
+from tests.fixtures._metric import _get_metric_inputs
 from tests.utils.common import _assert_tensor_almost_equal, _set_all_random_seeds
 from tests.utils.configs import RuntimeTestConfig
 from torchxai.metrics import monotonicity_corr_and_non_sens
@@ -17,11 +18,10 @@ def _format_to_list(value):
     return value
 
 
-@dataclasses.dataclass
 class MetricTestRuntimeConfig_(RuntimeTestConfig):
     perturb_func: Callable = default_random_perturb_func()
-    n_perturbations_per_feature: int = 100
-    max_features_processed_per_batch: int = None
+    n_perturbations_per_feature: int | list[int | None] | None = 100
+    max_features_processed_per_batch: int | list[int | None] | None = None
     device: str = "cpu"
 
 
@@ -148,6 +148,7 @@ test_configurations = [
         ],
         n_perturbations_per_feature=[10, 10, 20],
         max_features_processed_per_batch=[None, 1, 40],
+        delta=0.2,
     ),
     MetricTestRuntimeConfig_(
         test_name="classification_multilayer_model_with_tuple_targets_config_integrated_gradients",
@@ -174,37 +175,37 @@ test_configurations = [
     indirect=True,
 )
 def test_monotonicity_corr(metrics_runtime_test_configuration):
-    base_config, runtime_config, explanations = metrics_runtime_test_configuration
-    runtime_config.n_perturbations_per_feature = _format_to_list(
+    base_config, runtime_config, explanation_step_outputs = (
+        metrics_runtime_test_configuration
+    )
+    n_perturbations_per_feature = _format_to_list(
         runtime_config.n_perturbations_per_feature
     )
-    runtime_config.max_features_processed_per_batch = _format_to_list(
+    max_features_processed_per_batch = _format_to_list(
         runtime_config.max_features_processed_per_batch
     )
-    runtime_config.expected = _format_to_list(runtime_config.expected)
+    expected = _format_to_list(runtime_config.expected)
 
-    assert len(runtime_config.n_perturbations_per_feature) == len(
-        runtime_config.max_features_processed_per_batch
-    )
-    assert (
-        len(runtime_config.n_perturbations_per_feature) == len(runtime_config.expected)
-        or len(runtime_config.expected) == 1
-    )
+    assert len(n_perturbations_per_feature) == len(max_features_processed_per_batch)
+    assert len(n_perturbations_per_feature) == len(expected) or len(expected) == 1
 
     for n_perturbs, max_features, curr_expected in zip(
-        runtime_config.n_perturbations_per_feature,
-        runtime_config.max_features_processed_per_batch,
-        itertools.cycle(runtime_config.expected),
+        n_perturbations_per_feature,
+        max_features_processed_per_batch,
+        itertools.cycle(expected),
     ):
         _set_all_random_seeds(1234)
+        kwargs = _get_metric_inputs(
+            base_config, runtime_config, explanation_step_outputs
+        )
+        kwargs = {
+            k: v
+            for k, v in kwargs.items()
+            if k in inspect.signature(monotonicity_corr_and_non_sens).parameters
+        }
         (monotonicity_corr_score, _, n_features_found, _, _) = (
             monotonicity_corr_and_non_sens(
-                forward_func=base_config.model,
-                inputs=base_config.inputs,
-                attributions=explanations,
-                feature_mask=base_config.feature_mask,
-                additional_forward_args=base_config.additional_forward_args,
-                target=base_config.target,
+                **kwargs,
                 perturb_func=runtime_config.perturb_func,
                 n_perturbations_per_feature=n_perturbs,
                 max_features_processed_per_batch=max_features,

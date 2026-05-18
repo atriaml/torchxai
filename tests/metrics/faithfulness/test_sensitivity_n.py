@@ -1,9 +1,10 @@
-import dataclasses
+import inspect
 import itertools
 
 import pytest  # noqa
 import torch
 
+from tests.fixtures._metric import _get_metric_inputs
 from tests.utils.common import (
     _assert_all_tensors_almost_equal,
     _assert_tensor_almost_equal,
@@ -19,10 +20,9 @@ def _format_to_list(value):
     return value
 
 
-@dataclasses.dataclass
 class MetricTestRuntimeConfig_(RuntimeTestConfig):
     n_perturb_samples: int = 10
-    max_examples_per_batch: int = None
+    max_examples_per_batch: int | list | None = None
     normalize: bool = True
     device: str = "cpu"
     sensitivity_n: int = 1
@@ -195,31 +195,34 @@ test_configurations = [
     indirect=True,
 )
 def test_sensitivity_n(metrics_runtime_test_configuration):
-    base_config, runtime_config, explanations = metrics_runtime_test_configuration
-
-    runtime_config.max_examples_per_batch = _format_to_list(
-        runtime_config.max_examples_per_batch
+    base_config, runtime_config, explanation_step_outputs = (
+        metrics_runtime_test_configuration
     )
-    runtime_config.expected = _format_to_list(runtime_config.expected)
 
-    assert (
-        len(runtime_config.max_examples_per_batch) == len(runtime_config.expected)
-        or len(runtime_config.expected) == 1
-    )
+    max_examples_per_batch = _format_to_list(runtime_config.max_examples_per_batch)
+    expected = _format_to_list(runtime_config.expected)
+
+    assert len(max_examples_per_batch) == len(expected) or len(expected) == 1
 
     fwds_per_run = []
     for max_examples_per_batch, curr_expected in zip(
-        runtime_config.max_examples_per_batch, itertools.cycle(runtime_config.expected)
+        max_examples_per_batch, itertools.cycle(expected)
     ):
         _set_all_random_seeds(1234)
+        kwargs = _get_metric_inputs(
+            base_config, runtime_config, explanation_step_outputs
+        )
+        kwargs = {
+            k: v
+            for k, v in kwargs.items()
+            if k in inspect.signature(sensitivity_n).parameters
+        }
+        kwargs["baselines"] = (
+            kwargs["baselines"] if kwargs["baselines"] is not None else 0,
+        )
         sensitivity_n_result = sensitivity_n(
-            forward_func=base_config.model,
-            inputs=base_config.inputs,
-            attributions=explanations,
-            baselines=base_config.baselines if base_config.baselines is not None else 0,
+            **kwargs,
             n_features_perturbed=runtime_config.sensitivity_n,
-            additional_forward_args=base_config.additional_forward_args,
-            target=base_config.target,
             n_perturb_samples=runtime_config.n_perturb_samples,
             max_examples_per_batch=max_examples_per_batch,
             normalize=runtime_config.normalize,

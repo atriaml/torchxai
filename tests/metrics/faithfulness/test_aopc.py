@@ -1,9 +1,10 @@
-import dataclasses
+import inspect
 import itertools
 
 import pytest  # noqa
 import torch
 
+from tests.fixtures._metric import _get_metric_inputs
 from tests.utils.common import (
     _assert_all_tensors_almost_equal,
     _assert_tensor_almost_equal,
@@ -20,13 +21,12 @@ def _format_to_list(value):
     return value
 
 
-@dataclasses.dataclass
 class MetricTestRuntimeConfig_(RuntimeTestConfig):
-    max_features_processed_per_batch: int = None
+    max_features_processed_per_batch: int | list[int | None] | None = None
     total_features_perturbed: int = 100
-    expected_desc: torch.Tensor = None
-    expected_asc: torch.Tensor = None
-    expected_rand: torch.Tensor = None
+    expected_desc: torch.Tensor | list[torch.Tensor] | None = None
+    expected_asc: torch.Tensor | list[torch.Tensor] | None = None
+    expected_rand: torch.Tensor | list[torch.Tensor] | None = None
 
     def __post_init__(self):
         assert self.target_fixture is not None, "Target fixture must be provided"
@@ -47,27 +47,27 @@ test_configurations = [
     MetricTestRuntimeConfig_(
         test_name="basic_model_single_input_config_integrated_gradients",
         target_fixture="basic_model_single_input_config",
-        expected_desc=torch.tensor([[0.0000, 0.5000, 0.6667]]).unbind(),
-        expected_asc=torch.tensor([[0.0000, -0.5000, 0.0000]]).unbind(),
-        expected_rand=torch.tensor([[0.0000, 0.2000, 0.4667]]).unbind(),
+        expected_desc=torch.tensor([[0.0000, 0.5000, 0.6667]]),
+        expected_asc=torch.tensor([[0.0000, -0.5000, 0.0000]]),
+        expected_rand=torch.tensor([[0.0000, 0.2000, 0.4667]]),
         max_features_processed_per_batch=[5, 1, 40],
     ),
     MetricTestRuntimeConfig_(
         test_name="basic_model_batch_input_config_integrated_gradients",
         target_fixture="basic_model_batch_input_config",
-        expected_desc=torch.tensor([[0.0000, 0.5000, 0.6667]] * 3).unbind(),
-        expected_asc=torch.tensor([[0.0000, -0.5000, 0.0000]] * 3).unbind(),
-        expected_rand=torch.tensor([[0.0000, 0.2000, 0.4667]] * 3).unbind(),
+        expected_desc=torch.tensor([[0.0000, 0.5000, 0.6667]] * 3),
+        expected_asc=torch.tensor([[0.0000, -0.5000, 0.0000]] * 3),
+        expected_rand=torch.tensor([[0.0000, 0.2000, 0.4667]] * 3),
         max_features_processed_per_batch=[5, 1, 40],
     ),
     MetricTestRuntimeConfig_(
         test_name="basic_model_batch_input_with_additional_forward_args_config_integrated_gradients",
         target_fixture="basic_model_batch_input_with_additional_forward_args_config",
-        expected_desc=torch.tensor([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]).unbind(),
-        expected_asc=torch.tensor([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]).unbind(),
+        expected_desc=torch.tensor([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]),
+        expected_asc=torch.tensor([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]),
         expected_rand=torch.tensor(
             [[0.0000, 0.0000, -0.0167, -0.0500, -0.0800, -0.0750, -0.0643]]
-        ).unbind(),
+        ),
         max_features_processed_per_batch=[5, 1, 40],
     ),
     MetricTestRuntimeConfig_(
@@ -96,7 +96,7 @@ test_configurations = [
                 ]
             ]
             * 20
-        ).unbind(),
+        ),
         expected_asc=torch.tensor(
             [
                 [
@@ -120,7 +120,7 @@ test_configurations = [
                 ]
             ]
             * 20
-        ).unbind(),
+        ),
         expected_rand=torch.tensor(
             [
                 [
@@ -144,7 +144,7 @@ test_configurations = [
                 ]
             ]
             * 20
-        ).unbind(),
+        ),
         max_features_processed_per_batch=[5, 1, 40],
         delta=1e-3,
     ),
@@ -158,7 +158,7 @@ test_configurations = [
                 [0.0000, 144.0000, 277.3333, 400.0000],
                 [0.0000, 192.0000, 373.3333, 544.0000],
             ]
-        ).unbind(),
+        ),
         expected_asc=torch.tensor(
             [
                 [0.0000, 16.0000, 40.0000, 70.0000],
@@ -166,7 +166,7 @@ test_configurations = [
                 [0.0000, 112.0000, 234.6667, 368.0000],
                 [0.0000, 160.0000, 330.6667, 512.0000],
             ]
-        ).unbind(),
+        ),
         expected_rand=torch.tensor(
             [
                 [0.0000, 28.0000, 53.6000, 80.2000],
@@ -174,7 +174,7 @@ test_configurations = [
                 [0.0000, 124.8000, 250.6667, 380.0000],
                 [0.0000, 172.8000, 346.6667, 524.0000],
             ]
-        ).unbind(),
+        ),
         max_features_processed_per_batch=[5, 1, 40],
     ),
     MetricTestRuntimeConfig_(
@@ -187,7 +187,7 @@ test_configurations = [
                 [0.0000, 128.0000, 245.3333, 352.0000],
                 [0.0000, 176.0000, 341.3333, 496.0000],
             ]
-        ).unbind(),
+        ),
         expected_asc=torch.tensor(
             [
                 [0.0000, 0.0000, 10.6667, 30.0000],
@@ -195,7 +195,7 @@ test_configurations = [
                 [0.0000, 96.0000, 202.6667, 320.0000],
                 [0.0000, 144.0000, 298.6667, 464.0000],
             ]
-        ).unbind(),
+        ),
         expected_rand=torch.tensor(
             [
                 [0.0000, 12.8000, 26.1333, 41.6000],
@@ -203,7 +203,7 @@ test_configurations = [
                 [0.0000, 108.8000, 218.6667, 332.0000],
                 [0.0000, 156.8000, 314.6667, 476.0000],
             ]
-        ).unbind(),
+        ),
         max_features_processed_per_batch=[5, 1, 40],
     ),
 ]
@@ -217,49 +217,46 @@ test_configurations = [
     indirect=True,
 )
 def test_aopc(metrics_runtime_test_configuration):
-    base_config, runtime_config, explanations = metrics_runtime_test_configuration
-    runtime_config.max_features_processed_per_batch = _format_to_list(
+    base_config, runtime_config, explanation_step_outputs = (
+        metrics_runtime_test_configuration
+    )
+    max_features_processed_per_batch = _format_to_list(
         runtime_config.max_features_processed_per_batch
     )
-    runtime_config.expected_desc = _format_to_list(runtime_config.expected_desc)
-    runtime_config.expected_asc = _format_to_list(runtime_config.expected_asc)
-    runtime_config.expected_rand = _format_to_list(runtime_config.expected_rand)
+    expected_desc = _format_to_list(runtime_config.expected_desc)
+    expected_asc = _format_to_list(runtime_config.expected_asc)
+    expected_rand = _format_to_list(runtime_config.expected_rand)
 
     assert (
-        len(runtime_config.max_features_processed_per_batch)
-        == len(runtime_config.expected_desc)
-        or len(runtime_config.expected_desc) == 1
+        len(max_features_processed_per_batch) == len(expected_desc)
+        or len(expected_desc) == 1
     )
-    assert (
-        len(runtime_config.expected_desc)
-        == len(runtime_config.expected_asc)
-        == len(runtime_config.expected_rand)
-    )
+    assert len(expected_desc) == len(expected_asc) == len(expected_rand)
 
     aopcs_desc_list = []
     aopcs_asc_list = []
     aopcs_rand_list = []
     for max_features, curr_expected_desc, curr_expected_asc, curr_expected_rand in zip(
-        runtime_config.max_features_processed_per_batch,
-        itertools.cycle(runtime_config.expected_desc),
-        itertools.cycle(runtime_config.expected_asc),
-        itertools.cycle(runtime_config.expected_rand),
+        max_features_processed_per_batch,
+        itertools.cycle(expected_desc),
+        itertools.cycle(expected_asc),
+        itertools.cycle(expected_rand),
     ):
         _set_all_random_seeds(1234)
+        kwargs = _get_metric_inputs(
+            base_config, runtime_config, explanation_step_outputs
+        )
+        kwargs = {
+            k: v for k, v in kwargs.items() if k in inspect.signature(aopc).parameters
+        }
         aopc_output = aopc(
-            forward_func=base_config.model,
-            inputs=base_config.inputs,
-            attributions=explanations,
-            baselines=base_config.baselines,
-            feature_mask=base_config.feature_mask,
-            additional_forward_args=base_config.additional_forward_args,
-            target=base_config.target,
+            **kwargs,
             max_features_processed_per_batch=max_features,
             total_feature_bins=runtime_config.total_features_perturbed,
             seed=42,
             return_dict=True,
         )
-        explanations_flattened, _ = _tuple_tensors_to_tensors(explanations)
+        explanations_flattened, _ = _tuple_tensors_to_tensors(kwargs["attributions"])
 
         # take mean over random runs
         aopc_output["rand"] = [x.mean(0) for x in aopc_output["rand"]]
@@ -292,15 +289,20 @@ def test_aopc(metrics_runtime_test_configuration):
                 f"The output size of aopcs is invalid. Expected: {expected_output_size}, Got: {aopc_scores[0].shape[0]}"
             )
 
-        for output, expected in zip(aopc_output["desc"], curr_expected_desc):
+        for output, expected in zip(
+            aopc_output["desc"], curr_expected_desc, strict=True
+        ):
+            print('aopc_output["desc"]', aopc_output["desc"], curr_expected_desc)
             _assert_tensor_almost_equal(
                 output.float(), expected.float(), delta=runtime_config.delta
             )
-        for output, expected in zip(aopc_output["asc"], curr_expected_asc):
+        for output, expected in zip(aopc_output["asc"], curr_expected_asc, strict=True):
             _assert_tensor_almost_equal(
                 output.float(), expected.float(), delta=runtime_config.delta
             )
-        for output, expected in zip(aopc_output["rand"], curr_expected_rand):
+        for output, expected in zip(
+            aopc_output["rand"], curr_expected_rand, strict=True
+        ):
             _assert_tensor_almost_equal(
                 output.float(), expected.float(), delta=runtime_config.delta
             )

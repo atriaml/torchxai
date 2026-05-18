@@ -1,13 +1,16 @@
-import dataclasses
+import inspect
 
 import pytest  # noqa
+from pydantic import Field
 
+from tests.fixtures._metric import _get_metric_inputs
 from tests.utils.common import (
     _assert_tensor_almost_equal,
     _grid_segmenter,
     _set_all_random_seeds,
 )
 from tests.utils.configs import RuntimeTestConfig
+from torchxai.data_types._target import SingleTargetAcrossBatch
 from torchxai.metrics import aopc
 
 
@@ -17,33 +20,34 @@ def _format_to_list(value):
     return value
 
 
-@dataclasses.dataclass
 class MetricTestRuntimeConfig_(RuntimeTestConfig):
-    max_features_processed_per_batch: int = None
-    total_features_perturbed: int = 10
-    set_image_feature_mask: bool = True
-    test_name: str = "classification_alexnet_model"
-    explainerstr = "saliency"
-    override_target: list[int] = dataclasses.field(default_factory=lambda: [0, 1, 2])
-    explainer_kwargs: dict = dataclasses.field(
-        default_factory=lambda: {"is_multi_target": True}
-    )
-    delta: float = 1e-8
-    max_features_processed_per_batch: list[int] = dataclasses.field(
+    max_features_processed_per_batch: int | list[int | None] | None = Field(
         default_factory=lambda: [5, 1, 40]
     )
+    total_features_perturbed: int = 10
+    set_image_feature_mask: bool = True
+    delta: float = 1e-8
+    multi_target: bool = True
 
 
 test_configurations = [
-    MetricTestRuntimeConfig_(target_fixture="classification_alexnet_model_config"),
     MetricTestRuntimeConfig_(
-        test_name="classification_alexnet_model",
+        target_fixture="classification_alexnet_model_config",
+        explainer="saliency",
+        override_target=[
+            SingleTargetAcrossBatch(index=0),
+            SingleTargetAcrossBatch(index=1),
+            SingleTargetAcrossBatch(index=2),
+        ],
+    ),
+    MetricTestRuntimeConfig_(
         target_fixture="classification_alexnet_model_config",
         explainer="integrated_gradients",
-        override_target=[0, 1, 2],
-        explainer_kwargs={"is_multi_target": True},
-        delta=1e-8,
-        max_features_processed_per_batch=[5, 1, 40],
+        override_target=[
+            SingleTargetAcrossBatch(index=0),
+            SingleTargetAcrossBatch(index=1),
+            SingleTargetAcrossBatch(index=2),
+        ],
     ),
 ]
 
@@ -56,51 +60,50 @@ test_configurations = [
     indirect=True,
 )
 def test_aopc_multi_target(metrics_runtime_test_configuration):
-    base_config, runtime_config, explanations = metrics_runtime_test_configuration
-
-    assert len(explanations) == len(runtime_config.override_target), (
-        "Number of explanations should be equal to the number of targets"
+    base_config, runtime_config, explanation_step_outputs = (
+        metrics_runtime_test_configuration
     )
+    assert len(explanation_step_outputs.explanations) == len(
+        runtime_config.override_target
+    ), "Number of explanations should be equal to the number of targets"
+
+    kwargs = _get_metric_inputs(base_config, runtime_config, explanation_step_outputs)
+    kwargs = {
+        k: v for k, v in kwargs.items() if k in inspect.signature(aopc).parameters
+    }
 
     if runtime_config.set_image_feature_mask:
-        base_config.feature_mask = _grid_segmenter(base_config.inputs, cell_size=32)
-        base_config.feature_mask = base_config.feature_mask.expand_as(
-            base_config.inputs
-        )
+        kwargs["feature_mask"] = _grid_segmenter(
+            base_config.explanation_inputs.inputs[0], cell_size=32
+        ).expand_as(base_config.explanation_inputs.inputs[0])
 
-    runtime_config.max_features_processed_per_batch = _format_to_list(
+    max_features_processed_per_batch = _format_to_list(
         runtime_config.max_features_processed_per_batch
     )
 
-    for max_features in runtime_config.max_features_processed_per_batch:
+    attributions_list = kwargs.pop("attributions")
+    targets_list = kwargs.pop("target")
+    for max_features in max_features_processed_per_batch:
         _set_all_random_seeds(1234)
         desc_batch_list_1, asc_batch_list_1, rand_batch_list_1, _, _, _ = aopc(
-            forward_func=base_config.model,
-            inputs=base_config.inputs,
-            attributions=explanations,
-            baselines=base_config.baselines,
-            feature_mask=base_config.feature_mask,
-            additional_forward_args=base_config.additional_forward_args,
-            target=base_config.target,
+            **kwargs,
+            attributions=attributions_list,
+            target=targets_list,
             max_features_processed_per_batch=max_features,
             total_feature_bins=runtime_config.total_features_perturbed,
             seed=42,
-            is_multi_target=True,
+            multi_target=True,
             return_dict=False,
         )
         _set_all_random_seeds(1234)
         desc_batch_list_2 = []
         asc_batch_list_2 = []
         rand_batch_list_2 = []
-        for explanation, target in zip(explanations, runtime_config.override_target):
+        for attributions, target in zip(attributions_list, targets_list, strict=True):
             output = aopc(
-                forward_func=base_config.model,
-                inputs=base_config.inputs,
-                attributions=explanation,
-                baselines=base_config.baselines,
-                feature_mask=base_config.feature_mask,
-                additional_forward_args=base_config.additional_forward_args,
+                attributions=attributions,
                 target=target,
+                **kwargs,
                 max_features_processed_per_batch=max_features,
                 total_feature_bins=runtime_config.total_features_perturbed,
                 seed=42,

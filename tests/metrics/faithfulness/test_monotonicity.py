@@ -1,9 +1,10 @@
-import dataclasses
+import inspect
 import itertools
 
 import pytest  # noqa
 import torch
 
+from tests.fixtures._metric import _get_metric_inputs
 from tests.utils.common import (
     _assert_all_tensors_almost_equal,
     _assert_tensor_almost_equal,
@@ -20,9 +21,8 @@ def _format_to_list(value):
     return value
 
 
-@dataclasses.dataclass
 class MetricTestRuntimeConfig_(RuntimeTestConfig):
-    max_features_processed_per_batch: int = None
+    max_features_processed_per_batch: int | list[int | None] | None = None
     device: str = "cpu"
 
 
@@ -99,33 +99,31 @@ test_configurations = [
     indirect=True,
 )
 def test_monotonicity(metrics_runtime_test_configuration):
-    base_config, runtime_config, explanations = metrics_runtime_test_configuration
-
-    runtime_config.max_features_processed_per_batch = _format_to_list(
+    base_config, runtime_config, explanation_step_outputs = (
+        metrics_runtime_test_configuration
+    )
+    max_features_processed_per_batch = _format_to_list(
         runtime_config.max_features_processed_per_batch
     )
-    runtime_config.expected = _format_to_list(runtime_config.expected)
+    expected = _format_to_list(runtime_config.expected)
 
-    assert (
-        len(runtime_config.max_features_processed_per_batch)
-        == len(runtime_config.expected)
-        or len(runtime_config.expected) == 1
-    )
+    assert len(max_features_processed_per_batch) == len(expected) or len(expected) == 1
 
     fwds_per_run = []
     for max_features, curr_expected in zip(
-        runtime_config.max_features_processed_per_batch,
-        itertools.cycle(runtime_config.expected),
+        max_features_processed_per_batch, itertools.cycle(expected)
     ):
         _set_all_random_seeds(1234)
+        kwargs = _get_metric_inputs(
+            base_config, runtime_config, explanation_step_outputs
+        )
+        kwargs = {
+            k: v
+            for k, v in kwargs.items()
+            if k in inspect.signature(monotonicity).parameters
+        }
         (monotonicity_result, fwds) = monotonicity(
-            forward_func=base_config.model,
-            inputs=base_config.inputs,
-            attributions=explanations,
-            baselines=base_config.baselines,
-            feature_mask=base_config.feature_mask,
-            additional_forward_args=base_config.additional_forward_args,
-            target=base_config.target,
+            **kwargs,
             max_features_processed_per_batch=max_features,
             return_intermediate_results=True,
         )
@@ -135,7 +133,7 @@ def test_monotonicity(metrics_runtime_test_configuration):
             delta=runtime_config.delta,
             mode="mean",
         )
-        explanations_flattened, _ = _tuple_tensors_to_tensors(explanations)
+        explanations_flattened, _ = _tuple_tensors_to_tensors(kwargs["attributions"])
         assert len(fwds) == explanations_flattened.shape[0], (
             "The number of samples in the fwds must match the number of output explanations"
             "which is the same as the input batch size."

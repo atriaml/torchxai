@@ -1,10 +1,11 @@
-import dataclasses
+import inspect
 import itertools
 from collections.abc import Callable
 
 import pytest  # noqa
 import torch
 
+from tests.fixtures._metric import _get_metric_inputs
 from tests.utils.common import (
     _assert_all_tensors_almost_equal,
     _assert_tensor_almost_equal,
@@ -25,14 +26,13 @@ def _format_to_list(value):
     return value
 
 
-@dataclasses.dataclass
 class MetricTestRuntimeConfig_(RuntimeTestConfig):
     perturb_func: Callable = default_random_perturb_func()
-    n_perturb_samples: int = 10
-    max_examples_per_batch: int = None
+    n_perturb_samples: int | list[int | None] | None = 10
+    max_examples_per_batch: int | list[int | None] | None = None
     percent_features_perturbed: float = 0.5
     assert_across_runs: bool = True
-    set_fixed_baseline_of_type: bool = False
+    set_fixed_baseline_of_type: str | None = None
     device: str = "cpu"
 
 
@@ -384,6 +384,7 @@ test_configurations = [
         assert_across_runs=False,
         perturb_func=default_fixed_baseline_perturb_func(),  # here we use random function but use the underlying fixed baseline
         set_fixed_baseline_of_type="random",
+        delta=0.2,
     ),
     MetricTestRuntimeConfig_(
         test_name="random_baseline_fn",
@@ -444,6 +445,7 @@ test_configurations = [
         assert_across_runs=False,
         perturb_func=default_fixed_baseline_perturb_func(),  # here we use random function but use the underlying fixed baseline
         set_fixed_baseline_of_type="random",
+        delta=0.2,
     ),
     # results can be different across runs due to randomness in perturbation
     MetricTestRuntimeConfig_(
@@ -505,6 +507,7 @@ test_configurations = [
         assert_across_runs=False,
         perturb_func=default_fixed_baseline_perturb_func(),  # here we use random function but use the underlying fixed baseline
         set_fixed_baseline_of_type="random",
+        delta=0.2,
     ),
 ]
 
@@ -517,37 +520,36 @@ test_configurations = [
     indirect=True,
 )
 def test_faithfulness_corr(metrics_runtime_test_configuration):
-    base_config, runtime_config, explanations = metrics_runtime_test_configuration
-    runtime_config.n_perturb_samples = _format_to_list(runtime_config.n_perturb_samples)
-    runtime_config.max_examples_per_batch = _format_to_list(
-        runtime_config.max_examples_per_batch
+    base_config, runtime_config, explanation_step_outputs = (
+        metrics_runtime_test_configuration
     )
-    runtime_config.expected = _format_to_list(runtime_config.expected)
+    n_perturb_samples = _format_to_list(runtime_config.n_perturb_samples)
+    max_examples_per_batch = _format_to_list(runtime_config.max_examples_per_batch)
+    expected = _format_to_list(runtime_config.expected)
 
-    assert len(runtime_config.n_perturb_samples) == len(
-        runtime_config.max_examples_per_batch
-    )
-    assert (
-        len(runtime_config.n_perturb_samples) == len(runtime_config.expected)
-        or len(runtime_config.expected) == 1
-    )
+    assert len(n_perturb_samples) == len(max_examples_per_batch)
+    assert len(n_perturb_samples) == len(expected) or len(expected) == 1
 
     perturbation_baseline = None
     if runtime_config.set_fixed_baseline_of_type is not None:
         if runtime_config.set_fixed_baseline_of_type == "zero":
-            if isinstance(base_config.inputs, tuple):
+            if isinstance(base_config.explanation_inputs.inputs, tuple):
                 perturbation_baseline = tuple(
-                    torch.zeros_like(x) for x in base_config.inputs
+                    torch.zeros_like(x) for x in base_config.explanation_inputs.inputs
                 )
             else:
-                perturbation_baseline = torch.zeros_like(base_config.inputs)
+                perturbation_baseline = torch.zeros_like(
+                    base_config.explanation_inputs.inputs
+                )
         elif runtime_config.set_fixed_baseline_of_type == "random":
-            if isinstance(base_config.inputs, tuple):
+            if isinstance(base_config.explanation_inputs.inputs, tuple):
                 perturbation_baseline = tuple(
-                    torch.rand_like(x) for x in base_config.inputs
+                    torch.rand_like(x) for x in base_config.explanation_inputs.inputs
                 )
             else:
-                perturbation_baseline = torch.rand_like(base_config.inputs)
+                perturbation_baseline = torch.rand_like(
+                    base_config.explanation_inputs.inputs
+                )
 
     faithfulness_per_run, attribution_sums_per_run, perturbation_fwds_per_run = (
         [],
@@ -555,20 +557,21 @@ def test_faithfulness_corr(metrics_runtime_test_configuration):
         [],
     )
     for n_perturbs, max_examples, curr_expected in zip(
-        runtime_config.n_perturb_samples,
-        runtime_config.max_examples_per_batch,
-        itertools.cycle(runtime_config.expected),
+        n_perturb_samples, max_examples_per_batch, itertools.cycle(expected)
     ):
         _set_all_random_seeds(1234)
+        kwargs = _get_metric_inputs(
+            base_config, runtime_config, explanation_step_outputs
+        )
+        kwargs = {
+            k: v
+            for k, v in kwargs.items()
+            if k in inspect.signature(faithfulness_corr).parameters
+        }
+        kwargs["baselines"] = perturbation_baseline
         faithfulness_corr_score, attribution_sums, perturbation_fwds = (
             faithfulness_corr(
-                forward_func=base_config.model,
-                inputs=base_config.inputs,
-                attributions=explanations,
-                baselines=perturbation_baseline,
-                feature_mask=base_config.feature_mask,
-                additional_forward_args=base_config.additional_forward_args,
-                target=base_config.target,
+                **kwargs,
                 perturb_func=runtime_config.perturb_func,
                 n_perturb_samples=n_perturbs,
                 max_examples_per_batch=max_examples,
@@ -577,10 +580,10 @@ def test_faithfulness_corr(metrics_runtime_test_configuration):
             )
         )
 
-        if isinstance(base_config.inputs, tuple):
-            bsz = base_config.inputs[0].shape[0]
+        if isinstance(base_config.explanation_inputs.inputs, tuple):
+            bsz = base_config.explanation_inputs.inputs[0].shape[0]
         else:
-            bsz = base_config.inputs.shape[0]
+            bsz = base_config.explanation_inputs.inputs.shape[0]
 
         assert (
             list(attribution_sums.shape)

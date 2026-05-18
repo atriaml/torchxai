@@ -87,7 +87,7 @@ def _assert_tensor_almost_equal(
     if not isinstance(expected, torch.Tensor):
         expected = torch.tensor(expected, dtype=actual.dtype)
     assert actual.shape == expected.shape, (
-        f"Expected tensor with shape: {expected.shape}. Actual shape {actual.shape}."
+        f"Expected tensor with shape: {expected.shape}. Actual shape {actual.shape}. Actual: {actual}, Expected: {expected}"
     )
     actual = actual.cpu().float()
     expected = expected.cpu().float()

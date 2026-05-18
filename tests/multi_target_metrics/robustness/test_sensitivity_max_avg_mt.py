@@ -1,5 +1,5 @@
 import inspect
-from dataclasses import dataclass, field
+from dataclasses import field
 
 import pytest
 import torch  # noqa
@@ -9,7 +9,6 @@ from tests.utils.configs import RuntimeTestConfig
 from torchxai.metrics import sensitivity_max_and_avg
 
 
-@dataclass
 class MetricTestRuntimeConfig(RuntimeTestConfig):
     test_name: str = "compare_multi_target_to_single_target"
     explainer: str = "saliency"
