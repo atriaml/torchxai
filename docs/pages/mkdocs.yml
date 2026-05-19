@@ -1,6 +1,6 @@
 site_name: "TorchXAI"
 site_description: Explainable AI library for PyTorch
-site_url: "https://github.com/torchxai/docs"
+site_url: "https://github.com/torchxai/"
 site_author: "Saifullah Saifullah"
 dev_addr: "127.0.0.1:8080"
 repo_url: https://github.com/saifullah3396/torchxai
