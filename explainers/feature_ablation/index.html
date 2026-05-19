@@ -977,7 +977,7 @@ removes features or feature groups and measures the resulting change in model ou
 This direct approach provides intuitive explanations by showing exactly how much
 each feature contributes to the prediction. The method supports feature grouping
 through masks, allowing for hierarchical ablation studies. Supports both single-target
-and multi-target modes with structured input/output.</p>
+and multi-target modes for both single-target and multi-target scenarios.</p>
 <p>Feature Ablation provides the most direct measure of feature importance through
 systematic removal and impact measurement.</p>
 
@@ -1029,37 +1029,34 @@ when using feature masks. Defaults to False.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <p>Single-target usage for tabular data:</p>
+    <p>Single-target usage without mask (feature-level):</p>
     <div class="codehilite"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.data_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExplanationInputs</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.data_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">SingleTargetAcrossBatch</span>
 <span class="gp">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">explainer</span> <span class="o">=</span> <span class="n">FeatureAblationExplainer</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">attributions</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">inputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">target</span><span class="o">=</span><span class="n">SingleTargetAcrossBatch</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
 <span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">explainer</span> <span class="o">=</span> <span class="n">FeatureAblationExplainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">internal_batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">explanation_inputs</span> <span class="o">=</span> <span class="n">ExplanationInputs</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">inputs</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}),</span>
-<span class="gp">... </span>    <span class="n">target</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
-<span class="gp">... </span>    <span class="n">baselines</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}),</span>
-<span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">attributions</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">explanation_inputs</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Returns: OrderedDict({&quot;features&quot;: torch.Tensor})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">attributions</span><span class="o">.</span><span class="n">shape</span>   <span class="c1"># (1, 10)</span>
 </code></pre></div>
-    <p>Multi-target usage with feature grouping:</p>
-    <div class="codehilite"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">explainer_mt</span> <span class="o">=</span> <span class="n">FeatureAblationExplainer</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">model</span><span class="p">,</span> <span class="n">multi_target</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">weight_attributions</span><span class="o">=</span><span class="kc">True</span>
-<span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">feature_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">explanation_inputs_mt</span> <span class="o">=</span> <span class="n">ExplanationInputs</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">inputs</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}),</span>
-<span class="gp">... </span>    <span class="n">target</span><span class="o">=</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])],</span>
-<span class="gp">... </span>    <span class="n">baselines</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}),</span>
+    <p>With a feature mask (group-level attribution):</p>
+    <div class="codehilite"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">feature_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">attributions_grouped</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">inputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
 <span class="gp">... </span>    <span class="n">feature_mask</span><span class="o">=</span><span class="n">feature_mask</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">target</span><span class="o">=</span><span class="n">SingleTargetAcrossBatch</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
 <span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">mt_attributions</span> <span class="o">=</span> <span class="n">explainer_mt</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">explanation_inputs_mt</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Returns: [OrderedDict({&quot;features&quot;: torch.Tensor}), OrderedDict({&quot;features&quot;: torch.Tensor})]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">attributions_grouped</span><span class="o">.</span><span class="n">shape</span>   <span class="c1"># (1, 10)</span>
+</code></pre></div>
+    <p>Multi-target usage:</p>
+    <div class="codehilite"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">explainer_mt</span> <span class="o">=</span> <span class="n">FeatureAblationExplainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">multi_target</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mt_attributions</span> <span class="o">=</span> <span class="n">explainer_mt</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">inputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">target</span><span class="o">=</span><span class="p">[</span><span class="n">SingleTargetAcrossBatch</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">SingleTargetAcrossBatch</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="mi">1</span><span class="p">)],</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">mt_attributions</span><span class="p">),</span> <span class="n">mt_attributions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>   <span class="c1"># 2, (1, 10)</span>
 </code></pre></div>
 
           
@@ -1280,16 +1277,7 @@ when using feature masks. Defaults to False.</p>
 <span class="normal">838</span>
 <span class="normal">839</span>
 <span class="normal">840</span>
-<span class="normal">841</span>
-<span class="normal">842</span>
-<span class="normal">843</span>
-<span class="normal">844</span>
-<span class="normal">845</span>
-<span class="normal">846</span>
-<span class="normal">847</span>
-<span class="normal">848</span>
-<span class="normal">849</span>
-<span class="normal">850</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FeatureAblationExplainer</span><span class="p">(</span><span class="n">FeatureAttributionExplainer</span><span class="p">):</span>
+<span class="normal">841</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FeatureAblationExplainer</span><span class="p">(</span><span class="n">FeatureAttributionExplainer</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Feature Ablation explainer for computing systematic feature removal attributions.</span>
 
 <span class="sd">    This explainer computes attributions using Feature Ablation, which systematically</span>
@@ -1297,7 +1285,7 @@ when using feature masks. Defaults to False.</p>
 <span class="sd">    This direct approach provides intuitive explanations by showing exactly how much</span>
 <span class="sd">    each feature contributes to the prediction. The method supports feature grouping</span>
 <span class="sd">    through masks, allowing for hierarchical ablation studies. Supports both single-target</span>
-<span class="sd">    and multi-target modes with structured input/output.</span>
+<span class="sd">    and multi-target modes for both single-target and multi-target scenarios.</span>
 
 <span class="sd">    Feature Ablation provides the most direct measure of feature importance through</span>
 <span class="sd">    systematic removal and impact measurement.</span>
@@ -1312,37 +1300,34 @@ when using feature masks. Defaults to False.</p>
 <span class="sd">            when using feature masks. Defaults to False.</span>
 
 <span class="sd">    Examples:</span>
-<span class="sd">        Single-target usage for tabular data:</span>
+<span class="sd">        Single-target usage without mask (feature-level):</span>
 <span class="sd">        &gt;&gt;&gt; import torch</span>
-<span class="sd">        &gt;&gt;&gt; from collections import OrderedDict</span>
-<span class="sd">        &gt;&gt;&gt; from torchxai.data_types import ExplanationInputs</span>
+<span class="sd">        &gt;&gt;&gt; from torchxai.data_types import SingleTargetAcrossBatch</span>
 <span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; model = torch.nn.Sequential(</span>
-<span class="sd">        ...     torch.nn.Linear(10, 5), torch.nn.ReLU(), torch.nn.Linear(5, 2)</span>
+<span class="sd">        &gt;&gt;&gt; model = torch.nn.Linear(10, 2)</span>
+<span class="sd">        &gt;&gt;&gt; explainer = FeatureAblationExplainer(model)</span>
+<span class="sd">        &gt;&gt;&gt; attributions = explainer.explain(</span>
+<span class="sd">        ...     inputs=torch.randn(1, 10),</span>
+<span class="sd">        ...     target=SingleTargetAcrossBatch(index=0),</span>
 <span class="sd">        ... )</span>
-<span class="sd">        &gt;&gt;&gt; explainer = FeatureAblationExplainer(model, internal_batch_size=32)</span>
-<span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; explanation_inputs = ExplanationInputs(</span>
-<span class="sd">        ...     inputs=OrderedDict({&quot;features&quot;: torch.randn(2, 10)}),</span>
-<span class="sd">        ...     target=torch.tensor([0, 1]),</span>
-<span class="sd">        ...     baselines=OrderedDict({&quot;features&quot;: torch.zeros(2, 10)}),</span>
-<span class="sd">        ... )</span>
-<span class="sd">        &gt;&gt;&gt; attributions = explainer.explain(explanation_inputs)</span>
-<span class="sd">        &gt;&gt;&gt; # Returns: OrderedDict({&quot;features&quot;: torch.Tensor})</span>
+<span class="sd">        &gt;&gt;&gt; attributions.shape   # (1, 10)</span>
 
-<span class="sd">        Multi-target usage with feature grouping:</span>
-<span class="sd">        &gt;&gt;&gt; explainer_mt = FeatureAblationExplainer(</span>
-<span class="sd">        ...     model, multi_target=True, weight_attributions=True</span>
-<span class="sd">        ... )</span>
+<span class="sd">        With a feature mask (group-level attribution):</span>
 <span class="sd">        &gt;&gt;&gt; feature_mask = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 4]])</span>
-<span class="sd">        &gt;&gt;&gt; explanation_inputs_mt = ExplanationInputs(</span>
-<span class="sd">        ...     inputs=OrderedDict({&quot;features&quot;: torch.randn(2, 10)}),</span>
-<span class="sd">        ...     target=[torch.tensor([0, 1]), torch.tensor([1, 0])],</span>
-<span class="sd">        ...     baselines=OrderedDict({&quot;features&quot;: torch.zeros(2, 10)}),</span>
+<span class="sd">        &gt;&gt;&gt; attributions_grouped = explainer.explain(</span>
+<span class="sd">        ...     inputs=torch.randn(1, 10),</span>
 <span class="sd">        ...     feature_mask=feature_mask,</span>
+<span class="sd">        ...     target=SingleTargetAcrossBatch(index=0),</span>
 <span class="sd">        ... )</span>
-<span class="sd">        &gt;&gt;&gt; mt_attributions = explainer_mt.explain(explanation_inputs_mt)</span>
-<span class="sd">        &gt;&gt;&gt; # Returns: [OrderedDict({&quot;features&quot;: torch.Tensor}), OrderedDict({&quot;features&quot;: torch.Tensor})]</span>
+<span class="sd">        &gt;&gt;&gt; attributions_grouped.shape   # (1, 10)</span>
+
+<span class="sd">        Multi-target usage:</span>
+<span class="sd">        &gt;&gt;&gt; explainer_mt = FeatureAblationExplainer(model, multi_target=True)</span>
+<span class="sd">        &gt;&gt;&gt; mt_attributions = explainer_mt.explain(</span>
+<span class="sd">        ...     inputs=torch.randn(1, 10),</span>
+<span class="sd">        ...     target=[SingleTargetAcrossBatch(index=0), SingleTargetAcrossBatch(index=1)],</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; len(mt_attributions), mt_attributions[0].shape   # 2, (1, 10)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">__repr_attrs__</span> <span class="o">=</span> <span class="p">[</span>
@@ -1449,15 +1434,10 @@ when using feature masks. Defaults to False.</p>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorOrTupleOfTensorsGeneric</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">TensorOrTupleOfTensorsGeneric</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute Feature Ablation attributions for the given inputs.</span>
 
-<span class="sd">        This method provides a backward-compatible interface that accepts individual</span>
-<span class="sd">        parameters and constructs ExplanationInputs internally before calling the</span>
-<span class="sd">        parent class explain method.</span>
-
 <span class="sd">        Args:</span>
-<span class="sd">            inputs: Input tensors for attribution computation. Should be an OrderedDict</span>
-<span class="sd">                mapping feature names to tensors when used with this explainer.</span>
-<span class="sd">            target: Target indices for attribution computation. Can be a tensor</span>
-<span class="sd">                (single-target) or list of tensors (multi-target).</span>
+<span class="sd">            inputs: Input tensor(s) for attribution computation.</span>
+<span class="sd">            target: An `ExplanationTargetType` (e.g. `SingleTargetAcrossBatch`) for single-target</span>
+<span class="sd">                mode, or a list of them for multi-target mode.</span>
 <span class="sd">            baselines: Baseline tensors for ablation (typically zeros). If None,</span>
 <span class="sd">                uses zero baselines matching input shape.</span>
 <span class="sd">            feature_mask: Masks representing feature groups for ablation. Features</span>
@@ -1465,8 +1445,7 @@ when using feature masks. Defaults to False.</p>
 <span class="sd">            additional_forward_args: Additional arguments for model forward pass.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            For single-target mode: OrderedDict mapping feature names to attribution tensors.</span>
-<span class="sd">            For multi-target mode: List of OrderedDicts, one per target.</span>
+<span class="sd">            Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.</span>
 
 <span class="sd">        Note:</span>
 <span class="sd">            Feature Ablation directly measures feature importance through systematic removal.</span>
@@ -1526,9 +1505,6 @@ when using feature masks. Defaults to False.</p>
     <div class="doc doc-contents ">
 
         <p>Compute Feature Ablation attributions for the given inputs.</p>
-<p>This method provides a backward-compatible interface that accepts individual
-parameters and constructs ExplanationInputs internally before calling the
-parent class explain method.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1538,8 +1514,7 @@ parent class explain method.</p>
 </h5>              (<code><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span></code>)
           –
           <div class="doc-md-description">
-            <p>Input tensors for attribution computation. Should be an OrderedDict
-mapping feature names to tensors when used with this explainer.</p>
+            <p>Input tensor(s) for attribution computation.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
@@ -1547,8 +1522,8 @@ mapping feature names to tensors when used with this explainer.</p>
 </h5>              (<code><span title="torchxai.data_types.ExplanationTargetType">ExplanationTargetType</span> | <span title="list">list</span>[<span title="torchxai.data_types.ExplanationTargetType">ExplanationTargetType</span>]</code>)
           –
           <div class="doc-md-description">
-            <p>Target indices for attribution computation. Can be a tensor
-(single-target) or list of tensors (multi-target).</p>
+            <p>An <code>ExplanationTargetType</code> (e.g. <code>SingleTargetAcrossBatch</code>) for single-target
+mode, or a list of them for multi-target mode.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
@@ -1592,14 +1567,7 @@ with the same mask value are ablated together as a group.</p>
               <code><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span> | <span title="list">list</span>[<span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span>]</code>
           –
           <div class="doc-md-description">
-            <p>For single-target mode: OrderedDict mapping feature names to attribution tensors.</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-              <code><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span> | <span title="list">list</span>[<span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span>]</code>
-          –
-          <div class="doc-md-description">
-            <p>For multi-target mode: List of OrderedDicts, one per target.</p>
+            <p>Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.</p>
           </div>
         </li>
     </ul>
@@ -1627,7 +1595,10 @@ simultaneously for computational efficiency.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>.venv/lib/python3.11/site-packages/torchxai/explainers/_perturbation/_feature_ablation.py</code></summary>
-              <div class="codehilite"><div class="table-wrapper"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">800</span>
+              <div class="codehilite"><div class="table-wrapper"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">797</span>
+<span class="normal">798</span>
+<span class="normal">799</span>
+<span class="normal">800</span>
 <span class="normal">801</span>
 <span class="normal">802</span>
 <span class="normal">803</span>
@@ -1668,16 +1639,7 @@ simultaneously for computational efficiency.</p>
 <span class="normal">838</span>
 <span class="normal">839</span>
 <span class="normal">840</span>
-<span class="normal">841</span>
-<span class="normal">842</span>
-<span class="normal">843</span>
-<span class="normal">844</span>
-<span class="normal">845</span>
-<span class="normal">846</span>
-<span class="normal">847</span>
-<span class="normal">848</span>
-<span class="normal">849</span>
-<span class="normal">850</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">explain</span><span class="p">(</span>
+<span class="normal">841</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">explain</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">inputs</span><span class="p">:</span> <span class="n">TensorOrTupleOfTensorsGeneric</span><span class="p">,</span>
     <span class="n">target</span><span class="p">:</span> <span class="n">ExplanationTargetType</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">ExplanationTargetType</span><span class="p">],</span>
@@ -1687,15 +1649,10 @@ simultaneously for computational efficiency.</p>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorOrTupleOfTensorsGeneric</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">TensorOrTupleOfTensorsGeneric</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute Feature Ablation attributions for the given inputs.</span>
 
-<span class="sd">    This method provides a backward-compatible interface that accepts individual</span>
-<span class="sd">    parameters and constructs ExplanationInputs internally before calling the</span>
-<span class="sd">    parent class explain method.</span>
-
 <span class="sd">    Args:</span>
-<span class="sd">        inputs: Input tensors for attribution computation. Should be an OrderedDict</span>
-<span class="sd">            mapping feature names to tensors when used with this explainer.</span>
-<span class="sd">        target: Target indices for attribution computation. Can be a tensor</span>
-<span class="sd">            (single-target) or list of tensors (multi-target).</span>
+<span class="sd">        inputs: Input tensor(s) for attribution computation.</span>
+<span class="sd">        target: An `ExplanationTargetType` (e.g. `SingleTargetAcrossBatch`) for single-target</span>
+<span class="sd">            mode, or a list of them for multi-target mode.</span>
 <span class="sd">        baselines: Baseline tensors for ablation (typically zeros). If None,</span>
 <span class="sd">            uses zero baselines matching input shape.</span>
 <span class="sd">        feature_mask: Masks representing feature groups for ablation. Features</span>
@@ -1703,8 +1660,7 @@ simultaneously for computational efficiency.</p>
 <span class="sd">        additional_forward_args: Additional arguments for model forward pass.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        For single-target mode: OrderedDict mapping feature names to attribution tensors.</span>
-<span class="sd">        For multi-target mode: List of OrderedDicts, one per target.</span>
+<span class="sd">        Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.</span>
 
 <span class="sd">    Note:</span>
 <span class="sd">        Feature Ablation directly measures feature importance through systematic removal.</span>

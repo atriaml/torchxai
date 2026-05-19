@@ -977,7 +977,7 @@ with specific weighting and sampling strategies to efficiently compute Shapley v
 Kernel SHAP provides theoretically grounded explanations that satisfy Shapley value
 axioms (efficiency, symmetry, dummy, additivity) while being more computationally
 efficient than direct Shapley value computation. Supports both single-target and
-multi-target modes with structured input/output.</p>
+multi-target modes for both single-target and multi-target scenarios.</p>
 <p>Kernel SHAP is particularly effective for tabular data and provides globally
 consistent explanations across different inputs.</p>
 
@@ -1040,33 +1040,34 @@ when using feature masks. Defaults to True.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <p>Single-target usage for tabular data:</p>
+    <p>Single-target usage without mask (feature-level):</p>
     <div class="codehilite"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.data_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExplanationInputs</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.data_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">SingleTargetAcrossBatch</span>
 <span class="gp">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">explainer</span> <span class="o">=</span> <span class="n">KernelShapExplainer</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">attributions</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">inputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">target</span><span class="o">=</span><span class="n">SingleTargetAcrossBatch</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
 <span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">explainer</span> <span class="o">=</span> <span class="n">KernelShapExplainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">explanation_inputs</span> <span class="o">=</span> <span class="n">ExplanationInputs</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">inputs</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}),</span>
-<span class="gp">... </span>    <span class="n">target</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">1</span><span class="p">]),</span>
-<span class="gp">... </span>    <span class="n">baselines</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}),</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">attributions</span><span class="o">.</span><span class="n">shape</span>   <span class="c1"># (1, 10)</span>
+</code></pre></div>
+    <p>With a feature mask (group-level attribution):</p>
+    <div class="codehilite"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">feature_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">attributions_grouped</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">inputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">feature_mask</span><span class="o">=</span><span class="n">feature_mask</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">target</span><span class="o">=</span><span class="n">SingleTargetAcrossBatch</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
 <span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">attributions</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">explanation_inputs</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Returns: OrderedDict({&quot;features&quot;: torch.Tensor})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">attributions_grouped</span><span class="o">.</span><span class="n">shape</span>   <span class="c1"># (1, 10)</span>
 </code></pre></div>
     <p>Multi-target usage:</p>
-    <div class="codehilite"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">explainer_mt</span> <span class="o">=</span> <span class="n">KernelShapExplainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">multi_target</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">explanation_inputs_mt</span> <span class="o">=</span> <span class="n">ExplanationInputs</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">inputs</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}),</span>
-<span class="gp">... </span>    <span class="n">target</span><span class="o">=</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">]),</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">1</span><span class="p">])],</span>
-<span class="gp">... </span>    <span class="n">baselines</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}),</span>
+    <div class="codehilite"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">explainer_mt</span> <span class="o">=</span> <span class="n">KernelShapExplainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">multi_target</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mt_attributions</span> <span class="o">=</span> <span class="n">explainer_mt</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">inputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
+<span class="gp">... </span>    <span class="n">target</span><span class="o">=</span><span class="p">[</span><span class="n">SingleTargetAcrossBatch</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">SingleTargetAcrossBatch</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="mi">1</span><span class="p">)],</span>
 <span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">mt_attributions</span> <span class="o">=</span> <span class="n">explainer_mt</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">explanation_inputs_mt</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Returns: [OrderedDict({&quot;features&quot;: torch.Tensor}), OrderedDict({&quot;features&quot;: torch.Tensor})]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">mt_attributions</span><span class="p">),</span> <span class="n">mt_attributions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>   <span class="c1"># 2, (1, 10)</span>
 </code></pre></div>
 
           
@@ -1294,12 +1295,7 @@ when using feature masks. Defaults to True.</p>
 <span class="normal">418</span>
 <span class="normal">419</span>
 <span class="normal">420</span>
-<span class="normal">421</span>
-<span class="normal">422</span>
-<span class="normal">423</span>
-<span class="normal">424</span>
-<span class="normal">425</span>
-<span class="normal">426</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">KernelShapExplainer</span><span class="p">(</span><span class="n">FeatureAttributionExplainer</span><span class="p">):</span>
+<span class="normal">421</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">KernelShapExplainer</span><span class="p">(</span><span class="n">FeatureAttributionExplainer</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Kernel SHAP explainer for computing Shapley values using LIME framework.</span>
 
 <span class="sd">    This explainer computes attributions using Kernel SHAP, which uses the LIME framework</span>
@@ -1307,7 +1303,7 @@ when using feature masks. Defaults to True.</p>
 <span class="sd">    Kernel SHAP provides theoretically grounded explanations that satisfy Shapley value</span>
 <span class="sd">    axioms (efficiency, symmetry, dummy, additivity) while being more computationally</span>
 <span class="sd">    efficient than direct Shapley value computation. Supports both single-target and</span>
-<span class="sd">    multi-target modes with structured input/output.</span>
+<span class="sd">    multi-target modes for both single-target and multi-target scenarios.</span>
 
 <span class="sd">    Kernel SHAP is particularly effective for tabular data and provides globally</span>
 <span class="sd">    consistent explanations across different inputs.</span>
@@ -1324,33 +1320,34 @@ when using feature masks. Defaults to True.</p>
 <span class="sd">            when using feature masks. Defaults to True.</span>
 
 <span class="sd">    Examples:</span>
-<span class="sd">        Single-target usage for tabular data:</span>
+<span class="sd">        Single-target usage without mask (feature-level):</span>
 <span class="sd">        &gt;&gt;&gt; import torch</span>
-<span class="sd">        &gt;&gt;&gt; from collections import OrderedDict</span>
-<span class="sd">        &gt;&gt;&gt; from torchxai.data_types import ExplanationInputs</span>
+<span class="sd">        &gt;&gt;&gt; from torchxai.data_types import SingleTargetAcrossBatch</span>
 <span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; model = torch.nn.Sequential(</span>
-<span class="sd">        ...     torch.nn.Linear(10, 5), torch.nn.ReLU(), torch.nn.Linear(5, 2)</span>
+<span class="sd">        &gt;&gt;&gt; model = torch.nn.Linear(10, 2)</span>
+<span class="sd">        &gt;&gt;&gt; explainer = KernelShapExplainer(model)</span>
+<span class="sd">        &gt;&gt;&gt; attributions = explainer.explain(</span>
+<span class="sd">        ...     inputs=torch.randn(1, 10),</span>
+<span class="sd">        ...     target=SingleTargetAcrossBatch(index=0),</span>
 <span class="sd">        ... )</span>
-<span class="sd">        &gt;&gt;&gt; explainer = KernelShapExplainer(model, n_samples=500)</span>
-<span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; explanation_inputs = ExplanationInputs(</span>
-<span class="sd">        ...     inputs=OrderedDict({&quot;features&quot;: torch.randn(1, 10)}),</span>
-<span class="sd">        ...     target=torch.tensor([1]),</span>
-<span class="sd">        ...     baselines=OrderedDict({&quot;features&quot;: torch.zeros(1, 10)}),</span>
+<span class="sd">        &gt;&gt;&gt; attributions.shape   # (1, 10)</span>
+
+<span class="sd">        With a feature mask (group-level attribution):</span>
+<span class="sd">        &gt;&gt;&gt; feature_mask = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 4]])</span>
+<span class="sd">        &gt;&gt;&gt; attributions_grouped = explainer.explain(</span>
+<span class="sd">        ...     inputs=torch.randn(1, 10),</span>
+<span class="sd">        ...     feature_mask=feature_mask,</span>
+<span class="sd">        ...     target=SingleTargetAcrossBatch(index=0),</span>
 <span class="sd">        ... )</span>
-<span class="sd">        &gt;&gt;&gt; attributions = explainer.explain(explanation_inputs)</span>
-<span class="sd">        &gt;&gt;&gt; # Returns: OrderedDict({&quot;features&quot;: torch.Tensor})</span>
+<span class="sd">        &gt;&gt;&gt; attributions_grouped.shape   # (1, 10)</span>
 
 <span class="sd">        Multi-target usage:</span>
-<span class="sd">        &gt;&gt;&gt; explainer_mt = KernelShapExplainer(model, multi_target=True, n_samples=500)</span>
-<span class="sd">        &gt;&gt;&gt; explanation_inputs_mt = ExplanationInputs(</span>
-<span class="sd">        ...     inputs=OrderedDict({&quot;features&quot;: torch.randn(1, 10)}),</span>
-<span class="sd">        ...     target=[torch.tensor([0]), torch.tensor([1])],</span>
-<span class="sd">        ...     baselines=OrderedDict({&quot;features&quot;: torch.zeros(1, 10)}),</span>
+<span class="sd">        &gt;&gt;&gt; explainer_mt = KernelShapExplainer(model, multi_target=True)</span>
+<span class="sd">        &gt;&gt;&gt; mt_attributions = explainer_mt.explain(</span>
+<span class="sd">        ...     inputs=torch.randn(1, 10),</span>
+<span class="sd">        ...     target=[SingleTargetAcrossBatch(index=0), SingleTargetAcrossBatch(index=1)],</span>
 <span class="sd">        ... )</span>
-<span class="sd">        &gt;&gt;&gt; mt_attributions = explainer_mt.explain(explanation_inputs_mt)</span>
-<span class="sd">        &gt;&gt;&gt; # Returns: [OrderedDict({&quot;features&quot;: torch.Tensor}), OrderedDict({&quot;features&quot;: torch.Tensor})]</span>
+<span class="sd">        &gt;&gt;&gt; len(mt_attributions), mt_attributions[0].shape   # 2, (1, 10)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">__repr_attrs__</span> <span class="o">=</span> <span class="p">[</span>
@@ -1459,15 +1456,10 @@ when using feature masks. Defaults to True.</p>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorOrTupleOfTensorsGeneric</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">TensorOrTupleOfTensorsGeneric</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute Kernel SHAP attributions for the given inputs.</span>
 
-<span class="sd">        This method provides a backward-compatible interface that accepts individual</span>
-<span class="sd">        parameters and constructs ExplanationInputs internally before calling the</span>
-<span class="sd">        parent class explain method.</span>
-
 <span class="sd">        Args:</span>
-<span class="sd">            inputs: Input tensors for attribution computation. Should be an OrderedDict</span>
-<span class="sd">                mapping feature names to tensors when used with this explainer.</span>
-<span class="sd">            target: Target indices for attribution computation. Can be a tensor</span>
-<span class="sd">                (single-target) or list of tensors (multi-target).</span>
+<span class="sd">            inputs: Input tensor(s) for attribution computation.</span>
+<span class="sd">            target: An `ExplanationTargetType` (e.g. `SingleTargetAcrossBatch`) for single-target</span>
+<span class="sd">                mode, or a list of them for multi-target mode.</span>
 <span class="sd">            baselines: Baseline tensors for coalition sampling (typically zeros).</span>
 <span class="sd">                If None, uses zero baselines matching input shape.</span>
 <span class="sd">            feature_mask: Masks representing feature groups for aggregation. Features</span>
@@ -1477,8 +1469,7 @@ when using feature masks. Defaults to True.</p>
 <span class="sd">                Useful for special tokens like CLS, SEP in NLP models.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            For single-target mode: OrderedDict mapping feature names to attribution tensors.</span>
-<span class="sd">            For multi-target mode: List of OrderedDicts, one per target.</span>
+<span class="sd">            Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.</span>
 
 <span class="sd">        Note:</span>
 <span class="sd">            Kernel SHAP uses coalition sampling with SHAP-specific weighting to estimate</span>
@@ -1540,9 +1531,6 @@ when using feature masks. Defaults to True.</p>
     <div class="doc doc-contents ">
 
         <p>Compute Kernel SHAP attributions for the given inputs.</p>
-<p>This method provides a backward-compatible interface that accepts individual
-parameters and constructs ExplanationInputs internally before calling the
-parent class explain method.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1552,8 +1540,7 @@ parent class explain method.</p>
 </h5>              (<code><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span></code>)
           –
           <div class="doc-md-description">
-            <p>Input tensors for attribution computation. Should be an OrderedDict
-mapping feature names to tensors when used with this explainer.</p>
+            <p>Input tensor(s) for attribution computation.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
@@ -1561,8 +1548,8 @@ mapping feature names to tensors when used with this explainer.</p>
 </h5>              (<code><span title="torchxai.data_types.ExplanationTargetType">ExplanationTargetType</span> | <span title="list">list</span>[<span title="torchxai.data_types.ExplanationTargetType">ExplanationTargetType</span>]</code>)
           –
           <div class="doc-md-description">
-            <p>Target indices for attribution computation. Can be a tensor
-(single-target) or list of tensors (multi-target).</p>
+            <p>An <code>ExplanationTargetType</code> (e.g. <code>SingleTargetAcrossBatch</code>) for single-target
+mode, or a list of them for multi-target mode.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
@@ -1617,14 +1604,7 @@ Useful for special tokens like CLS, SEP in NLP models.</p>
               <code><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span> | <span title="list">list</span>[<span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span>]</code>
           –
           <div class="doc-md-description">
-            <p>For single-target mode: OrderedDict mapping feature names to attribution tensors.</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-              <code><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span> | <span title="list">list</span>[<span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span>]</code>
-          –
-          <div class="doc-md-description">
-            <p>For multi-target mode: List of OrderedDicts, one per target.</p>
+            <p>Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.</p>
           </div>
         </li>
     </ul>
@@ -1652,8 +1632,7 @@ computation time. More samples provide better Shapley value approximations.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>.venv/lib/python3.11/site-packages/torchxai/explainers/_perturbation/_kernel_shap.py</code></summary>
-              <div class="codehilite"><div class="table-wrapper"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">372</span>
-<span class="normal">373</span>
+              <div class="codehilite"><div class="table-wrapper"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">373</span>
 <span class="normal">374</span>
 <span class="normal">375</span>
 <span class="normal">376</span>
@@ -1701,12 +1680,7 @@ computation time. More samples provide better Shapley value approximations.</p>
 <span class="normal">418</span>
 <span class="normal">419</span>
 <span class="normal">420</span>
-<span class="normal">421</span>
-<span class="normal">422</span>
-<span class="normal">423</span>
-<span class="normal">424</span>
-<span class="normal">425</span>
-<span class="normal">426</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">explain</span><span class="p">(</span>
+<span class="normal">421</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">explain</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">inputs</span><span class="p">:</span> <span class="n">TensorOrTupleOfTensorsGeneric</span><span class="p">,</span>
     <span class="n">target</span><span class="p">:</span> <span class="n">ExplanationTargetType</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">ExplanationTargetType</span><span class="p">],</span>
@@ -1717,15 +1691,10 @@ computation time. More samples provide better Shapley value approximations.</p>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorOrTupleOfTensorsGeneric</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">TensorOrTupleOfTensorsGeneric</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute Kernel SHAP attributions for the given inputs.</span>
 
-<span class="sd">    This method provides a backward-compatible interface that accepts individual</span>
-<span class="sd">    parameters and constructs ExplanationInputs internally before calling the</span>
-<span class="sd">    parent class explain method.</span>
-
 <span class="sd">    Args:</span>
-<span class="sd">        inputs: Input tensors for attribution computation. Should be an OrderedDict</span>
-<span class="sd">            mapping feature names to tensors when used with this explainer.</span>
-<span class="sd">        target: Target indices for attribution computation. Can be a tensor</span>
-<span class="sd">            (single-target) or list of tensors (multi-target).</span>
+<span class="sd">        inputs: Input tensor(s) for attribution computation.</span>
+<span class="sd">        target: An `ExplanationTargetType` (e.g. `SingleTargetAcrossBatch`) for single-target</span>
+<span class="sd">            mode, or a list of them for multi-target mode.</span>
 <span class="sd">        baselines: Baseline tensors for coalition sampling (typically zeros).</span>
 <span class="sd">            If None, uses zero baselines matching input shape.</span>
 <span class="sd">        feature_mask: Masks representing feature groups for aggregation. Features</span>
@@ -1735,8 +1704,7 @@ computation time. More samples provide better Shapley value approximations.</p>
 <span class="sd">            Useful for special tokens like CLS, SEP in NLP models.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        For single-target mode: OrderedDict mapping feature names to attribution tensors.</span>
-<span class="sd">        For multi-target mode: List of OrderedDicts, one per target.</span>
+<span class="sd">        Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.</span>
 
 <span class="sd">    Note:</span>
 <span class="sd">        Kernel SHAP uses coalition sampling with SHAP-specific weighting to estimate</span>

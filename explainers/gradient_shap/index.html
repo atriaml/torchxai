@@ -976,7 +976,7 @@
 Integrated Gradients and SHAP. It uses a distribution of baselines rather than a
 single baseline and adds noise to create more robust attribution estimates. The method
 approximates Shapley values through gradient-based computations. Supports both
-single-target and multi-target modes with structured input/output.</p>
+single-target and multi-target modes for both single-target and multi-target scenarios.</p>
 <p>GradientShap provides more robust attributions by using baseline distributions
 and noise, making it less sensitive to specific baseline choices.</p>
 
@@ -1050,33 +1050,27 @@ completeness check. Defaults to False.</p>
 <p><span class="doc-section-title">Examples:</span></p>
     <p>Single-target usage:</p>
     <div class="codehilite"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.data_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExplanationInputs</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.data_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">SingleTargetAcrossBatch</span>
 <span class="gp">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">explainer</span> <span class="o">=</span> <span class="n">GradientShapExplainer</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">inputs</span>        <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">baselines_dist</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>   <span class="c1"># 5-sample reference distribution</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">attributions</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">baselines</span><span class="o">=</span><span class="n">baselines_dist</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">target</span><span class="o">=</span><span class="n">SingleTargetAcrossBatch</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
 <span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">explainer</span> <span class="o">=</span> <span class="n">GradientShapExplainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Create baseline distribution (required for GradientShap)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">baseline_dist</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>  <span class="c1"># 100 baseline samples</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">explanation_inputs</span> <span class="o">=</span> <span class="n">ExplanationInputs</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">inputs</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}),</span>
-<span class="gp">... </span>    <span class="n">target</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
-<span class="gp">... </span>    <span class="n">baselines</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="n">baseline_dist</span><span class="p">}),</span>
-<span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">attributions</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">explanation_inputs</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Returns: OrderedDict({&quot;input&quot;: torch.Tensor})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">attributions</span><span class="o">.</span><span class="n">shape</span>   <span class="c1"># (1, 10)</span>
 </code></pre></div>
     <p>Multi-target usage:</p>
     <div class="codehilite"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">explainer_mt</span> <span class="o">=</span> <span class="n">GradientShapExplainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">multi_target</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">explanation_inputs_mt</span> <span class="o">=</span> <span class="n">ExplanationInputs</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">inputs</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}),</span>
-<span class="gp">... </span>    <span class="n">target</span><span class="o">=</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">]),</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">1</span><span class="p">])],</span>
-<span class="gp">... </span>    <span class="n">baselines</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="n">baseline_dist</span><span class="p">}),</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mt_attributions</span> <span class="o">=</span> <span class="n">explainer_mt</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">baselines</span><span class="o">=</span><span class="n">baselines_dist</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">target</span><span class="o">=</span><span class="p">[</span><span class="n">SingleTargetAcrossBatch</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">SingleTargetAcrossBatch</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="mi">1</span><span class="p">)],</span>
 <span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">mt_attributions</span> <span class="o">=</span> <span class="n">explainer_mt</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">explanation_inputs_mt</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Returns: [OrderedDict({&quot;input&quot;: torch.Tensor}), OrderedDict({&quot;input&quot;: torch.Tensor})]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">mt_attributions</span><span class="p">),</span> <span class="n">mt_attributions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>   <span class="c1"># 2, (1, 10)</span>
 </code></pre></div>
 
           
@@ -1262,26 +1256,14 @@ completeness check. Defaults to False.</p>
 <span class="normal">319</span>
 <span class="normal">320</span>
 <span class="normal">321</span>
-<span class="normal">322</span>
-<span class="normal">323</span>
-<span class="normal">324</span>
-<span class="normal">325</span>
-<span class="normal">326</span>
-<span class="normal">327</span>
-<span class="normal">328</span>
-<span class="normal">329</span>
-<span class="normal">330</span>
-<span class="normal">331</span>
-<span class="normal">332</span>
-<span class="normal">333</span>
-<span class="normal">334</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">GradientShapExplainer</span><span class="p">(</span><span class="n">FeatureAttributionExplainer</span><span class="p">):</span>
+<span class="normal">322</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">GradientShapExplainer</span><span class="p">(</span><span class="n">FeatureAttributionExplainer</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;GradientShap explainer for computing noise-based Shapley value approximations.</span>
 
 <span class="sd">    This explainer computes attributions using GradientShap, which combines ideas from</span>
 <span class="sd">    Integrated Gradients and SHAP. It uses a distribution of baselines rather than a</span>
 <span class="sd">    single baseline and adds noise to create more robust attribution estimates. The method</span>
 <span class="sd">    approximates Shapley values through gradient-based computations. Supports both</span>
-<span class="sd">    single-target and multi-target modes with structured input/output.</span>
+<span class="sd">    single-target and multi-target modes for both single-target and multi-target scenarios.</span>
 
 <span class="sd">    GradientShap provides more robust attributions by using baseline distributions</span>
 <span class="sd">    and noise, making it less sensitive to specific baseline choices.</span>
@@ -1300,33 +1282,27 @@ completeness check. Defaults to False.</p>
 <span class="sd">    Examples:</span>
 <span class="sd">        Single-target usage:</span>
 <span class="sd">        &gt;&gt;&gt; import torch</span>
-<span class="sd">        &gt;&gt;&gt; from collections import OrderedDict</span>
-<span class="sd">        &gt;&gt;&gt; from torchxai.data_types import ExplanationInputs</span>
+<span class="sd">        &gt;&gt;&gt; from torchxai.data_types import SingleTargetAcrossBatch</span>
 <span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; model = torch.nn.Sequential(</span>
-<span class="sd">        ...     torch.nn.Linear(10, 5), torch.nn.ReLU(), torch.nn.Linear(5, 2)</span>
+<span class="sd">        &gt;&gt;&gt; model = torch.nn.Linear(10, 2)</span>
+<span class="sd">        &gt;&gt;&gt; explainer = GradientShapExplainer(model)</span>
+<span class="sd">        &gt;&gt;&gt; inputs        = torch.randn(1, 10)</span>
+<span class="sd">        &gt;&gt;&gt; baselines_dist = torch.zeros(1, 10).expand(5, -1)   # 5-sample reference distribution</span>
+<span class="sd">        &gt;&gt;&gt; attributions = explainer.explain(</span>
+<span class="sd">        ...     inputs=inputs,</span>
+<span class="sd">        ...     baselines=baselines_dist,</span>
+<span class="sd">        ...     target=SingleTargetAcrossBatch(index=0),</span>
 <span class="sd">        ... )</span>
-<span class="sd">        &gt;&gt;&gt; explainer = GradientShapExplainer(model, n_samples=50)</span>
-<span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; # Create baseline distribution (required for GradientShap)</span>
-<span class="sd">        &gt;&gt;&gt; baseline_dist = torch.randn(100, 10)  # 100 baseline samples</span>
-<span class="sd">        &gt;&gt;&gt; explanation_inputs = ExplanationInputs(</span>
-<span class="sd">        ...     inputs=OrderedDict({&quot;input&quot;: torch.randn(2, 10)}),</span>
-<span class="sd">        ...     target=torch.tensor([0, 1]),</span>
-<span class="sd">        ...     baselines=OrderedDict({&quot;input&quot;: baseline_dist}),</span>
-<span class="sd">        ... )</span>
-<span class="sd">        &gt;&gt;&gt; attributions = explainer.explain(explanation_inputs)</span>
-<span class="sd">        &gt;&gt;&gt; # Returns: OrderedDict({&quot;input&quot;: torch.Tensor})</span>
+<span class="sd">        &gt;&gt;&gt; attributions.shape   # (1, 10)</span>
 
 <span class="sd">        Multi-target usage:</span>
 <span class="sd">        &gt;&gt;&gt; explainer_mt = GradientShapExplainer(model, multi_target=True)</span>
-<span class="sd">        &gt;&gt;&gt; explanation_inputs_mt = ExplanationInputs(</span>
-<span class="sd">        ...     inputs=OrderedDict({&quot;input&quot;: torch.randn(2, 10)}),</span>
-<span class="sd">        ...     target=[torch.tensor([0]), torch.tensor([1])],</span>
-<span class="sd">        ...     baselines=OrderedDict({&quot;input&quot;: baseline_dist}),</span>
+<span class="sd">        &gt;&gt;&gt; mt_attributions = explainer_mt.explain(</span>
+<span class="sd">        ...     inputs=inputs,</span>
+<span class="sd">        ...     baselines=baselines_dist,</span>
+<span class="sd">        ...     target=[SingleTargetAcrossBatch(index=0), SingleTargetAcrossBatch(index=1)],</span>
 <span class="sd">        ... )</span>
-<span class="sd">        &gt;&gt;&gt; mt_attributions = explainer_mt.explain(explanation_inputs_mt)</span>
-<span class="sd">        &gt;&gt;&gt; # Returns: [OrderedDict({&quot;input&quot;: torch.Tensor}), OrderedDict({&quot;input&quot;: torch.Tensor})]</span>
+<span class="sd">        &gt;&gt;&gt; len(mt_attributions), mt_attributions[0].shape   # 2, (1, 10)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">__repr_attrs__</span> <span class="o">=</span> <span class="p">[</span>
@@ -1407,22 +1383,16 @@ completeness check. Defaults to False.</p>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorOrTupleOfTensorsGeneric</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">TensorOrTupleOfTensorsGeneric</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute GradientShap attributions for the given inputs.</span>
 
-<span class="sd">        This method provides a backward-compatible interface that accepts individual</span>
-<span class="sd">        parameters and constructs ExplanationInputs internally before calling the</span>
-<span class="sd">        parent class explain method.</span>
-
 <span class="sd">        Args:</span>
-<span class="sd">            inputs: Input tensors for attribution computation. Should be an OrderedDict</span>
-<span class="sd">                mapping feature names to tensors when used with this explainer.</span>
-<span class="sd">            target: Target indices for attribution computation. Can be a tensor</span>
-<span class="sd">                (single-target) or list of tensors (multi-target).</span>
+<span class="sd">            inputs: Input tensor(s) for attribution computation.</span>
+<span class="sd">            target: An `ExplanationTargetType` (e.g. `SingleTargetAcrossBatch`) for single-target</span>
+<span class="sd">                mode, or a list of them for multi-target mode.</span>
 <span class="sd">            baselines: Baseline distribution for GradientShap. Must be provided as</span>
 <span class="sd">                a tensor distribution or callable that generates baseline samples.</span>
 <span class="sd">            additional_forward_args: Additional arguments for model forward pass.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            For single-target mode: OrderedDict mapping feature names to attribution tensors.</span>
-<span class="sd">            For multi-target mode: List of OrderedDicts, one per target.</span>
+<span class="sd">            Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.</span>
 
 <span class="sd">        Note:</span>
 <span class="sd">            GradientShap requires a distribution of baselines rather than a single baseline.</span>
@@ -1478,9 +1448,6 @@ completeness check. Defaults to False.</p>
     <div class="doc doc-contents ">
 
         <p>Compute GradientShap attributions for the given inputs.</p>
-<p>This method provides a backward-compatible interface that accepts individual
-parameters and constructs ExplanationInputs internally before calling the
-parent class explain method.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1490,8 +1457,7 @@ parent class explain method.</p>
 </h5>              (<code><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span></code>)
           –
           <div class="doc-md-description">
-            <p>Input tensors for attribution computation. Should be an OrderedDict
-mapping feature names to tensors when used with this explainer.</p>
+            <p>Input tensor(s) for attribution computation.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
@@ -1499,8 +1465,8 @@ mapping feature names to tensors when used with this explainer.</p>
 </h5>              (<code><span title="torchxai.data_types.ExplanationTargetType">ExplanationTargetType</span> | <span title="list">list</span>[<span title="torchxai.data_types.ExplanationTargetType">ExplanationTargetType</span>]</code>)
           –
           <div class="doc-md-description">
-            <p>Target indices for attribution computation. Can be a tensor
-(single-target) or list of tensors (multi-target).</p>
+            <p>An <code>ExplanationTargetType</code> (e.g. <code>SingleTargetAcrossBatch</code>) for single-target
+mode, or a list of them for multi-target mode.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
@@ -1533,14 +1499,7 @@ a tensor distribution or callable that generates baseline samples.</p>
               <code><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span> | <span title="list">list</span>[<span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span>]</code>
           –
           <div class="doc-md-description">
-            <p>For single-target mode: OrderedDict mapping feature names to attribution tensors.</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-              <code><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span> | <span title="list">list</span>[<span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span>]</code>
-          –
-          <div class="doc-md-description">
-            <p>For multi-target mode: List of OrderedDicts, one per target.</p>
+            <p>Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.</p>
           </div>
         </li>
     </ul>
@@ -1566,7 +1525,13 @@ The number of samples and noise parameters are controlled by initialization sett
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>.venv/lib/python3.11/site-packages/torchxai/explainers/_grad/_gradient_shap.py</code></summary>
-              <div class="codehilite"><div class="table-wrapper"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">290</span>
+              <div class="codehilite"><div class="table-wrapper"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">284</span>
+<span class="normal">285</span>
+<span class="normal">286</span>
+<span class="normal">287</span>
+<span class="normal">288</span>
+<span class="normal">289</span>
+<span class="normal">290</span>
 <span class="normal">291</span>
 <span class="normal">292</span>
 <span class="normal">293</span>
@@ -1598,19 +1563,7 @@ The number of samples and noise parameters are controlled by initialization sett
 <span class="normal">319</span>
 <span class="normal">320</span>
 <span class="normal">321</span>
-<span class="normal">322</span>
-<span class="normal">323</span>
-<span class="normal">324</span>
-<span class="normal">325</span>
-<span class="normal">326</span>
-<span class="normal">327</span>
-<span class="normal">328</span>
-<span class="normal">329</span>
-<span class="normal">330</span>
-<span class="normal">331</span>
-<span class="normal">332</span>
-<span class="normal">333</span>
-<span class="normal">334</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">explain</span><span class="p">(</span>
+<span class="normal">322</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">explain</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">inputs</span><span class="p">:</span> <span class="n">TensorOrTupleOfTensorsGeneric</span><span class="p">,</span>
     <span class="n">target</span><span class="p">:</span> <span class="n">ExplanationTargetType</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">ExplanationTargetType</span><span class="p">],</span>
@@ -1619,22 +1572,16 @@ The number of samples and noise parameters are controlled by initialization sett
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorOrTupleOfTensorsGeneric</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">TensorOrTupleOfTensorsGeneric</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute GradientShap attributions for the given inputs.</span>
 
-<span class="sd">    This method provides a backward-compatible interface that accepts individual</span>
-<span class="sd">    parameters and constructs ExplanationInputs internally before calling the</span>
-<span class="sd">    parent class explain method.</span>
-
 <span class="sd">    Args:</span>
-<span class="sd">        inputs: Input tensors for attribution computation. Should be an OrderedDict</span>
-<span class="sd">            mapping feature names to tensors when used with this explainer.</span>
-<span class="sd">        target: Target indices for attribution computation. Can be a tensor</span>
-<span class="sd">            (single-target) or list of tensors (multi-target).</span>
+<span class="sd">        inputs: Input tensor(s) for attribution computation.</span>
+<span class="sd">        target: An `ExplanationTargetType` (e.g. `SingleTargetAcrossBatch`) for single-target</span>
+<span class="sd">            mode, or a list of them for multi-target mode.</span>
 <span class="sd">        baselines: Baseline distribution for GradientShap. Must be provided as</span>
 <span class="sd">            a tensor distribution or callable that generates baseline samples.</span>
 <span class="sd">        additional_forward_args: Additional arguments for model forward pass.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        For single-target mode: OrderedDict mapping feature names to attribution tensors.</span>
-<span class="sd">        For multi-target mode: List of OrderedDicts, one per target.</span>
+<span class="sd">        Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.</span>
 
 <span class="sd">    Note:</span>
 <span class="sd">        GradientShap requires a distribution of baselines rather than a single baseline.</span>

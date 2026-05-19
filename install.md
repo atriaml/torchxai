@@ -1,14 +1,12 @@
 ---
 title: Installation
 show_datetime: true
-extra_css:
-  - "css/pygments/all.css" # add scoped styles
-
 ---
 
 ## Quick Install
 
-Install the package with you favourite package manager:
+The PyPI distribution is named **`torchxai-tools`**; the Python import name is `torchxai`.
+
 === "pip"
 
         :::bash
@@ -17,31 +15,54 @@ Install the package with you favourite package manager:
 === "uv"
 
         :::bash
-        # see https://docs.astral.sh/uv/getting-started/installation/ for installation:
         uv add torchxai-tools
 
 === "poetry"
+
         :::bash
         poetry add torchxai-tools
 
-## Install from source
+After installation:
 
-To install the latest development version, clone the repository and install with pip:
+```python
+from torchxai.explainers import SaliencyExplainer   # import name is torchxai
+```
 
-Install the package with you favourite package manager:
+---
+
+## Optional extras
+
+GPU-accelerated image examples require torchvision:
+
 === "pip"
 
         :::bash
-        git clone https://github.com/saifullah3396/torchxai.git
-        pip install -e torchxai
+        pip install "torchxai-tools[vision]"
 
 === "uv"
 
         :::bash
-        # see https://docs.astral.sh/uv/getting-started/installation/ for installation:
-        uv add git+https://github.com/saifullah3396/torchxai.git
+        uv add "torchxai-tools[vision]"
 
-=== "poetry"
+---
+
+## Install from source
+
+To install the latest development version directly from GitHub:
+
+=== "pip"
 
         :::bash
-        poetry add git+https://github.com/saifullah3396/torchxai.git
+        pip install git+https://github.com/saifullah3396/torchxai.git
+
+=== "uv"
+
+        :::bash
+        uv add git+https://github.com/saifullah3396/torchxai.git
+
+=== "Clone & install"
+
+        :::bash
+        git clone https://github.com/saifullah3396/torchxai.git
+        cd torchxai
+        pip install -e .

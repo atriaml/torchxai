@@ -956,47 +956,87 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <h3 id="1-generating-explanations-for-multiple-targets">1. Generating explanations for multiple targets</h3>
-<p>This example shows computing saliency explanation heatmaps on a simple pytorch model.</p>
-<div class="codehilite"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.explainers._grad._saliency</span><span class="w"> </span><span class="kn">import</span> <span class="n">SaliencyExplainer</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+    <h2 id="generating-explanations">Generating explanations</h2>
+<p>All explainers share the same <code>explain()</code> interface. Choose an explainer, construct it with <code>multi_target=False</code> (default) or <code>multi_target=True</code>, then call <code>explain()</code>.</p>
+<h3 id="single-target">Single target</h3>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.explainers</span><span class="w"> </span><span class="kn">import</span> <span class="n">SaliencyExplainer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.data_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">SingleTargetAcrossBatch</span>
 
-<span class="c1"># initialize explainer</span>
-<span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">())</span>
+<span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+
 <span class="n">explainer</span> <span class="o">=</span> <span class="n">SaliencyExplainer</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
-
-<span class="c1"># generate explanations</span>
-<span class="n">inputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
-<span class="n">attributions</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-
-<span class="c1"># generate explanations for multiple targets together</span>
-<span class="n">inputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
-<span class="n">explainer</span> <span class="o">=</span> <span class="n">SaliencyExplainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">multi_target</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">attributions</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+<span class="n">attrs</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">SingleTargetAcrossBatch</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">attrs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>   <span class="c1"># (1, 10)</span>
 </code></pre></div>
 
-<h3 id="2-evaluating-the-explanations-with-one-of-the-supported-metrics">2. Evaluating the explanations with one of the supported metrics</h3>
-<p>This example shows computing a completeness score for a Captum saliency map:</p>
+<h3 id="multiple-targets-in-one-call">Multiple targets in one call</h3>
+<div class="codehilite"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.explainers</span><span class="w"> </span><span class="kn">import</span> <span class="n">SaliencyExplainer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.data_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">SingleTargetAcrossBatch</span>
+
+<span class="n">targets</span> <span class="o">=</span> <span class="p">[</span><span class="n">SingleTargetAcrossBatch</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span>
+
+<span class="n">explainer</span> <span class="o">=</span> <span class="n">SaliencyExplainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">multi_target</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">attrs_list</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">targets</span><span class="p">)</span>
+<span class="c1"># attrs_list is a list[Tensor], one per target</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">attr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">attrs_list</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;class </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">attr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>   <span class="c1"># (1, 10)</span>
+</code></pre></div>
+
+<h3 id="with-a-baseline">With a baseline</h3>
+<p>Methods such as <code>IntegratedGradientsExplainer</code> and <code>DeepLiftExplainer</code> require a reference baseline:</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.explainers</span><span class="w"> </span><span class="kn">import</span> <span class="n">IntegratedGradientsExplainer</span>
+
+<span class="n">baseline</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+<span class="n">explainer</span> <span class="o">=</span> <span class="n">IntegratedGradientsExplainer</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="n">attrs</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span>
+    <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+    <span class="n">baselines</span><span class="o">=</span><span class="n">baseline</span><span class="p">,</span>
+    <span class="n">target</span><span class="o">=</span><span class="n">SingleTargetAcrossBatch</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+<span class="p">)</span>
+</code></pre></div>
+
+<h3 id="with-a-feature-mask">With a feature mask</h3>
+<p>Perturbation methods (<code>FeatureAblationExplainer</code>, <code>LimeExplainer</code>, <code>KernelShapExplainer</code>) accept an optional <code>feature_mask</code> to group elements into segments:</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.explainers</span><span class="w"> </span><span class="kn">import</span> <span class="n">FeatureAblationExplainer</span>
+
+<span class="c1"># group every 2 features into one segment</span>
+<span class="n">feature_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">]])</span>
+
+<span class="n">explainer</span> <span class="o">=</span> <span class="n">FeatureAblationExplainer</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="n">attrs</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span>
+    <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+    <span class="n">feature_mask</span><span class="o">=</span><span class="n">feature_mask</span><span class="p">,</span>
+    <span class="n">target</span><span class="o">=</span><span class="n">SingleTargetAcrossBatch</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+<span class="p">)</span>
+</code></pre></div>
+
+<hr />
+<h2 id="evaluating-explanation-quality">Evaluating explanation quality</h2>
+<p>TorchXAI provides axiomatic metrics to quantify how good an attribution is.</p>
 <div class="codehilite"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.metrics.axiomatic</span><span class="w"> </span><span class="kn">import</span> <span class="n">completeness</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">captum.attr</span><span class="w"> </span><span class="kn">import</span> <span class="n">Saliency</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
-<span class="n">net</span> <span class="o">=</span> <span class="n">ImageClassifier</span><span class="p">()</span>                 <span class="c1"># your model</span>
+<span class="n">net</span> <span class="o">=</span> <span class="o">...</span>   <span class="c1"># your model</span>
 <span class="n">saliency</span> <span class="o">=</span> <span class="n">Saliency</span><span class="p">(</span><span class="n">net</span><span class="p">)</span>
 <span class="nb">input</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">baselines</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
 
-<span class="c1"># computes saliency maps for class 3</span>
 <span class="n">attribution</span> <span class="o">=</span> <span class="n">saliency</span><span class="o">.</span><span class="n">attribute</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-
-<span class="c1"># computes completeness score for saliency maps</span>
-<span class="n">completeness_score</span> <span class="o">=</span> <span class="n">completeness</span><span class="p">(</span><span class="n">net</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">attribution</span><span class="p">,</span> <span class="n">baselines</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Completeness:&quot;</span><span class="p">,</span> <span class="n">completeness_score</span><span class="p">)</span>
+<span class="n">score</span> <span class="o">=</span> <span class="n">completeness</span><span class="p">(</span><span class="n">net</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">attribution</span><span class="p">,</span> <span class="n">baselines</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Completeness:&quot;</span><span class="p">,</span> <span class="n">score</span><span class="p">)</span>
 </code></pre></div>
 
+<hr />
 <h2 id="api-reference">API Reference</h2>
 <ul>
-<li><a href="../explainers/">Explainers</a> - Core explainer classes</li>
+<li><a href="../explainers/">Explainers overview</a> — all 13 explainer classes, input patterns, comparison table</li>
+<li><a href="../explainers/examples/image_classification/">Explainer examples</a> — end-to-end worked examples</li>
 </ul>
   </div>
   
@@ -1126,18 +1166,44 @@
         
         
         
-        <a href="#1-generating-explanations-for-multiple-targets"
+        <a href="#generating-explanations"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#1-generating-explanations-for-multiple-targets');">
-            1. Generating explanations for multiple targets
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#generating-explanations');">
+            Generating explanations
         </a>
+        
+        
+        <a href="#single-target"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#single-target');">
+            Single target
+        </a>
+        
+        <a href="#multiple-targets-in-one-call"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#multiple-targets-in-one-call');">
+            Multiple targets in one call
+        </a>
+        
+        <a href="#with-a-baseline"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#with-a-baseline');">
+            With a baseline
+        </a>
+        
+        <a href="#with-a-feature-mask"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#with-a-feature-mask');">
+            With a feature mask
+        </a>
+        
         
 
         
-        <a href="#2-evaluating-the-explanations-with-one-of-the-supported-metrics"
+        <a href="#evaluating-explanation-quality"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#2-evaluating-the-explanations-with-one-of-the-supported-metrics');">
-            2. Evaluating the explanations with one of the supported metrics
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#evaluating-explanation-quality');">
+            Evaluating explanation quality
         </a>
         
 
