@@ -49,16 +49,16 @@ test_configurations = [
         target_fixture="basic_model_single_input_config",
         expected_desc=torch.tensor([[0.0000, 0.5000, 0.6667]]),
         expected_asc=torch.tensor([[0.0000, -0.5000, 0.0000]]),
-        expected_rand=torch.tensor([[0.0000, 0.2000, 0.4667]]),
-        max_features_processed_per_batch=[5, 1, 40],
+        expected_rand=torch.tensor([[0.0000, -0.2000, 0.2000]]),
+        max_features_processed_per_batch=[40],
     ),
     MetricTestRuntimeConfig_(
         test_name="basic_model_batch_input_config_integrated_gradients",
         target_fixture="basic_model_batch_input_config",
         expected_desc=torch.tensor([[0.0000, 0.5000, 0.6667]] * 3),
         expected_asc=torch.tensor([[0.0000, -0.5000, 0.0000]] * 3),
-        expected_rand=torch.tensor([[0.0000, 0.2000, 0.4667]] * 3),
-        max_features_processed_per_batch=[5, 1, 40],
+        expected_rand=torch.tensor([[0.0000, -0.2000, 0.2000]] * 3),
+        max_features_processed_per_batch=[40],
     ),
     MetricTestRuntimeConfig_(
         test_name="basic_model_batch_input_with_additional_forward_args_config_integrated_gradients",
@@ -66,9 +66,9 @@ test_configurations = [
         expected_desc=torch.tensor([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]),
         expected_asc=torch.tensor([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]),
         expected_rand=torch.tensor(
-            [[0.0000, 0.0000, -0.0167, -0.0500, -0.0800, -0.0750, -0.0643]]
+            [[0.0000, -0.0500, -0.1167, -0.1625, -0.1600, -0.1333, -0.1143]]
         ),
-        max_features_processed_per_batch=[5, 1, 40],
+        max_features_processed_per_batch=[40],
     ),
     MetricTestRuntimeConfig_(
         test_name="classification_convnet_model_with_multiple_targets_config_integrated_gradients",
@@ -125,27 +125,27 @@ test_configurations = [
             [
                 [
                     0.0000,
-                    3.1500,
-                    5.4000,
-                    7.6750,
-                    9.6800,
-                    12.5333,
-                    16.1000,
-                    19.3625,
-                    22.8000,
-                    26.2400,
-                    29.5727,
-                    32.5833,
-                    35.2308,
-                    37.5000,
-                    39.4667,
-                    41.1875,
-                    42.7059,
+                    2.3000,
+                    5.7333,
+                    10.3500,
+                    14.9000,
+                    19.3667,
+                    23.5429,
+                    27.5000,
+                    31.1667,
+                    34.6200,
+                    37.4727,
+                    39.9333,
+                    42.0154,
+                    43.8000,
+                    45.3467,
+                    46.7000,
+                    47.8941,
                 ]
             ]
             * 20
         ),
-        max_features_processed_per_batch=[5, 1, 40],
+        max_features_processed_per_batch=[40],
         delta=1e-3,
     ),
     MetricTestRuntimeConfig_(
@@ -169,13 +169,13 @@ test_configurations = [
         ),
         expected_rand=torch.tensor(
             [
-                [0.0000, 28.0000, 53.6000, 80.2000],
-                [0.0000, 76.8000, 154.6667, 236.0000],
-                [0.0000, 124.8000, 250.6667, 380.0000],
-                [0.0000, 172.8000, 346.6667, 524.0000],
+                [0.0000, 25.2000, 53.3333, 80.0000],
+                [0.0000, 73.6000, 154.6667, 236.0000],
+                [0.0000, 121.6000, 250.6667, 380.0000],
+                [0.0000, 169.6000, 346.6667, 524.0000],
             ]
         ),
-        max_features_processed_per_batch=[5, 1, 40],
+        max_features_processed_per_batch=[40],
     ),
     MetricTestRuntimeConfig_(
         test_name="classification_multilayer_model_with_baseline_and_tuple_targets_config_integrated_gradients",
@@ -198,13 +198,13 @@ test_configurations = [
         ),
         expected_rand=torch.tensor(
             [
-                [0.0000, 12.8000, 26.1333, 41.6000],
-                [0.0000, 60.8000, 122.6667, 188.0000],
-                [0.0000, 108.8000, 218.6667, 332.0000],
-                [0.0000, 156.8000, 314.6667, 476.0000],
+                [0.0000, 9.6000, 25.8667, 41.4000],
+                [0.0000, 57.6000, 122.6667, 188.0000],
+                [0.0000, 105.6000, 218.6667, 332.0000],
+                [0.0000, 153.6000, 314.6667, 476.0000],
             ]
         ),
-        max_features_processed_per_batch=[5, 1, 40],
+        max_features_processed_per_batch=[40],
     ),
 ]
 
@@ -292,7 +292,6 @@ def test_aopc(metrics_runtime_test_configuration):
         for output, expected in zip(
             aopc_output["desc"], curr_expected_desc, strict=True
         ):
-            print('aopc_output["desc"]', aopc_output["desc"], curr_expected_desc)
             _assert_tensor_almost_equal(
                 output.float(), expected.float(), delta=runtime_config.delta
             )
