@@ -547,7 +547,7 @@ class DeepLiftShapExplainer(FeatureAttributionExplainer):
     with Shapley value computation by using a distribution of training baselines.
     This approach provides theoretically grounded attributions that satisfy Shapley
     value axioms while leveraging DeepLIFT's efficient computation. Supports both
-    single-target and multi-target modes with structured input/output.
+    single-target and multi-target modes for both single-target and multi-target scenarios.
 
     DeepLIFT SHAP is particularly effective when you have representative training
     baselines, as it averages attributions across multiple reference points.
@@ -564,33 +564,27 @@ class DeepLiftShapExplainer(FeatureAttributionExplainer):
     Examples:
         Single-target usage:
         >>> import torch
-        >>> from collections import OrderedDict
-        >>> from torchxai.data_types import ExplanationInputs
+        >>> from torchxai.data_types import SingleTargetAcrossBatch
         >>>
-        >>> model = torch.nn.Sequential(
-        ...     torch.nn.Linear(10, 5), torch.nn.ReLU(), torch.nn.Linear(5, 2)
-        ... )
+        >>> model = torch.nn.Linear(10, 2)
         >>> explainer = DeepLiftShapExplainer(model)
-        >>>
-        >>> # Training baselines from representative training samples
-        >>> baselines = torch.randn(50, 10)  # 50 training samples
-        >>> explanation_inputs = ExplanationInputs(
-        ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
-        ...     target=torch.tensor([0, 1]),
-        ...     baselines=OrderedDict({"input": baselines}),
+        >>> inputs        = torch.randn(1, 10)
+        >>> baselines_dist = torch.zeros(1, 10).expand(5, -1)   # 5-sample reference distribution
+        >>> attributions = explainer.explain(
+        ...     inputs=inputs,
+        ...     baselines=baselines_dist,
+        ...     target=SingleTargetAcrossBatch(index=0),
         ... )
-        >>> attributions = explainer.explain(explanation_inputs)
-        >>> # Returns: OrderedDict({"input": torch.Tensor})
+        >>> attributions.shape   # (1, 10)
 
         Multi-target usage:
         >>> explainer_mt = DeepLiftShapExplainer(model, multi_target=True)
-        >>> explanation_inputs_mt = ExplanationInputs(
-        ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
-        ...     target=[torch.tensor([0]), torch.tensor([1])],
-        ...     baselines=OrderedDict({"input": baselines}),
+        >>> mt_attributions = explainer_mt.explain(
+        ...     inputs=inputs,
+        ...     baselines=baselines_dist,
+        ...     target=[SingleTargetAcrossBatch(index=0), SingleTargetAcrossBatch(index=1)],
         ... )
-        >>> mt_attributions = explainer_mt.explain(explanation_inputs_mt)
-        >>> # Returns: [OrderedDict({"input": torch.Tensor}), OrderedDict({"input": torch.Tensor})]
+        >>> len(mt_attributions), mt_attributions[0].shape   # 2, (1, 10)
     """
 
     __repr_attrs__ = [
@@ -659,23 +653,17 @@ class DeepLiftShapExplainer(FeatureAttributionExplainer):
     ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute DeepLIFT SHAP attributions for the given inputs.
 
-        This method provides a backward-compatible interface that accepts individual
-        parameters and constructs ExplanationInputs internally before calling the
-        parent class explain method.
-
         Args:
-            inputs: Input tensors for attribution computation. Should be an OrderedDict
-                mapping feature names to tensors when used with this explainer.
-            target: Target indices for attribution computation. Can be a tensor
-                (single-target) or list of tensors (multi-target).
+            inputs: Input tensor(s) for attribution computation.
+            target: An `ExplanationTargetType` (e.g. `SingleTargetAcrossBatch`) for single-target
+                mode, or a list of them for multi-target mode.
             baselines: Training baseline distribution for DeepLIFT SHAP.
                 Must be provided as a tensor distribution representing training samples.
                 The method averages attributions across these baselines.
             additional_forward_args: Additional arguments for model forward pass.
 
         Returns:
-            For single-target mode: OrderedDict mapping feature names to attribution tensors.
-            For multi-target mode: List of OrderedDicts, one per target.
+            Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.
 
         Note:
             DeepLIFT SHAP requires multiple baseline samples (typically from training data)

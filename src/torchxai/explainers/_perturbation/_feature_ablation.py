@@ -655,7 +655,7 @@ class FeatureAblationExplainer(FeatureAttributionExplainer):
     This direct approach provides intuitive explanations by showing exactly how much
     each feature contributes to the prediction. The method supports feature grouping
     through masks, allowing for hierarchical ablation studies. Supports both single-target
-    and multi-target modes with structured input/output.
+    and multi-target modes for both single-target and multi-target scenarios.
 
     Feature Ablation provides the most direct measure of feature importance through
     systematic removal and impact measurement.
@@ -670,37 +670,34 @@ class FeatureAblationExplainer(FeatureAttributionExplainer):
             when using feature masks. Defaults to False.
 
     Examples:
-        Single-target usage for tabular data:
+        Single-target usage without mask (feature-level):
         >>> import torch
-        >>> from collections import OrderedDict
-        >>> from torchxai.data_types import ExplanationInputs
+        >>> from torchxai.data_types import SingleTargetAcrossBatch
         >>>
-        >>> model = torch.nn.Sequential(
-        ...     torch.nn.Linear(10, 5), torch.nn.ReLU(), torch.nn.Linear(5, 2)
+        >>> model = torch.nn.Linear(10, 2)
+        >>> explainer = FeatureAblationExplainer(model)
+        >>> attributions = explainer.explain(
+        ...     inputs=torch.randn(1, 10),
+        ...     target=SingleTargetAcrossBatch(index=0),
         ... )
-        >>> explainer = FeatureAblationExplainer(model, internal_batch_size=32)
-        >>>
-        >>> explanation_inputs = ExplanationInputs(
-        ...     inputs=OrderedDict({"features": torch.randn(2, 10)}),
-        ...     target=torch.tensor([0, 1]),
-        ...     baselines=OrderedDict({"features": torch.zeros(2, 10)}),
-        ... )
-        >>> attributions = explainer.explain(explanation_inputs)
-        >>> # Returns: OrderedDict({"features": torch.Tensor})
+        >>> attributions.shape   # (1, 10)
 
-        Multi-target usage with feature grouping:
-        >>> explainer_mt = FeatureAblationExplainer(
-        ...     model, multi_target=True, weight_attributions=True
-        ... )
+        With a feature mask (group-level attribution):
         >>> feature_mask = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 4]])
-        >>> explanation_inputs_mt = ExplanationInputs(
-        ...     inputs=OrderedDict({"features": torch.randn(2, 10)}),
-        ...     target=[torch.tensor([0, 1]), torch.tensor([1, 0])],
-        ...     baselines=OrderedDict({"features": torch.zeros(2, 10)}),
+        >>> attributions_grouped = explainer.explain(
+        ...     inputs=torch.randn(1, 10),
         ...     feature_mask=feature_mask,
+        ...     target=SingleTargetAcrossBatch(index=0),
         ... )
-        >>> mt_attributions = explainer_mt.explain(explanation_inputs_mt)
-        >>> # Returns: [OrderedDict({"features": torch.Tensor}), OrderedDict({"features": torch.Tensor})]
+        >>> attributions_grouped.shape   # (1, 10)
+
+        Multi-target usage:
+        >>> explainer_mt = FeatureAblationExplainer(model, multi_target=True)
+        >>> mt_attributions = explainer_mt.explain(
+        ...     inputs=torch.randn(1, 10),
+        ...     target=[SingleTargetAcrossBatch(index=0), SingleTargetAcrossBatch(index=1)],
+        ... )
+        >>> len(mt_attributions), mt_attributions[0].shape   # 2, (1, 10)
     """
 
     __repr_attrs__ = [
@@ -807,15 +804,10 @@ class FeatureAblationExplainer(FeatureAttributionExplainer):
     ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute Feature Ablation attributions for the given inputs.
 
-        This method provides a backward-compatible interface that accepts individual
-        parameters and constructs ExplanationInputs internally before calling the
-        parent class explain method.
-
         Args:
-            inputs: Input tensors for attribution computation. Should be an OrderedDict
-                mapping feature names to tensors when used with this explainer.
-            target: Target indices for attribution computation. Can be a tensor
-                (single-target) or list of tensors (multi-target).
+            inputs: Input tensor(s) for attribution computation.
+            target: An `ExplanationTargetType` (e.g. `SingleTargetAcrossBatch`) for single-target
+                mode, or a list of them for multi-target mode.
             baselines: Baseline tensors for ablation (typically zeros). If None,
                 uses zero baselines matching input shape.
             feature_mask: Masks representing feature groups for ablation. Features
@@ -823,8 +815,7 @@ class FeatureAblationExplainer(FeatureAttributionExplainer):
             additional_forward_args: Additional arguments for model forward pass.
 
         Returns:
-            For single-target mode: OrderedDict mapping feature names to attribution tensors.
-            For multi-target mode: List of OrderedDicts, one per target.
+            Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.
 
         Note:
             Feature Ablation directly measures feature importance through systematic removal.

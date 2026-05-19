@@ -1,121 +1,139 @@
 # Explainers Overview
 
-TorchXAI provides various explainable AI methods for PyTorch models.
+TorchXAI wraps [Captum](https://captum.ai/) attribution methods and adds first-class **multi-target** support: explain multiple output targets in a single forward pass.
 
 ## Available Explainers
 
 ### Gradient-Based Methods
 
-- **[Base Explainer](explainers/base_explainer.md)** - Abstract base class for all explainers
-- **[Saliency](explainers/saliency.md)** - Gradient-based saliency methods
-- **[Input × Gradient](explainers/input_x_gradient.md)** - Input-scaled gradient attribution methods
-- **[Input × Baseline Gradient](explainers/input_x_baseline_gradient.md)** - Baseline-scaled gradient attribution methods
-- **[Guided Backpropagation](explainers/guided_backprop.md)** - Modified gradient methods with ReLU handling
-- **[DeepLIFT](explainers/deeplift.md)** - Reference-based attribution with baseline comparison
-- **[DeepLIFT SHAP](explainers/deeplift_shap.md)** - Shapley value computation using DeepLIFT with training baselines
-- **[Integrated Gradients](explainers/integrated_gradients.md)** - Path-integrated attribution methods
-- **[GradientShap](explainers/gradient_shap.md)** - Noise-based Shapley value approximations
+- **[Saliency](explainers/saliency.md)** — gradient magnitude per input dimension
+- **[Input × Gradient](explainers/input_x_gradient.md)** — input scaled by its gradient
+- **[Input × Baseline Gradient](explainers/input_x_baseline_gradient.md)** — input-minus-baseline scaled by gradient
+- **[Guided Backpropagation](explainers/guided_backprop.md)** — gradient with ReLU clamping on backward pass
+- **[DeepLIFT](explainers/deeplift.md)** — reference-based attribution comparing activations to a baseline
+- **[DeepLIFT SHAP](explainers/deeplift_shap.md)** — DeepLIFT averaged over a baseline distribution
+- **[Integrated Gradients](explainers/integrated_gradients.md)** — path-integral from baseline to input
+- **[GradientShap](explainers/gradient_shap.md)** — gradient-based Shapley approximation with random baselines
 
 ### Perturbation-Based Methods
 
-- **[Feature Ablation](explainers/feature_ablation.md)** - Systematic feature removal attribution methods
-- **[Occlusion](explainers/occlusion.md)** - Sliding-window perturbation attribution methods
-- **[LIME](explainers/lime.md)** - Local interpretable model-agnostic explanations
-- **[Kernel SHAP](explainers/kernel_shap.md)** - Shapley value computation using LIME framework
+- **[Feature Ablation](explainers/feature_ablation.md)** — systematically zeros out features or groups
+- **[Occlusion](explainers/occlusion.md)** — sliding-window patch replacement
+- **[LIME](explainers/lime.md)** — locally-linear surrogate model
+- **[Kernel SHAP](explainers/kernel_shap.md)** — Shapley values via LIME kernel weighting
 
 ### Baseline Methods
 
-- **[Random](random.md)** - Random attribution baseline for comparison and sanity checking
+- **[Random](explainers/random.md)** — random attributions for sanity-checking and comparison
 
-## Method Comparison
+---
 
-| Method | Type | Requires Baseline | Multiple Baselines | Feature Groups | Theory | Best For |
-|--------|------|------------------|-------------------|---------------|--------|----------|
-| Saliency | Gradient | ❌ | ❌ | ❌ | Gradient | Quick analysis |
-| Input × Gradient | Gradient | ❌ | ❌ | ❌ | Gradient | Input-scaled importance |
-| Input × Baseline Gradient | Gradient | ✅ | ❌ | ❌ | Gradient | Baseline-relative |
-| Guided Backpropagation | Gradient | ❌ | ❌ | ❌ | Modified gradient | Positive contributions |
-| DeepLIFT | Gradient | ✅ | ❌ | ❌ | Axiom-based | Non-linear models |
-| DeepLIFT SHAP | Gradient | ✅ | ✅ | ❌ | Shapley + DeepLIFT | Training baselines |
-| Integrated Gradients | Gradient | ✅ | ❌ | ❌ | Path integration | Path independence |
-| GradientShap | Gradient | ✅ | ✅ | ❌ | Shapley + Gradients | Robust Shapley |
-| Feature Ablation | Perturbation | ✅ | ❌ | ✅ | Direct measurement | Feature groups |
-| Occlusion | Perturbation | ✅ | ❌ | ❌ | Direct measurement | Spatial/visual data |
-| LIME | Perturbation | ✅ | ❌ | ✅ | Local linear | Local explanations |
-| Kernel SHAP | Perturbation | ✅ | ❌ | ✅ | Shapley theory | Shapley values |
-| Random | Baseline | ❌ | ❌ | ❌ | Random noise | Baseline comparison |
+## Input Patterns
 
-## Quick Example with Baseline Comparison
+Each explainer belongs to one of five input patterns. Choose the pattern for your explainer and your use case:
+
+| Pattern | Required arguments | Explainers |
+|---------|-------------------|------------|
+| **A** | `inputs`, `target` | Saliency, InputXGradient, GuidedBackprop, Random |
+| **B** | `inputs`, `baselines`, `target` | IntegratedGradients, DeepLift, InputXBaselineGradient |
+| **C** | `inputs`, `baselines` (distribution), `target` | GradientShap, DeepLiftShap |
+| **D** | `inputs`, `feature_mask` (optional), `target` | FeatureAblation, LIME, KernelShap |
+| **E** | `inputs`, `sliding_window_shapes`, `target` | Occlusion |
+
+### Full comparison table
+
+| Explainer | Type | `baselines` | Baseline distribution | `feature_mask` | `sliding_window_shapes` |
+|-----------|------|:-----------:|:---------------------:|:--------------:|:-----------------------:|
+| `SaliencyExplainer` | Gradient | ✗ | ✗ | ✗ | ✗ |
+| `InputXGradientExplainer` | Gradient | ✗ | ✗ | ✗ | ✗ |
+| `GuidedBackpropExplainer` | Gradient | ✗ | ✗ | ✗ | ✗ |
+| `RandomExplainer` | Baseline | ✗ | ✗ | ✗ | ✗ |
+| `IntegratedGradientsExplainer` | Gradient | ✓ | ✗ | ✗ | ✗ |
+| `DeepLiftExplainer` | Gradient | ✓ | ✗ | ✗ | ✗ |
+| `InputXBaselineGradientExplainer` | Gradient | ✓ | ✗ | ✗ | ✗ |
+| `DeepLiftShapExplainer` | Gradient | ✓ | ✓ | ✗ | ✗ |
+| `GradientShapExplainer` | Gradient | ✓ | ✓ | ✗ | ✗ |
+| `FeatureAblationExplainer` | Perturbation | ✗ | ✗ | optional | ✗ |
+| `LimeExplainer` | Perturbation | ✗ | ✗ | optional | ✗ |
+| `KernelShapExplainer` | Perturbation | ✗ | ✗ | optional | ✗ |
+| `OcclusionExplainer` | Perturbation | ✗ | ✗ | ✗ | ✓ |
+
+---
+
+## Quick Start
 
 ```python
-from torchxai.explainers._grad import SaliencyExplainer, IntegratedGradientsExplainer
-from torchxai.explainers._perturbation import FeatureAblationExplainer, KernelShapExplainer
-from torchxai.explainers.random import RandomExplainer
 import torch
-from collections import OrderedDict
-from torchxai.data_types import ExplanationInputs
+import torch.nn as nn
+from torchxai.explainers import SaliencyExplainer, IntegratedGradientsExplainer
+from torchxai.data_types import SingleTargetAcrossBatch
 
-# Model for comparison
-model = torch.nn.Sequential(torch.nn.Linear(10, 5), torch.nn.ReLU(), torch.nn.Linear(5, 2))
+model = nn.Sequential(nn.Linear(10, 5), nn.ReLU(), nn.Linear(5, 3))
+model.eval()
 
-# Different explainers including random baseline
-explainers = {
-    "random": RandomExplainer(model, random_seed=42),
-    "saliency": SaliencyExplainer(model),
-    "integrated_gradients": IntegratedGradientsExplainer(model, n_steps=50),
-    "feature_ablation": FeatureAblationExplainer(model, internal_batch_size=32),
-    "kernel_shap": KernelShapExplainer(model, n_samples=100),
-}
+inputs   = torch.randn(1, 10)
+baseline = torch.zeros(1, 10)
+target   = SingleTargetAcrossBatch(index=0)   # explain class 0
 
-# Example input
-inputs = OrderedDict({"features": torch.randn(1, 10)})
-target = torch.tensor([1])
+# Pattern A — no baseline needed
+explainer = SaliencyExplainer(model)
+attrs = explainer.explain(inputs=inputs, target=target)
+print(attrs.shape)   # (1, 10)
 
-# Input configurations
-simple_inputs = ExplanationInputs(inputs=inputs, target=target)
-baseline_inputs = ExplanationInputs(
-    inputs=inputs, target=target,
-    baselines=OrderedDict({"features": torch.zeros(1, 10)})
-)
-
-# Compute attributions with different methods
-results = {}
-results["random"] = explainers["random"].explain(simple_inputs)
-results["saliency"] = explainers["saliency"].explain(simple_inputs)
-results["integrated_gradients"] = explainers["integrated_gradients"].explain(baseline_inputs)
-results["feature_ablation"] = explainers["feature_ablation"].explain(baseline_inputs)
-results["kernel_shap"] = explainers["kernel_shap"].explain(baseline_inputs)
-
-# Compare attribution magnitudes (sanity check)
-print("Attribution Analysis:")
-print("=" * 50)
-for method, attribution in results.items():
-    attr_magnitude = torch.abs(attribution["features"]).mean().item()
-    attr_sum = attribution["features"].sum().item()
-    print(f"{method:20}: magnitude={attr_magnitude:.4f}, sum={attr_sum:.4f}")
-
-# Statistical significance test (example)
-import scipy.stats as stats
-
-random_attrs = results["random"]["features"].flatten().numpy()
-saliency_attrs = results["saliency"]["features"].flatten().numpy()
-
-# Test if saliency attributions are significantly different from random
-t_stat, p_value = stats.ttest_ind(random_attrs, saliency_attrs)
-print(f"\nSaliency vs Random: t-stat={t_stat:.4f}, p-value={p_value:.4f}")
-if p_value < 0.05:
-    print("Saliency attributions are significantly different from random!")
-else:
-    print("Saliency attributions are not significantly different from random.")
+# Pattern B — baseline required
+explainer_ig = IntegratedGradientsExplainer(model)
+attrs_ig = explainer_ig.explain(inputs=inputs, baselines=baseline, target=target)
+print(attrs_ig.shape)   # (1, 10)
 ```
 
-## Sanity Checking with Random Baseline
+---
 
-The Random explainer serves several important purposes:
+## Multi-Target Mode
 
-1. **Baseline Comparison**: Establishes whether other methods provide signal above noise
-2. **Statistical Testing**: Enables significance tests for attribution quality
-3. **Method Validation**: Helps identify when attribution methods fail
-4. **Reproducibility**: With fixed seeds, provides consistent baseline results
+Pass `multi_target=True` at construction, then supply a **list** of targets. The explainer returns a `list[Tensor]`, one per target, in a single forward-backward pass.
 
-Always compare your attributions against random baselines to ensure meaningful explanations!
+```python
+from torchxai.explainers import SaliencyExplainer
+from torchxai.data_types import SingleTargetAcrossBatch
+
+targets = [SingleTargetAcrossBatch(index=i) for i in range(3)]   # classes 0, 1, 2
+
+explainer = SaliencyExplainer(model, multi_target=True)
+attrs_list = explainer.explain(inputs=inputs, target=targets)
+
+for cls_idx, attr in enumerate(attrs_list):
+    print(f"class {cls_idx}: {attr.shape}")   # each (1, 10)
+```
+
+This is equivalent to calling `explain()` once per target but can be significantly faster because shared computation (forward pass, intermediate activations) is reused.
+
+---
+
+## End-to-End Examples
+
+Worked examples covering all five input patterns:
+
+- **[Image Classification](explainers/examples/image_classification.md)** — TinyCNN with 10 output classes; all explainer patterns on image tensors
+- **[Sequence Classification](explainers/examples/sequence_classification.md)** — BERT with embedding-level inputs; all patterns for sentence-level targets
+- **[Token Classification](explainers/examples/token_classification.md)** — BERT-NER; multi-target across all token positions in one call
+
+---
+
+## Sanity-Checking with Random Attributions
+
+`RandomExplainer` provides random-noise attributions. Use it to verify that your real explainer is producing signal above chance:
+
+```python
+from torchxai.explainers import RandomExplainer, SaliencyExplainer
+from torchxai.data_types import SingleTargetAcrossBatch
+
+target = SingleTargetAcrossBatch(index=0)
+
+random_attrs   = RandomExplainer(model, random_seed=42).explain(inputs=inputs, target=target)
+saliency_attrs = SaliencyExplainer(model).explain(inputs=inputs, target=target)
+
+print("Random  :", random_attrs.abs().mean().item())
+print("Saliency:", saliency_attrs.abs().mean().item())
+```
+
+If saliency attribution magnitudes are comparable to random, the model is likely not using that feature meaningfully — or the explainer is misconfigured.

@@ -170,7 +170,7 @@ class GradientShapExplainer(FeatureAttributionExplainer):
     Integrated Gradients and SHAP. It uses a distribution of baselines rather than a
     single baseline and adds noise to create more robust attribution estimates. The method
     approximates Shapley values through gradient-based computations. Supports both
-    single-target and multi-target modes with structured input/output.
+    single-target and multi-target modes for both single-target and multi-target scenarios.
 
     GradientShap provides more robust attributions by using baseline distributions
     and noise, making it less sensitive to specific baseline choices.
@@ -189,33 +189,27 @@ class GradientShapExplainer(FeatureAttributionExplainer):
     Examples:
         Single-target usage:
         >>> import torch
-        >>> from collections import OrderedDict
-        >>> from torchxai.data_types import ExplanationInputs
+        >>> from torchxai.data_types import SingleTargetAcrossBatch
         >>>
-        >>> model = torch.nn.Sequential(
-        ...     torch.nn.Linear(10, 5), torch.nn.ReLU(), torch.nn.Linear(5, 2)
+        >>> model = torch.nn.Linear(10, 2)
+        >>> explainer = GradientShapExplainer(model)
+        >>> inputs        = torch.randn(1, 10)
+        >>> baselines_dist = torch.zeros(1, 10).expand(5, -1)   # 5-sample reference distribution
+        >>> attributions = explainer.explain(
+        ...     inputs=inputs,
+        ...     baselines=baselines_dist,
+        ...     target=SingleTargetAcrossBatch(index=0),
         ... )
-        >>> explainer = GradientShapExplainer(model, n_samples=50)
-        >>>
-        >>> # Create baseline distribution (required for GradientShap)
-        >>> baseline_dist = torch.randn(100, 10)  # 100 baseline samples
-        >>> explanation_inputs = ExplanationInputs(
-        ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
-        ...     target=torch.tensor([0, 1]),
-        ...     baselines=OrderedDict({"input": baseline_dist}),
-        ... )
-        >>> attributions = explainer.explain(explanation_inputs)
-        >>> # Returns: OrderedDict({"input": torch.Tensor})
+        >>> attributions.shape   # (1, 10)
 
         Multi-target usage:
         >>> explainer_mt = GradientShapExplainer(model, multi_target=True)
-        >>> explanation_inputs_mt = ExplanationInputs(
-        ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
-        ...     target=[torch.tensor([0]), torch.tensor([1])],
-        ...     baselines=OrderedDict({"input": baseline_dist}),
+        >>> mt_attributions = explainer_mt.explain(
+        ...     inputs=inputs,
+        ...     baselines=baselines_dist,
+        ...     target=[SingleTargetAcrossBatch(index=0), SingleTargetAcrossBatch(index=1)],
         ... )
-        >>> mt_attributions = explainer_mt.explain(explanation_inputs_mt)
-        >>> # Returns: [OrderedDict({"input": torch.Tensor}), OrderedDict({"input": torch.Tensor})]
+        >>> len(mt_attributions), mt_attributions[0].shape   # 2, (1, 10)
     """
 
     __repr_attrs__ = [
@@ -296,22 +290,16 @@ class GradientShapExplainer(FeatureAttributionExplainer):
     ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute GradientShap attributions for the given inputs.
 
-        This method provides a backward-compatible interface that accepts individual
-        parameters and constructs ExplanationInputs internally before calling the
-        parent class explain method.
-
         Args:
-            inputs: Input tensors for attribution computation. Should be an OrderedDict
-                mapping feature names to tensors when used with this explainer.
-            target: Target indices for attribution computation. Can be a tensor
-                (single-target) or list of tensors (multi-target).
+            inputs: Input tensor(s) for attribution computation.
+            target: An `ExplanationTargetType` (e.g. `SingleTargetAcrossBatch`) for single-target
+                mode, or a list of them for multi-target mode.
             baselines: Baseline distribution for GradientShap. Must be provided as
                 a tensor distribution or callable that generates baseline samples.
             additional_forward_args: Additional arguments for model forward pass.
 
         Returns:
-            For single-target mode: OrderedDict mapping feature names to attribution tensors.
-            For multi-target mode: List of OrderedDicts, one per target.
+            Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.
 
         Note:
             GradientShap requires a distribution of baselines rather than a single baseline.
