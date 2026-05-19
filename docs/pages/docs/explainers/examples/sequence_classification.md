@@ -31,11 +31,11 @@ model = BertForSequenceClassification.from_pretrained(
 
 text = "This movie was absolutely fantastic, but the subplot felt unexpectedly overdramatized."
 enc = tokenizer(text, return_tensors="pt")
-input_ids = enc["input_ids"].cuda()  # (1, seq_len)
+input_ids      = enc["input_ids"].cuda()       # (1, seq_len)
 attention_mask = enc["attention_mask"].cuda()  # (1, seq_len)
 
 # Embeddings — used as input for all explainers
-embeddings = model.bert.embeddings(input_ids)  # (1, seq_len, 768)
+embeddings   = model.bert.embeddings(input_ids)   # (1, seq_len, 768)
 baseline_emb = torch.zeros_like(embeddings)
 
 
@@ -80,9 +80,9 @@ def compare(explainer_cls, model, explain_kwargs, targets, atol=1e-5, **init_kwa
 
 ---
 
-## Pattern A — inputs + target (gradient-based, no baseline)
+## Pattern A — inputs + target
 
-Applies to: `SaliencyExplainer`, `InputXGradientExplainer`.
+No baseline or mask required. Applies to: `SaliencyExplainer`, `InputXGradientExplainer`.
 
 ```python
 from torchxai.explainers import SaliencyExplainer
@@ -95,9 +95,9 @@ print(f"Output shape={result.shape}, mean={result.mean().item():.3f}, std={resul
 
 ---
 
-## Pattern B — inputs + baseline + target (gradient-based, with baseline)
+## Pattern B — inputs + baseline + target
 
-Applies to: `IntegratedGradientsExplainer`, `InputXBaselineGradientExplainer`.
+A single reference tensor (same shape as `inputs`) is required. Applies to: `IntegratedGradientsExplainer`, `InputXBaselineGradientExplainer`.
 
 ```python
 from torchxai.explainers import IntegratedGradientsExplainer
@@ -113,17 +113,16 @@ print(f"Output shape={result.shape}, mean={result.mean().item():.3f}, std={resul
 
 ## Pattern C — inputs + baseline distribution + target
 
-`baselines` is a **stacked set of reference samples** rather than a single tensor.
+`baselines` is a **stacked set of reference samples** rather than a single tensor. Applies to: `GradientShapExplainer`.
 
-Applies to: `GradientShapExplainer`.
+!!! note
+    GradientShap has internal non-determinism due to random sampling. Use `n_samples=200` and a higher `atol` for reliable comparison.
 
 ```python
 from torchxai.explainers import GradientShapExplainer
 
 baselines_dist = baseline_emb.expand(5, -1, -1)   # (5, seq_len, 768) reference distribution
 
-# gradient shap has internal non-determinism due to random sampling, so we set a higher tolerance for comparison and higher
-# number of samples for better convergence. Adjust as needed for other stochastic explainers.
 result = compare(GradientShapExplainer, embed_model,
         {"inputs": embeddings, "baselines": baselines_dist}, targets, n_samples=200, atol=0.1)
 print(f"Output shape={result.shape}, mean={result.mean().item():.3f}, std={result.std().item():.3f}, min={result.min().item():.3f}, max={result.max().item():.3f}")
@@ -133,9 +132,7 @@ print(f"Output shape={result.shape}, mean={result.mean().item():.3f}, std={resul
 
 ## Pattern D — inputs + feature_mask + target
 
-A `feature_mask` groups embedding dimensions into segments so the explainer scores whole words rather than individual tokens.
-
-Applies to: `FeatureAblationExplainer`, `LimeExplainer`, `KernelShapExplainer`.
+A word-level `feature_mask` groups subword tokens so the explainer scores whole words rather than individual tokens. Applies to: `FeatureAblationExplainer`, `LimeExplainer`, `KernelShapExplainer`.
 
 ```python
 from torchxai.explainers import FeatureAblationExplainer
@@ -146,7 +143,7 @@ from torchxai.explainers import FeatureAblationExplainer
 word_ids     = enc.word_ids(batch_index=0)   # e.g. [None, 0, 1, 1, 2, None]
 seq_len      = input_ids.shape[1]
 
-ids = input_ids[0].tolist()
+ids    = input_ids[0].tolist()
 tokens = tokenizer.convert_ids_to_tokens(input_ids[0])
 
 # Shape (1, seq_len, 1): broadcast across 768 embedding dims
@@ -155,7 +152,7 @@ for t_idx, w_idx in enumerate(word_ids):
     if w_idx is not None:
         feature_mask[0, t_idx, 0] = w_idx + 1  # 0 reserved for special tokens
 
-print("\nToken debug view:")
+print("Token debug view:")
 print(f"{'idx':>3}  {'id':>6}  {'word_id':>7}  {'fmask':>5}  token")
 print("-" * 46)
 feature_mask_ids = feature_mask[0, :, 0].tolist()
@@ -167,5 +164,19 @@ for i, (tid, tok, wid, fmask) in enumerate(
 print("\nWith word-level feature mask:")
 result = compare(FeatureAblationExplainer, embed_model,
         {"inputs": embeddings, "feature_mask": feature_mask}, targets)
+print(f"Output shape={result.shape}, mean={result.mean().item():.3f}, std={result.std().item():.3f}, min={result.min().item():.3f}, max={result.max().item():.3f}")
+```
+
+---
+
+## Pattern E — inputs + sliding_window_shapes + target
+
+`OcclusionExplainer` patches out rectangular windows of the embedding sequence. The `sliding_window_shapes` tuple `(tokens, dims)` specifies the window size.
+
+```python
+from torchxai.explainers import OcclusionExplainer
+
+result = compare(OcclusionExplainer, embed_model,
+        {"inputs": embeddings, "sliding_window_shapes": (4, 768), "strides": (2, 768)}, targets)
 print(f"Output shape={result.shape}, mean={result.mean().item():.3f}, std={result.std().item():.3f}, min={result.min().item():.3f}, max={result.max().item():.3f}")
 ```
