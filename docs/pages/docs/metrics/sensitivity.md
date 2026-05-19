@@ -1,4 +1,4 @@
-# Max & Average Sensitivity
+# Max & Avg Sensitivity
 
 Measures explanation stability under small input perturbations. Returns two values: **max sensitivity** (worst-case attribution distance across perturbations, ↓ better) and **avg sensitivity** (average distance, ↓ better). Does not require a baseline.
 
