@@ -1,0 +1,1 @@
+mkdocs gh-deploy --config-file ./pages/mkdocs.yml --remote-branch docs
