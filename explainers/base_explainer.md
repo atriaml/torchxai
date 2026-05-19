@@ -1,84 +1,53 @@
 # Base Explainer
 
-The abstract base class that all TorchXAI explainers inherit from.
+TorchXAI provides two abstract base classes that all concrete explainers inherit from.
+
+---
+
+## `Explainer`
+
+The root abstract base class. Defines the `explain()` interface and a default `__repr__`.
 
 ::: torchxai.explainers.Explainer
 
-## Key Features
+---
 
-- **Multi-target Support**: Automatically handles single-target and multi-target explanations
-- **Flexible Input Handling**: Works with `ExplanationInputs` for structured input management  
-- **Automatic Function Inspection**: Dynamically inspects explainer function signatures
-- **Batch Processing**: Built-in support for batch explanations with configurable batch sizes
-<!-- 
-## Implementation Example
+## `FeatureAttributionExplainer`
 
-Here's how to implement a custom explainer by inheriting from the base `Explainer` class:
+Extends `Explainer` with `multi_target` support, configurable batch sizes, and the routing logic that dispatches `explain()` calls to single-target or multi-target Captum attribution functions. **All concrete explainers inherit from this class.**
+
+::: torchxai.explainers.FeatureAttributionExplainer
+
+---
+
+## Implementing a custom explainer
+
+Subclass `FeatureAttributionExplainer` and implement `_init_single_target_explanation_fn()` plus `explain()`:
 
 ```python
 from collections.abc import Callable
-from torchxai.explainers.explainer import Explainer
-from torchxai.data_types import ExplanationInputs, ExplanationTupleInputs
+import torch
 from captum.attr import Saliency
-import torch
+from torchxai.explainers import FeatureAttributionExplainer
+from torchxai.data_types import SingleTargetAcrossBatch
 
-class MyCustomExplainer(Explainer):
-    """Custom explainer implementation."""
-    
+
+class MySaliencyExplainer(FeatureAttributionExplainer):
     def _init_single_target_explanation_fn(self) -> Callable:
-        """Initialize single-target explanation function."""
         return Saliency(self._model).attribute
-    
-    def _init_multi_target_explanation_fn(self) -> Callable:
-        """Initialize multi-target explanation function."""
-        # Return your multi-target implementation
-        return MyMultiTargetMethod(self._model).attribute
-    
-    def _explain(self, explanation_tuple_inputs: ExplanationTupleInputs):
-        """Internal method to compute attributions."""
-        return self._explanation_fn(
-            inputs=explanation_tuple_inputs.inputs,
-            target=explanation_tuple_inputs.target,
-            additional_forward_args=explanation_tuple_inputs.additional_forward_args,
-        )
 
-# Usage with ExplanationInputs
-import torch
-from collections import OrderedDict
+    def explain(self, inputs: torch.Tensor, target, **kwargs) -> torch.Tensor:
+        return self._default_explain(inputs=inputs, target=target, **kwargs)
 
-model = torch.nn.Linear(10, 2)
-explainer = MyCustomExplainer(model, multi_target=False)
 
-# Create structured inputs
-inputs = torch.randn(2, 10)  # batch size 2
-target = torch.tensor([0, 1])  # targets for each sample
+model = torch.nn.Sequential(torch.nn.Linear(10, 3), torch.nn.ReLU())
+explainer = MySaliencyExplainer(model, multi_target=False)
 
-explanation_inputs = ExplanationInputs(
-    inputs=OrderedDict({"input_features": inputs}),
-    target=target,
+attrs = explainer.explain(
+    inputs=torch.randn(1, 10),
+    target=SingleTargetAcrossBatch(index=0),
 )
-
-# Get explanations as OrderedDict
-attributions = explainer.explain(explanation_inputs)
-# Returns: OrderedDict[str, torch.Tensor]
-
-# Multi-target example
-explainer_mt = MyCustomExplainer(model, multi_target=True)
-mt_target = [torch.tensor([0, 1]), torch.tensor([1, 0])]  # 2 targets
-explanation_inputs_mt = ExplanationInputs(
-    inputs=OrderedDict({"input_features": inputs}),
-    target=mt_target,
-)
-
-# Returns: list[OrderedDict[str, torch.Tensor]] - one dict per target
-mt_attributions = explainer_mt.explain(explanation_inputs_mt)
+print(attrs.shape)   # (1, 10)
 ```
 
-## New vs Old API
-
-The updated `Explainer` class now uses structured inputs via `ExplanationInputs` instead of raw tensors:
-
-- **Old**: `explainer.explain(inputs, target, additional_forward_args=None)`
-- **New**: `explainer.explain(ExplanationInputs(...))`
-
-This provides better type safety, clearer parameter organization, and support for multiple input features with named keys. -->
+To override the multi-target implementation (e.g. for a more efficient batched approach), also implement `_init_multi_target_explanation_fn()`. Otherwise the default falls back to iterating `_init_single_target_explanation_fn()` once per target.

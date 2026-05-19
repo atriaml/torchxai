@@ -5,7 +5,7 @@
 <script>
         const base_url = "https://github.com/torchxai/docs/"; /* for search plugin notably */
     </script>
-    <script integrity="sha384-m6cZ+Whl1ci89lidlu8DH4C+sZLNOYBvImtjUIhUK+iaNffXhqtbYgBVuuPfRsa0" src="../../js/dark.js"></script>
+    <script integrity="sha384-m6cZ+Whl1ci89lidlu8DH4C+sZLNOYBvImtjUIhUK+iaNffXhqtbYgBVuuPfRsa0" src="../../../js/dark.js"></script>
 
 
     <meta charset="utf-8"/>
@@ -14,7 +14,7 @@
     
 
 
-<title>Feature ablation</title>
+<title>Sequence Classification</title>
 
 
 
@@ -26,18 +26,18 @@
 
 
 
-<link rel="canonical" href="https://github.com/torchxai/docs/explainers/feature_ablation/">
+<link rel="canonical" href="https://github.com/torchxai/docs/explainers/examples/sequence_classification/">
 
 
 <!-- Open Graph (Facebook, LinkedIn) -->
 
-<meta property="og:title" content="Feature ablation">
+<meta property="og:title" content="Sequence Classification">
 
 
 
 
 
-<meta property="og:url" content="https://github.com/torchxai/docs/explainers/feature_ablation/">
+<meta property="og:url" content="https://github.com/torchxai/docs/explainers/examples/sequence_classification/">
 
 
 
@@ -46,7 +46,7 @@
 
 <!-- Twitter Card -->
 
-<meta name="twitter:title" content="Feature ablation">
+<meta name="twitter:title" content="Sequence Classification">
 
 
 
@@ -57,18 +57,18 @@
 
 
 
-    <link href="../../img/favicon.ico" rel="icon"/>
+    <link href="../../../img/favicon.ico" rel="icon"/>
 
-    <link href="../../css/base.css" rel="stylesheet"/>
-<link href="../../css/geist.css" rel="stylesheet"/>
+    <link href="../../../css/base.css" rel="stylesheet"/>
+<link href="../../../css/geist.css" rel="stylesheet"/>
 
     
     
 
 <link id="pygments-light" rel="stylesheet"
-    href="../../css/pygments/shadcn-light.css">
+    href="../../../css/pygments/shadcn-light.css">
 <link id="pygments-dark" rel="stylesheet"
-    href="../../css/pygments/github-dark.css"
+    href="../../../css/pygments/github-dark.css"
     media="(prefers-color-scheme: dark)">
 
 
@@ -79,25 +79,25 @@
             --theme-accent: oklch(63% 0.24 25);
         }
     </style>
-    <link href="../../assets/_mkdocstrings.css" rel="stylesheet"/>
+    <link href="../../../assets/_mkdocstrings.css" rel="stylesheet"/>
 
     
 
-    <script integrity="sha384-V2jkXRy811qODUbfkLlkVJYBbf4h6XHAEjcU6ReASBPrJvTrlYh4GrI4t6GCju6n" src="../../js/callbacks.js"></script>
+    <script integrity="sha384-V2jkXRy811qODUbfkLlkVJYBbf4h6XHAEjcU6ReASBPrJvTrlYh4GrI4t6GCju6n" src="../../../js/callbacks.js"></script>
 
     
     
 <!-- katex -->
-<link href="../../css/katex.min.css" rel="stylesheet"/>
+<link href="../../../css/katex.min.css" rel="stylesheet"/>
 <!-- The loading of KaTeX is deferred to speed up page rendering -->
-<script defer="" integrity="sha384-YPHNAPyrxGS8BNnA7Q4ommqra8WQPEjooVSLzFgwgs8OXJBvadbyvx4QpfiFurGr" src="../../js/katex.min.js"></script>
+<script defer="" integrity="sha384-YPHNAPyrxGS8BNnA7Q4ommqra8WQPEjooVSLzFgwgs8OXJBvadbyvx4QpfiFurGr" src="../../../js/katex.min.js"></script>
 <!-- To automatically render math in text elements, include the auto-render extension: -->
-<script defer="" integrity="sha384-JKXHIJf8PKPyDFptuKZoUyMRQJAmQKj4B4xyOca62ebJhciMYGiDdq/9twUUWyZH" onload='renderMathInElement(document.body, {"macros": {"\\NN": "\\mathbb{N}", "\\dx": "\\mathrm{d}x"}, "trust": true});' src="../../js/auto-render.min.js"></script>
+<script defer="" integrity="sha384-JKXHIJf8PKPyDFptuKZoUyMRQJAmQKj4B4xyOca62ebJhciMYGiDdq/9twUUWyZH" onload='renderMathInElement(document.body, {"macros": {"\\NN": "\\mathbb{N}", "\\dx": "\\mathrm{d}x"}, "trust": true});' src="../../../js/auto-render.min.js"></script>
     
 
     
-    <script integrity="sha384-F07Cpw5v8spSU0H113F33m2NQQ/o6GqPTnTjf45ssG4Q6q58ZwhxBiQtIaqvnSpR" src="../../js/echarts.min.js"></script>
-<script integrity="sha384-z2nBxqjQr+3NoeDZBkvio6wHbU1KSPkNxT3AYgdsIm+PQAz5Lp3Oj9twImKNn6NW" src="../../js/echarts-style.js"></script>
+    <script integrity="sha384-F07Cpw5v8spSU0H113F33m2NQQ/o6GqPTnTjf45ssG4Q6q58ZwhxBiQtIaqvnSpR" src="../../../js/echarts.min.js"></script>
+<script integrity="sha384-z2nBxqjQr+3NoeDZBkvio6wHbU1KSPkNxT3AYgdsIm+PQAz5Lp3Oj9twImKNn6NW" src="../../../js/echarts-style.js"></script>
     
 
     
@@ -590,7 +590,7 @@
     <button data-slot="collapsible-trigger" data-sidebar="menu-button" data-size="default" data-active="false"
         class="peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 [&amp;&gt;span:last-child]:truncate hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-[0.8rem] font-medium"
         type="button" aria-expanded="true"
-        data-state="open"
+        data-state="closed"
         onclick="this.setAttribute('data-state', this.getAttribute('data-state') === 'closed' ? 'open' : 'closed')">
         
         Perturbation Methods
@@ -609,7 +609,7 @@
             
             
             <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
-    <a data-slot="sidebar-menu-button" data-active="true" data-sidebar="menu-button"
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
         data-size="default" href="/torchxai/docs/explainers/feature_ablation/"
         class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
 
@@ -741,7 +741,7 @@
     <button data-slot="collapsible-trigger" data-sidebar="menu-button" data-size="default" data-active="false"
         class="peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground [&amp;_svg]:size-4 [&amp;_svg]:shrink-0 [&amp;&gt;span:last-child]:truncate hover:bg-sidebar-accent hover:text-sidebar-accent-foreground h-8 text-[0.8rem] font-medium"
         type="button" aria-expanded="true"
-        data-state="closed"
+        data-state="open"
         onclick="this.setAttribute('data-state', this.getAttribute('data-state') === 'closed' ? 'open' : 'closed')">
         
         Examples
@@ -779,7 +779,7 @@
             
             
             <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
-    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+    <a data-slot="sidebar-menu-button" data-active="true" data-sidebar="menu-button"
         data-size="default" href="/torchxai/docs/explainers/examples/sequence_classification/"
         class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
 
@@ -902,12 +902,12 @@
     <div class="flex flex-col gap-2">
       <div id="page-header" class="flex items-start justify-between">
         <h1 class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl">
-          Feature ablation
+          Sequence Classification
         </h1>
 
         <div class="flex items-center gap-2 pt-1.5">
           <button
-    onclick="fetch(`https://github.com/torchxai/docs/explainers/feature_ablation.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))"
+    onclick="fetch(`https://github.com/torchxai/docs/explainers/examples/sequence_classification.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))"
     data-slot="button" class="secondary cursor-pointer">
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
@@ -921,7 +921,7 @@
           
           <a data-slot="button" id="previous-button"
             class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
-            href="/torchxai/docs/explainers/gradient_shap/">
+            href="/torchxai/docs/explainers/examples/image_classification/">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
               class="tabler-icon tabler-icon-arrow-left">
@@ -935,7 +935,7 @@
           
           <a data-slot="button" id="next-button"
             class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
-            href="/torchxai/docs/explainers/occlusion/">
+            href="/torchxai/docs/explainers/examples/token_classification/">
             <span class="sr-only">Next</span>
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -949,6 +949,10 @@
         </div>
       </div>
       
+      <p id="summary" class="text-muted-foreground text-[1.05rem] text-balance sm:text-base">
+        Multi-target attribution on BERT for sentence-level classification
+      </p>
+      
     </div>
     <div class="flex justify-end items-center">
       
@@ -956,791 +960,161 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <div class="doc doc-object doc-class">
+    <div class="admonition note">
+<p class="admonition-title">Gradient-based methods require embedding-level inputs</p>
+<p>BERT token IDs are discrete integers — gradients cannot flow through them.
+For gradient-based explainers (<code>Saliency</code>, <code>IntegratedGradients</code>, etc.) we pass the continuous <strong>embedding tensor</strong> as input. For perturbation-based explainers (<code>FeatureAblation</code>, <code>LIME</code>, etc.) we operate on embeddings as well, using a word-level <code>feature_mask</code> to score whole words.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Unsupported explainers for transformer architectures</p>
+<p><code>DeepLiftExplainer</code>, <code>DeepLiftShapExplainer</code>, and <code>GuidedBackpropExplainer</code> are not compatible with transformers out of the box. DeepLift requires specific activation types not present in BERT; GuidedBackprop requires ReLU activations throughout the network. Use <code>IntegratedGradientsExplainer</code>, <code>GradientShapExplainer</code>, or <code>SaliencyExplainer</code> as alternatives.</p>
+</div>
+<hr />
+<h2 id="setup">Setup</h2>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">BertForSequenceClassification</span><span class="p">,</span> <span class="n">BertTokenizerFast</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.data_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">SingleTargetAcrossBatch</span>
+
+<span class="n">tokenizer</span> <span class="o">=</span> <span class="n">BertTokenizerFast</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&quot;bert-base-uncased&quot;</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">BertForSequenceClassification</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+    <span class="s2">&quot;bert-base-uncased&quot;</span><span class="p">,</span> <span class="n">num_labels</span><span class="o">=</span><span class="mi">2</span>
+<span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span><span class="o">.</span><span class="n">cuda</span><span class="p">()</span>
+
+<span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;This movie was absolutely fantastic, but the subplot felt unexpectedly overdramatized.&quot;</span>
+<span class="n">enc</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">)</span>
+<span class="n">input_ids</span>      <span class="o">=</span> <span class="n">enc</span><span class="p">[</span><span class="s2">&quot;input_ids&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">cuda</span><span class="p">()</span>       <span class="c1"># (1, seq_len)</span>
+<span class="n">attention_mask</span> <span class="o">=</span> <span class="n">enc</span><span class="p">[</span><span class="s2">&quot;attention_mask&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">cuda</span><span class="p">()</span>  <span class="c1"># (1, seq_len)</span>
+
+<span class="c1"># Embeddings — used as input for all explainers</span>
+<span class="n">embeddings</span>   <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">bert</span><span class="o">.</span><span class="n">embeddings</span><span class="p">(</span><span class="n">input_ids</span><span class="p">)</span>   <span class="c1"># (1, seq_len, 768)</span>
+<span class="n">baseline_emb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">embeddings</span><span class="p">)</span>
 
 
-
-<h3 id="torchxai.explainers.FeatureAblationExplainer" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">FeatureAblationExplainer</span>
-
-
-</h3>
+<span class="k">class</span><span class="w"> </span><span class="nc">EmbeddingSeqCls</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">emb</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">model</span><span class="p">(</span><span class="n">inputs_embeds</span><span class="o">=</span><span class="n">emb</span><span class="p">,</span> <span class="n">attention_mask</span><span class="o">=</span><span class="n">attention_mask</span><span class="p">)</span><span class="o">.</span><span class="n">logits</span>
 
 
-    <div class="doc doc-contents first">
+<span class="n">embed_model</span> <span class="o">=</span> <span class="n">EmbeddingSeqCls</span><span class="p">()</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span><span class="o">.</span><span class="n">cuda</span><span class="p">()</span>
+
+<span class="c1"># 2 output classes (positive / negative)</span>
+<span class="n">targets</span> <span class="o">=</span> <span class="p">[</span><span class="n">SingleTargetAcrossBatch</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>
 
 
-
-        <p>Feature Ablation explainer for computing systematic feature removal attributions.</p>
-<p>This explainer computes attributions using Feature Ablation, which systematically
-removes features or feature groups and measures the resulting change in model output.
-This direct approach provides intuitive explanations by showing exactly how much
-each feature contributes to the prediction. The method supports feature grouping
-through masks, allowing for hierarchical ablation studies. Supports both single-target
-and multi-target modes with structured input/output.</p>
-<p>Feature Ablation provides the most direct measure of feature importance through
-systematic removal and impact measurement.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <ul>
-        <li class="doc-section-item field-body">
-<h4 id="torchxai.explainers.FeatureAblationExplainer(model)" class="doc doc-heading doc-heading-parameter">              <b><code>model</code></b>
-</h4>              (<code><span title="torch.nn.Module">Module</span></code>)
-          –
-          <div class="doc-md-description">
-            <p>The PyTorch model whose output is to be explained.</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-<h4 id="torchxai.explainers.FeatureAblationExplainer(multi_target)" class="doc doc-heading doc-heading-parameter">              <b><code>multi_target</code></b>
-</h4>              (<code><span title="bool">bool</span></code>, default:
-                  <code>False</code>
-)
-          –
-          <div class="doc-md-description">
-            <p>Whether to use multi-target mode. When True, can compute
-attributions for multiple targets simultaneously. Defaults to False.</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-<h4 id="torchxai.explainers.FeatureAblationExplainer(internal_batch_size)" class="doc doc-heading doc-heading-parameter">              <b><code>internal_batch_size</code></b>
-</h4>              (<code><span title="int">int</span></code>, default:
-                  <code>64</code>
-)
-          –
-          <div class="doc-md-description">
-            <p>Batch size for internal computations (perturbations
-per evaluation). Defaults to 64.</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-<h4 id="torchxai.explainers.FeatureAblationExplainer(weight_attributions)" class="doc doc-heading doc-heading-parameter">              <b><code>weight_attributions</code></b>
-</h4>              (<code><span title="bool">bool</span></code>, default:
-                  <code>False</code>
-)
-          –
-          <div class="doc-md-description">
-            <p>Whether to weight attributions by feature group sizes
-when using feature masks. Defaults to False.</p>
-          </div>
-        </li>
-    </ul>
-
-
-<p><span class="doc-section-title">Examples:</span></p>
-    <p>Single-target usage for tabular data:</p>
-    <div class="codehilite"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.data_types</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExplanationInputs</span>
-<span class="gp">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-<span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">explainer</span> <span class="o">=</span> <span class="n">FeatureAblationExplainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">internal_batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">explanation_inputs</span> <span class="o">=</span> <span class="n">ExplanationInputs</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">inputs</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}),</span>
-<span class="gp">... </span>    <span class="n">target</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
-<span class="gp">... </span>    <span class="n">baselines</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}),</span>
-<span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">attributions</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">explanation_inputs</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Returns: OrderedDict({&quot;features&quot;: torch.Tensor})</span>
-</code></pre></div>
-    <p>Multi-target usage with feature grouping:</p>
-    <div class="codehilite"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="n">explainer_mt</span> <span class="o">=</span> <span class="n">FeatureAblationExplainer</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">model</span><span class="p">,</span> <span class="n">multi_target</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">weight_attributions</span><span class="o">=</span><span class="kc">True</span>
-<span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">feature_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">explanation_inputs_mt</span> <span class="o">=</span> <span class="n">ExplanationInputs</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">inputs</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}),</span>
-<span class="gp">... </span>    <span class="n">target</span><span class="o">=</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])],</span>
-<span class="gp">... </span>    <span class="n">baselines</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}),</span>
-<span class="gp">... </span>    <span class="n">feature_mask</span><span class="o">=</span><span class="n">feature_mask</span><span class="p">,</span>
-<span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">mt_attributions</span> <span class="o">=</span> <span class="n">explainer_mt</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="n">explanation_inputs_mt</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Returns: [OrderedDict({&quot;features&quot;: torch.Tensor}), OrderedDict({&quot;features&quot;: torch.Tensor})]</span>
-</code></pre></div>
-
-          
-
-
-
-
-
-
-
-
-
-
-
-<p><span class="doc-section-title">Methods:</span></p>
-    <ul>
-          <li class="doc-section-item field-body">
-            <b><code><a class="autorefs autorefs-internal" title="            explain (torchxai.explainers.FeatureAblationExplainer.explain)" href="#torchxai.explainers.FeatureAblationExplainer.explain">explain</a></code></b>
-            –
-            <div class="doc-md-description">
-              <p>Compute Feature Ablation attributions for the given inputs.</p>
-            </div>
-          </li>
-    </ul>
-
-
-
-              <details class="mkdocstrings-source">
-                <summary>Source code in <code>.venv/lib/python3.11/site-packages/torchxai/explainers/_perturbation/_feature_ablation.py</code></summary>
-                <div class="codehilite"><div class="table-wrapper"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">650</span>
-<span class="normal">651</span>
-<span class="normal">652</span>
-<span class="normal">653</span>
-<span class="normal">654</span>
-<span class="normal">655</span>
-<span class="normal">656</span>
-<span class="normal">657</span>
-<span class="normal">658</span>
-<span class="normal">659</span>
-<span class="normal">660</span>
-<span class="normal">661</span>
-<span class="normal">662</span>
-<span class="normal">663</span>
-<span class="normal">664</span>
-<span class="normal">665</span>
-<span class="normal">666</span>
-<span class="normal">667</span>
-<span class="normal">668</span>
-<span class="normal">669</span>
-<span class="normal">670</span>
-<span class="normal">671</span>
-<span class="normal">672</span>
-<span class="normal">673</span>
-<span class="normal">674</span>
-<span class="normal">675</span>
-<span class="normal">676</span>
-<span class="normal">677</span>
-<span class="normal">678</span>
-<span class="normal">679</span>
-<span class="normal">680</span>
-<span class="normal">681</span>
-<span class="normal">682</span>
-<span class="normal">683</span>
-<span class="normal">684</span>
-<span class="normal">685</span>
-<span class="normal">686</span>
-<span class="normal">687</span>
-<span class="normal">688</span>
-<span class="normal">689</span>
-<span class="normal">690</span>
-<span class="normal">691</span>
-<span class="normal">692</span>
-<span class="normal">693</span>
-<span class="normal">694</span>
-<span class="normal">695</span>
-<span class="normal">696</span>
-<span class="normal">697</span>
-<span class="normal">698</span>
-<span class="normal">699</span>
-<span class="normal">700</span>
-<span class="normal">701</span>
-<span class="normal">702</span>
-<span class="normal">703</span>
-<span class="normal">704</span>
-<span class="normal">705</span>
-<span class="normal">706</span>
-<span class="normal">707</span>
-<span class="normal">708</span>
-<span class="normal">709</span>
-<span class="normal">710</span>
-<span class="normal">711</span>
-<span class="normal">712</span>
-<span class="normal">713</span>
-<span class="normal">714</span>
-<span class="normal">715</span>
-<span class="normal">716</span>
-<span class="normal">717</span>
-<span class="normal">718</span>
-<span class="normal">719</span>
-<span class="normal">720</span>
-<span class="normal">721</span>
-<span class="normal">722</span>
-<span class="normal">723</span>
-<span class="normal">724</span>
-<span class="normal">725</span>
-<span class="normal">726</span>
-<span class="normal">727</span>
-<span class="normal">728</span>
-<span class="normal">729</span>
-<span class="normal">730</span>
-<span class="normal">731</span>
-<span class="normal">732</span>
-<span class="normal">733</span>
-<span class="normal">734</span>
-<span class="normal">735</span>
-<span class="normal">736</span>
-<span class="normal">737</span>
-<span class="normal">738</span>
-<span class="normal">739</span>
-<span class="normal">740</span>
-<span class="normal">741</span>
-<span class="normal">742</span>
-<span class="normal">743</span>
-<span class="normal">744</span>
-<span class="normal">745</span>
-<span class="normal">746</span>
-<span class="normal">747</span>
-<span class="normal">748</span>
-<span class="normal">749</span>
-<span class="normal">750</span>
-<span class="normal">751</span>
-<span class="normal">752</span>
-<span class="normal">753</span>
-<span class="normal">754</span>
-<span class="normal">755</span>
-<span class="normal">756</span>
-<span class="normal">757</span>
-<span class="normal">758</span>
-<span class="normal">759</span>
-<span class="normal">760</span>
-<span class="normal">761</span>
-<span class="normal">762</span>
-<span class="normal">763</span>
-<span class="normal">764</span>
-<span class="normal">765</span>
-<span class="normal">766</span>
-<span class="normal">767</span>
-<span class="normal">768</span>
-<span class="normal">769</span>
-<span class="normal">770</span>
-<span class="normal">771</span>
-<span class="normal">772</span>
-<span class="normal">773</span>
-<span class="normal">774</span>
-<span class="normal">775</span>
-<span class="normal">776</span>
-<span class="normal">777</span>
-<span class="normal">778</span>
-<span class="normal">779</span>
-<span class="normal">780</span>
-<span class="normal">781</span>
-<span class="normal">782</span>
-<span class="normal">783</span>
-<span class="normal">784</span>
-<span class="normal">785</span>
-<span class="normal">786</span>
-<span class="normal">787</span>
-<span class="normal">788</span>
-<span class="normal">789</span>
-<span class="normal">790</span>
-<span class="normal">791</span>
-<span class="normal">792</span>
-<span class="normal">793</span>
-<span class="normal">794</span>
-<span class="normal">795</span>
-<span class="normal">796</span>
-<span class="normal">797</span>
-<span class="normal">798</span>
-<span class="normal">799</span>
-<span class="normal">800</span>
-<span class="normal">801</span>
-<span class="normal">802</span>
-<span class="normal">803</span>
-<span class="normal">804</span>
-<span class="normal">805</span>
-<span class="normal">806</span>
-<span class="normal">807</span>
-<span class="normal">808</span>
-<span class="normal">809</span>
-<span class="normal">810</span>
-<span class="normal">811</span>
-<span class="normal">812</span>
-<span class="normal">813</span>
-<span class="normal">814</span>
-<span class="normal">815</span>
-<span class="normal">816</span>
-<span class="normal">817</span>
-<span class="normal">818</span>
-<span class="normal">819</span>
-<span class="normal">820</span>
-<span class="normal">821</span>
-<span class="normal">822</span>
-<span class="normal">823</span>
-<span class="normal">824</span>
-<span class="normal">825</span>
-<span class="normal">826</span>
-<span class="normal">827</span>
-<span class="normal">828</span>
-<span class="normal">829</span>
-<span class="normal">830</span>
-<span class="normal">831</span>
-<span class="normal">832</span>
-<span class="normal">833</span>
-<span class="normal">834</span>
-<span class="normal">835</span>
-<span class="normal">836</span>
-<span class="normal">837</span>
-<span class="normal">838</span>
-<span class="normal">839</span>
-<span class="normal">840</span>
-<span class="normal">841</span>
-<span class="normal">842</span>
-<span class="normal">843</span>
-<span class="normal">844</span>
-<span class="normal">845</span>
-<span class="normal">846</span>
-<span class="normal">847</span>
-<span class="normal">848</span>
-<span class="normal">849</span>
-<span class="normal">850</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">FeatureAblationExplainer</span><span class="p">(</span><span class="n">FeatureAttributionExplainer</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Feature Ablation explainer for computing systematic feature removal attributions.</span>
-
-<span class="sd">    This explainer computes attributions using Feature Ablation, which systematically</span>
-<span class="sd">    removes features or feature groups and measures the resulting change in model output.</span>
-<span class="sd">    This direct approach provides intuitive explanations by showing exactly how much</span>
-<span class="sd">    each feature contributes to the prediction. The method supports feature grouping</span>
-<span class="sd">    through masks, allowing for hierarchical ablation studies. Supports both single-target</span>
-<span class="sd">    and multi-target modes with structured input/output.</span>
-
-<span class="sd">    Feature Ablation provides the most direct measure of feature importance through</span>
-<span class="sd">    systematic removal and impact measurement.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        model: The PyTorch model whose output is to be explained.</span>
-<span class="sd">        multi_target: Whether to use multi-target mode. When True, can compute</span>
-<span class="sd">            attributions for multiple targets simultaneously. Defaults to False.</span>
-<span class="sd">        internal_batch_size: Batch size for internal computations (perturbations</span>
-<span class="sd">            per evaluation). Defaults to 64.</span>
-<span class="sd">        weight_attributions: Whether to weight attributions by feature group sizes</span>
-<span class="sd">            when using feature masks. Defaults to False.</span>
-
-<span class="sd">    Examples:</span>
-<span class="sd">        Single-target usage for tabular data:</span>
-<span class="sd">        &gt;&gt;&gt; import torch</span>
-<span class="sd">        &gt;&gt;&gt; from collections import OrderedDict</span>
-<span class="sd">        &gt;&gt;&gt; from torchxai.data_types import ExplanationInputs</span>
-<span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; model = torch.nn.Sequential(</span>
-<span class="sd">        ...     torch.nn.Linear(10, 5), torch.nn.ReLU(), torch.nn.Linear(5, 2)</span>
-<span class="sd">        ... )</span>
-<span class="sd">        &gt;&gt;&gt; explainer = FeatureAblationExplainer(model, internal_batch_size=32)</span>
-<span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; explanation_inputs = ExplanationInputs(</span>
-<span class="sd">        ...     inputs=OrderedDict({&quot;features&quot;: torch.randn(2, 10)}),</span>
-<span class="sd">        ...     target=torch.tensor([0, 1]),</span>
-<span class="sd">        ...     baselines=OrderedDict({&quot;features&quot;: torch.zeros(2, 10)}),</span>
-<span class="sd">        ... )</span>
-<span class="sd">        &gt;&gt;&gt; attributions = explainer.explain(explanation_inputs)</span>
-<span class="sd">        &gt;&gt;&gt; # Returns: OrderedDict({&quot;features&quot;: torch.Tensor})</span>
-
-<span class="sd">        Multi-target usage with feature grouping:</span>
-<span class="sd">        &gt;&gt;&gt; explainer_mt = FeatureAblationExplainer(</span>
-<span class="sd">        ...     model, multi_target=True, weight_attributions=True</span>
-<span class="sd">        ... )</span>
-<span class="sd">        &gt;&gt;&gt; feature_mask = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 4]])</span>
-<span class="sd">        &gt;&gt;&gt; explanation_inputs_mt = ExplanationInputs(</span>
-<span class="sd">        ...     inputs=OrderedDict({&quot;features&quot;: torch.randn(2, 10)}),</span>
-<span class="sd">        ...     target=[torch.tensor([0, 1]), torch.tensor([1, 0])],</span>
-<span class="sd">        ...     baselines=OrderedDict({&quot;features&quot;: torch.zeros(2, 10)}),</span>
-<span class="sd">        ...     feature_mask=feature_mask,</span>
-<span class="sd">        ... )</span>
-<span class="sd">        &gt;&gt;&gt; mt_attributions = explainer_mt.explain(explanation_inputs_mt)</span>
-<span class="sd">        &gt;&gt;&gt; # Returns: [OrderedDict({&quot;features&quot;: torch.Tensor}), OrderedDict({&quot;features&quot;: torch.Tensor})]</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compare</span><span class="p">(</span><span class="n">explainer_cls</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">explain_kwargs</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="o">**</span><span class="n">init_kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compare sequential single-target calls vs one multi-target call.</span>
+<span class="sd">    Verifies results match and reports timing and attribution shape.</span>
+<span class="sd">    Pass atol&gt;1e-5 for stochastic methods (e.g. GradientShap).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">explainer</span> <span class="o">=</span> <span class="n">explainer_cls</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">multi_target</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">init_kwargs</span><span class="p">)</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="o">**</span><span class="n">explain_kwargs</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">]</span>
+    <span class="n">elapsed_single</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+    <span class="n">attrs_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">attrs</span><span class="p">)</span>
 
-    <span class="n">__repr_attrs__</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s2">&quot;_multi_target&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;_internal_batch_size&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;_weight_attributions&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;_show_progress&quot;</span><span class="p">,</span>
-    <span class="p">]</span>
+    <span class="n">explainer_mt</span> <span class="o">=</span> <span class="n">explainer_cls</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">multi_target</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">init_kwargs</span><span class="p">)</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="n">attrs_mt</span> <span class="o">=</span> <span class="n">explainer_mt</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="o">**</span><span class="n">explain_kwargs</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">targets</span><span class="p">)</span>
+    <span class="n">elapsed_mt</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+    <span class="n">attrs_mt_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">attrs_mt</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
-        <span class="n">multi_target</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="n">internal_batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span>
-        <span class="n">weight_attributions</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the FeatureAblationExplainer.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            model: The model whose output is to be explained.</span>
-<span class="sd">            multi_target: Whether to use multi-target mode. Defaults to False.</span>
-<span class="sd">            internal_batch_size: Batch size for internal computations. Defaults to 64.</span>
-<span class="sd">            weight_attributions: Whether to weight attributions by feature groups. Defaults to False.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_weight_attributions</span> <span class="o">=</span> <span class="n">weight_attributions</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_show_progress</span> <span class="o">=</span> <span class="n">show_progress</span>
-
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">multi_target</span><span class="p">,</span> <span class="n">internal_batch_size</span><span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_init_single_target_explanation_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize single-target Feature Ablation attribution function.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            FeatureAblation attribution function for single targets.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">expl_func</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
-            <span class="n">FeatureAblation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span><span class="o">.</span><span class="n">attribute</span><span class="p">,</span>
-            <span class="n">perturbations_per_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_internal_batch_size</span><span class="p">,</span>
-            <span class="n">show_progress</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_show_progress</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expl_fn_with_post_process</span><span class="p">(</span><span class="n">expl_func</span><span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_init_multi_target_explanation_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize multi-target Feature Ablation attribution function.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            MultiTargetFeatureAblation attribution function for multiple targets.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">expl_func</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
-            <span class="n">MultiTargetFeatureAblation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span><span class="o">.</span><span class="n">attribute</span><span class="p">,</span>
-            <span class="n">perturbations_per_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_internal_batch_size</span><span class="p">,</span>
-            <span class="n">show_progress</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_show_progress</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expl_fn_with_post_process</span><span class="p">(</span><span class="n">expl_func</span><span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_expl_fn_with_post_process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expl_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-        <span class="k">def</span><span class="w"> </span><span class="nf">wrapped</span><span class="p">(</span>
-            <span class="n">inputs</span><span class="p">:</span> <span class="n">TensorOrTupleOfTensorsGeneric</span><span class="p">,</span>
-            <span class="n">baselines</span><span class="p">:</span> <span class="n">BaselineType</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">target</span><span class="p">:</span> <span class="n">TargetType</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">additional_forward_args</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">feature_mask</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">Tensor</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorOrTupleOfTensorsGeneric</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">TensorOrTupleOfTensorsGeneric</span><span class="p">]:</span>
-            <span class="n">feature_mask</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">_expand_feature_mask_to_target</span><span class="p">(</span><span class="n">feature_mask</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">feature_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="k">else</span> <span class="kc">None</span>
-            <span class="p">)</span>
-            <span class="n">additional_forward_args</span> <span class="o">=</span> <span class="n">_format_additional_forward_args</span><span class="p">(</span>
-                <span class="n">additional_forward_args</span>
-            <span class="p">)</span>
-
-            <span class="n">attributions</span> <span class="o">=</span> <span class="n">expl_func</span><span class="p">(</span>
-                <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
-                <span class="n">baselines</span><span class="o">=</span><span class="n">baselines</span><span class="p">,</span>
-                <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
-                <span class="n">additional_forward_args</span><span class="o">=</span><span class="n">additional_forward_args</span><span class="p">,</span>
-                <span class="n">feature_mask</span><span class="o">=</span><span class="n">feature_mask</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-            <span class="p">)</span>
-
-            <span class="c1"># Apply feature weighting if requested</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_attributions</span> <span class="ow">and</span> <span class="n">feature_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_multi_target</span><span class="p">:</span>
-                    <span class="n">attributions</span> <span class="o">=</span> <span class="p">[</span>
-                        <span class="n">_weight_attributions</span><span class="p">(</span><span class="n">attribution</span><span class="p">,</span> <span class="n">feature_mask</span><span class="p">)</span>
-                        <span class="k">for</span> <span class="n">attribution</span> <span class="ow">in</span> <span class="n">attributions</span>
-                    <span class="p">]</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">attributions</span> <span class="o">=</span> <span class="n">_weight_attributions</span><span class="p">(</span><span class="n">attributions</span><span class="p">,</span> <span class="n">feature_mask</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">attributions</span>
-
-        <span class="k">return</span> <span class="n">wrapped</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">explain</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">inputs</span><span class="p">:</span> <span class="n">TensorOrTupleOfTensorsGeneric</span><span class="p">,</span>
-        <span class="n">target</span><span class="p">:</span> <span class="n">ExplanationTargetType</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">ExplanationTargetType</span><span class="p">],</span>
-        <span class="n">baselines</span><span class="p">:</span> <span class="n">TensorOrTupleOfTensorsGeneric</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">feature_mask</span><span class="p">:</span> <span class="n">TensorOrTupleOfTensorsGeneric</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">additional_forward_args</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorOrTupleOfTensorsGeneric</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">TensorOrTupleOfTensorsGeneric</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute Feature Ablation attributions for the given inputs.</span>
-
-<span class="sd">        This method provides a backward-compatible interface that accepts individual</span>
-<span class="sd">        parameters and constructs ExplanationInputs internally before calling the</span>
-<span class="sd">        parent class explain method.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            inputs: Input tensors for attribution computation. Should be an OrderedDict</span>
-<span class="sd">                mapping feature names to tensors when used with this explainer.</span>
-<span class="sd">            target: Target indices for attribution computation. Can be a tensor</span>
-<span class="sd">                (single-target) or list of tensors (multi-target).</span>
-<span class="sd">            baselines: Baseline tensors for ablation (typically zeros). If None,</span>
-<span class="sd">                uses zero baselines matching input shape.</span>
-<span class="sd">            feature_mask: Masks representing feature groups for ablation. Features</span>
-<span class="sd">                with the same mask value are ablated together as a group.</span>
-<span class="sd">            additional_forward_args: Additional arguments for model forward pass.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            For single-target mode: OrderedDict mapping feature names to attribution tensors.</span>
-<span class="sd">            For multi-target mode: List of OrderedDicts, one per target.</span>
-
-<span class="sd">        Note:</span>
-<span class="sd">            Feature Ablation directly measures feature importance through systematic removal.</span>
-<span class="sd">            The internal_batch_size parameter controls how many features are ablated</span>
-<span class="sd">            simultaneously for computational efficiency.</span>
-
-<span class="sd">        Examples:</span>
-<span class="sd">            &gt;&gt;&gt; # For tabular data with feature grouping</span>
-<span class="sd">            &gt;&gt;&gt; feature_mask = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 4]])</span>
-<span class="sd">            &gt;&gt;&gt; attributions = explainer.explain(</span>
-<span class="sd">            ...     inputs=OrderedDict({&quot;features&quot;: torch.randn(1, 10)}),</span>
-<span class="sd">            ...     target=torch.tensor([1]),</span>
-<span class="sd">            ...     baselines=OrderedDict({&quot;features&quot;: torch.zeros(1, 10)}),</span>
-<span class="sd">            ...     feature_mask=feature_mask,</span>
-<span class="sd">            ... )</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_explain</span><span class="p">(</span>
-            <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
-            <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
-            <span class="n">baselines</span><span class="o">=</span><span class="n">baselines</span><span class="p">,</span>
-            <span class="n">feature_mask</span><span class="o">=</span><span class="n">feature_mask</span><span class="p">,</span>
-            <span class="n">additional_forward_args</span><span class="o">=</span><span class="n">additional_forward_args</span><span class="p">,</span>
-        <span class="p">)</span>
-</code></pre></div></td></tr></table></div></div>
-              </details>
-
-
-
-<div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-object doc-function">
-
-
-<h4 id="torchxai.explainers.FeatureAblationExplainer.explain" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <span class="doc doc-object-name doc-function-name">explain</span>
-
-
-</h4>
-<div class="doc-signature codehilite"><pre><span></span><code><span class="nf">explain</span><span class="p">(</span>
-    <span class="n"><a class="autorefs autorefs-internal" title="inputs (torchxai.explainers.FeatureAblationExplainer.explain(inputs))" href="#torchxai.explainers.FeatureAblationExplainer.explain(inputs)">inputs</a></span><span class="p">:</span> <span class="n"><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span></span><span class="p">,</span>
-    <span class="n"><a class="autorefs autorefs-internal" title="target (torchxai.explainers.FeatureAblationExplainer.explain(target))" href="#torchxai.explainers.FeatureAblationExplainer.explain(target)">target</a></span><span class="p">:</span> <span class="n"><span title="torchxai.data_types.ExplanationTargetType">ExplanationTargetType</span></span> <span class="o">|</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="torchxai.data_types.ExplanationTargetType">ExplanationTargetType</span></span><span class="p">],</span>
-    <span class="n"><a class="autorefs autorefs-internal" title="baselines (torchxai.explainers.FeatureAblationExplainer.explain(baselines))" href="#torchxai.explainers.FeatureAblationExplainer.explain(baselines)">baselines</a></span><span class="p">:</span> <span class="n"><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n"><a class="autorefs autorefs-internal" title="feature_mask (torchxai.explainers.FeatureAblationExplainer.explain(feature_mask))" href="#torchxai.explainers.FeatureAblationExplainer.explain(feature_mask)">feature_mask</a></span><span class="p">:</span> <span class="n"><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n"><a class="autorefs autorefs-internal" title="additional_forward_args (torchxai.explainers.FeatureAblationExplainer.explain(additional_forward_args))" href="#torchxai.explainers.FeatureAblationExplainer.explain(additional_forward_args)">additional_forward_args</a></span><span class="p">:</span> <span class="n"><span title="tuple">tuple</span></span><span class="p">[</span><span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span></span> <span class="o">|</span> <span class="n"><span title="list">list</span></span><span class="p">[</span><span class="n"><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span></span><span class="p">]</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Compute Feature Ablation attributions for the given inputs.</p>
-<p>This method provides a backward-compatible interface that accepts individual
-parameters and constructs ExplanationInputs internally before calling the
-parent class explain method.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <ul>
-        <li class="doc-section-item field-body">
-<h5 id="torchxai.explainers.FeatureAblationExplainer.explain(inputs)" class="doc doc-heading doc-heading-parameter">              <b><code>inputs</code></b>
-</h5>              (<code><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span></code>)
-          –
-          <div class="doc-md-description">
-            <p>Input tensors for attribution computation. Should be an OrderedDict
-mapping feature names to tensors when used with this explainer.</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-<h5 id="torchxai.explainers.FeatureAblationExplainer.explain(target)" class="doc doc-heading doc-heading-parameter">              <b><code>target</code></b>
-</h5>              (<code><span title="torchxai.data_types.ExplanationTargetType">ExplanationTargetType</span> | <span title="list">list</span>[<span title="torchxai.data_types.ExplanationTargetType">ExplanationTargetType</span>]</code>)
-          –
-          <div class="doc-md-description">
-            <p>Target indices for attribution computation. Can be a tensor
-(single-target) or list of tensors (multi-target).</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-<h5 id="torchxai.explainers.FeatureAblationExplainer.explain(baselines)" class="doc doc-heading doc-heading-parameter">              <b><code>baselines</code></b>
-</h5>              (<code><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span> | None</code>, default:
-                  <code>None</code>
-)
-          –
-          <div class="doc-md-description">
-            <p>Baseline tensors for ablation (typically zeros). If None,
-uses zero baselines matching input shape.</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-<h5 id="torchxai.explainers.FeatureAblationExplainer.explain(feature_mask)" class="doc doc-heading doc-heading-parameter">              <b><code>feature_mask</code></b>
-</h5>              (<code><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span> | None</code>, default:
-                  <code>None</code>
-)
-          –
-          <div class="doc-md-description">
-            <p>Masks representing feature groups for ablation. Features
-with the same mask value are ablated together as a group.</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-<h5 id="torchxai.explainers.FeatureAblationExplainer.explain(additional_forward_args)" class="doc doc-heading doc-heading-parameter">              <b><code>additional_forward_args</code></b>
-</h5>              (<code><span title="tuple">tuple</span>[<span title="typing.Any">Any</span>, ...] | None</code>, default:
-                  <code>None</code>
-)
-          –
-          <div class="doc-md-description">
-            <p>Additional arguments for model forward pass.</p>
-          </div>
-        </li>
-    </ul>
-
-
-<p><span class="doc-section-title">Returns:</span></p>
-    <ul>
-        <li class="doc-section-item field-body">
-              <code><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span> | <span title="list">list</span>[<span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span>]</code>
-          –
-          <div class="doc-md-description">
-            <p>For single-target mode: OrderedDict mapping feature names to attribution tensors.</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-              <code><span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span> | <span title="list">list</span>[<span title="torchxai.data_types.TensorOrTupleOfTensorsGeneric">TensorOrTupleOfTensorsGeneric</span>]</code>
-          –
-          <div class="doc-md-description">
-            <p>For multi-target mode: List of OrderedDicts, one per target.</p>
-          </div>
-        </li>
-    </ul>
-
-
-<details class="note" open>
-  <summary>Note</summary>
-  <p>Feature Ablation directly measures feature importance through systematic removal.
-The internal_batch_size parameter controls how many features are ablated
-simultaneously for computational efficiency.</p>
-</details>
-
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="codehilite"><pre><span></span><code><span class="gp">&gt;&gt;&gt; </span><span class="c1"># For tabular data with feature grouping</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">feature_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">attributions</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">inputs</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}),</span>
-<span class="gp">... </span>    <span class="n">target</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">1</span><span class="p">]),</span>
-<span class="gp">... </span>    <span class="n">baselines</span><span class="o">=</span><span class="n">OrderedDict</span><span class="p">({</span><span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)}),</span>
-<span class="gp">... </span>    <span class="n">feature_mask</span><span class="o">=</span><span class="n">feature_mask</span><span class="p">,</span>
-<span class="gp">... </span><span class="p">)</span>
-</code></pre></div>
-
-          
-
-            <details class="mkdocstrings-source">
-              <summary>Source code in <code>.venv/lib/python3.11/site-packages/torchxai/explainers/_perturbation/_feature_ablation.py</code></summary>
-              <div class="codehilite"><div class="table-wrapper"><table class="codehilitetable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">800</span>
-<span class="normal">801</span>
-<span class="normal">802</span>
-<span class="normal">803</span>
-<span class="normal">804</span>
-<span class="normal">805</span>
-<span class="normal">806</span>
-<span class="normal">807</span>
-<span class="normal">808</span>
-<span class="normal">809</span>
-<span class="normal">810</span>
-<span class="normal">811</span>
-<span class="normal">812</span>
-<span class="normal">813</span>
-<span class="normal">814</span>
-<span class="normal">815</span>
-<span class="normal">816</span>
-<span class="normal">817</span>
-<span class="normal">818</span>
-<span class="normal">819</span>
-<span class="normal">820</span>
-<span class="normal">821</span>
-<span class="normal">822</span>
-<span class="normal">823</span>
-<span class="normal">824</span>
-<span class="normal">825</span>
-<span class="normal">826</span>
-<span class="normal">827</span>
-<span class="normal">828</span>
-<span class="normal">829</span>
-<span class="normal">830</span>
-<span class="normal">831</span>
-<span class="normal">832</span>
-<span class="normal">833</span>
-<span class="normal">834</span>
-<span class="normal">835</span>
-<span class="normal">836</span>
-<span class="normal">837</span>
-<span class="normal">838</span>
-<span class="normal">839</span>
-<span class="normal">840</span>
-<span class="normal">841</span>
-<span class="normal">842</span>
-<span class="normal">843</span>
-<span class="normal">844</span>
-<span class="normal">845</span>
-<span class="normal">846</span>
-<span class="normal">847</span>
-<span class="normal">848</span>
-<span class="normal">849</span>
-<span class="normal">850</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">explain</span><span class="p">(</span>
-    <span class="bp">self</span><span class="p">,</span>
-    <span class="n">inputs</span><span class="p">:</span> <span class="n">TensorOrTupleOfTensorsGeneric</span><span class="p">,</span>
-    <span class="n">target</span><span class="p">:</span> <span class="n">ExplanationTargetType</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">ExplanationTargetType</span><span class="p">],</span>
-    <span class="n">baselines</span><span class="p">:</span> <span class="n">TensorOrTupleOfTensorsGeneric</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">feature_mask</span><span class="p">:</span> <span class="n">TensorOrTupleOfTensorsGeneric</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">additional_forward_args</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TensorOrTupleOfTensorsGeneric</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">TensorOrTupleOfTensorsGeneric</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute Feature Ablation attributions for the given inputs.</span>
-
-<span class="sd">    This method provides a backward-compatible interface that accepts individual</span>
-<span class="sd">    parameters and constructs ExplanationInputs internally before calling the</span>
-<span class="sd">    parent class explain method.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        inputs: Input tensors for attribution computation. Should be an OrderedDict</span>
-<span class="sd">            mapping feature names to tensors when used with this explainer.</span>
-<span class="sd">        target: Target indices for attribution computation. Can be a tensor</span>
-<span class="sd">            (single-target) or list of tensors (multi-target).</span>
-<span class="sd">        baselines: Baseline tensors for ablation (typically zeros). If None,</span>
-<span class="sd">            uses zero baselines matching input shape.</span>
-<span class="sd">        feature_mask: Masks representing feature groups for ablation. Features</span>
-<span class="sd">            with the same mask value are ablated together as a group.</span>
-<span class="sd">        additional_forward_args: Additional arguments for model forward pass.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        For single-target mode: OrderedDict mapping feature names to attribution tensors.</span>
-<span class="sd">        For multi-target mode: List of OrderedDicts, one per target.</span>
-
-<span class="sd">    Note:</span>
-<span class="sd">        Feature Ablation directly measures feature importance through systematic removal.</span>
-<span class="sd">        The internal_batch_size parameter controls how many features are ablated</span>
-<span class="sd">        simultaneously for computational efficiency.</span>
-
-<span class="sd">    Examples:</span>
-<span class="sd">        &gt;&gt;&gt; # For tabular data with feature grouping</span>
-<span class="sd">        &gt;&gt;&gt; feature_mask = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 4]])</span>
-<span class="sd">        &gt;&gt;&gt; attributions = explainer.explain(</span>
-<span class="sd">        ...     inputs=OrderedDict({&quot;features&quot;: torch.randn(1, 10)}),</span>
-<span class="sd">        ...     target=torch.tensor([1]),</span>
-<span class="sd">        ...     baselines=OrderedDict({&quot;features&quot;: torch.zeros(1, 10)}),</span>
-<span class="sd">        ...     feature_mask=feature_mask,</span>
-<span class="sd">        ... )</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_explain</span><span class="p">(</span>
-        <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
-        <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
-        <span class="n">baselines</span><span class="o">=</span><span class="n">baselines</span><span class="p">,</span>
-        <span class="n">feature_mask</span><span class="o">=</span><span class="n">feature_mask</span><span class="p">,</span>
-        <span class="n">additional_forward_args</span><span class="o">=</span><span class="n">additional_forward_args</span><span class="p">,</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">attrs_tensor</span><span class="p">,</span> <span class="n">attrs_mt_tensor</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="n">atol</span><span class="p">),</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Results differ between single-target and multi-target, max diff: </span><span class="si">{</span><span class="p">(</span><span class="n">attrs_tensor</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">attrs_mt_tensor</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="p">)</span>
-</code></pre></div></td></tr></table></div></div>
-            </details>
-    </div>
+    <span class="n">speedup</span> <span class="o">=</span> <span class="n">elapsed_single</span> <span class="o">/</span> <span class="n">elapsed_mt</span> <span class="k">if</span> <span class="n">elapsed_mt</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;shape  : </span><span class="si">{</span><span class="n">attrs_mt_tensor</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;single : </span><span class="si">{</span><span class="n">elapsed_single</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">s  |  multi : </span><span class="si">{</span><span class="n">elapsed_mt</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">s  |  speedup : </span><span class="si">{</span><span class="n">speedup</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">x&quot;</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">attrs_mt_tensor</span>
+</code></pre></div>
 
+<hr />
+<h2 id="pattern-a-inputs-target">Pattern A — inputs + target</h2>
+<p>No baseline or mask required. Applies to: <code>SaliencyExplainer</code>, <code>InputXGradientExplainer</code>.</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.explainers</span><span class="w"> </span><span class="kn">import</span> <span class="n">SaliencyExplainer</span>
+
+<span class="c1"># Replace with InputXGradientExplainer as needed</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">compare</span><span class="p">(</span><span class="n">SaliencyExplainer</span><span class="p">,</span> <span class="n">embed_model</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;inputs&quot;</span><span class="p">:</span> <span class="n">embeddings</span><span class="p">},</span> <span class="n">targets</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output shape=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, mean=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, std=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">std</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, min=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, max=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<hr />
+<h2 id="pattern-b-inputs-baseline-target">Pattern B — inputs + baseline + target</h2>
+<p>A single reference tensor (same shape as <code>inputs</code>) is required. Applies to: <code>IntegratedGradientsExplainer</code>, <code>InputXBaselineGradientExplainer</code>.</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.explainers</span><span class="w"> </span><span class="kn">import</span> <span class="n">IntegratedGradientsExplainer</span>
+
+<span class="c1"># Replace with InputXBaselineGradientExplainer as needed</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">compare</span><span class="p">(</span><span class="n">IntegratedGradientsExplainer</span><span class="p">,</span> <span class="n">embed_model</span><span class="p">,</span>
+        <span class="p">{</span><span class="s2">&quot;inputs&quot;</span><span class="p">:</span> <span class="n">embeddings</span><span class="p">,</span> <span class="s2">&quot;baselines&quot;</span><span class="p">:</span> <span class="n">baseline_emb</span><span class="p">},</span> <span class="n">targets</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output shape=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, mean=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, std=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">std</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, min=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, max=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<hr />
+<h2 id="pattern-c-inputs-baseline-distribution-target">Pattern C — inputs + baseline distribution + target</h2>
+<p><code>baselines</code> is a <strong>stacked set of reference samples</strong> rather than a single tensor. Applies to: <code>GradientShapExplainer</code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>GradientShap has internal non-determinism due to random sampling. Use <code>n_samples=200</code> and a higher <code>atol</code> for reliable comparison.</p>
 </div>
+<div class="codehilite"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.explainers</span><span class="w"> </span><span class="kn">import</span> <span class="n">GradientShapExplainer</span>
 
+<span class="n">baselines_dist</span> <span class="o">=</span> <span class="n">baseline_emb</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>   <span class="c1"># (5, seq_len, 768) reference distribution</span>
 
+<span class="n">result</span> <span class="o">=</span> <span class="n">compare</span><span class="p">(</span><span class="n">GradientShapExplainer</span><span class="p">,</span> <span class="n">embed_model</span><span class="p">,</span>
+        <span class="p">{</span><span class="s2">&quot;inputs&quot;</span><span class="p">:</span> <span class="n">embeddings</span><span class="p">,</span> <span class="s2">&quot;baselines&quot;</span><span class="p">:</span> <span class="n">baselines_dist</span><span class="p">},</span> <span class="n">targets</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output shape=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, mean=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, std=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">std</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, min=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, max=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
 
-  </div>
+<hr />
+<h2 id="pattern-d-inputs-feature_mask-target">Pattern D — inputs + feature_mask + target</h2>
+<p>A word-level <code>feature_mask</code> groups subword tokens so the explainer scores whole words rather than individual tokens. Applies to: <code>FeatureAblationExplainer</code>, <code>LimeExplainer</code>, <code>KernelShapExplainer</code>.</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.explainers</span><span class="w"> </span><span class="kn">import</span> <span class="n">FeatureAblationExplainer</span>
 
-    </div>
+<span class="c1"># Replace with LimeExplainer or KernelShapExplainer as needed</span>
 
-</div>
+<span class="c1"># Word-level feature mask: subword tokens of the same word share an ID</span>
+<span class="n">word_ids</span>     <span class="o">=</span> <span class="n">enc</span><span class="o">.</span><span class="n">word_ids</span><span class="p">(</span><span class="n">batch_index</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>   <span class="c1"># e.g. [None, 0, 1, 1, 2, None]</span>
+<span class="n">seq_len</span>      <span class="o">=</span> <span class="n">input_ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="n">ids</span>    <span class="o">=</span> <span class="n">input_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+<span class="n">tokens</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">convert_ids_to_tokens</span><span class="p">(</span><span class="n">input_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+<span class="c1"># Shape (1, seq_len, 1): broadcast across 768 embedding dims</span>
+<span class="n">feature_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">input_ids</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">t_idx</span><span class="p">,</span> <span class="n">w_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">word_ids</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">w_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">feature_mask</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">t_idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">w_idx</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># 0 reserved for special tokens</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Token debug view:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;idx&#39;</span><span class="si">:</span><span class="s2">&gt;3</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="s1">&#39;id&#39;</span><span class="si">:</span><span class="s2">&gt;6</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="s1">&#39;word_id&#39;</span><span class="si">:</span><span class="s2">&gt;7</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="s1">&#39;fmask&#39;</span><span class="si">:</span><span class="s2">&gt;5</span><span class="si">}</span><span class="s2">  token&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">46</span><span class="p">)</span>
+<span class="n">feature_mask_ids</span> <span class="o">=</span> <span class="n">feature_mask</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="n">tok</span><span class="p">,</span> <span class="n">wid</span><span class="p">,</span> <span class="n">fmask</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+    <span class="nb">zip</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">tokens</span><span class="p">,</span> <span class="n">word_ids</span><span class="p">,</span> <span class="n">feature_mask_ids</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">&gt;3</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">tid</span><span class="si">:</span><span class="s2">&gt;6</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">wid</span><span class="p">)</span><span class="si">:</span><span class="s2">&gt;7</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">fmask</span><span class="si">:</span><span class="s2">&gt;5</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">tok</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">With word-level feature mask:&quot;</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">compare</span><span class="p">(</span><span class="n">FeatureAblationExplainer</span><span class="p">,</span> <span class="n">embed_model</span><span class="p">,</span>
+        <span class="p">{</span><span class="s2">&quot;inputs&quot;</span><span class="p">:</span> <span class="n">embeddings</span><span class="p">,</span> <span class="s2">&quot;feature_mask&quot;</span><span class="p">:</span> <span class="n">feature_mask</span><span class="p">},</span> <span class="n">targets</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output shape=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, mean=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, std=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">std</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, min=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, max=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<hr />
+<h2 id="pattern-e-inputs-sliding_window_shapes-target">Pattern E — inputs + sliding_window_shapes + target</h2>
+<p><code>OcclusionExplainer</code> patches out rectangular windows of the embedding sequence. The <code>sliding_window_shapes</code> tuple <code>(tokens, dims)</code> specifies the window size.</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">torchxai.explainers</span><span class="w"> </span><span class="kn">import</span> <span class="n">OcclusionExplainer</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">compare</span><span class="p">(</span><span class="n">OcclusionExplainer</span><span class="p">,</span> <span class="n">embed_model</span><span class="p">,</span>
+        <span class="p">{</span><span class="s2">&quot;inputs&quot;</span><span class="p">:</span> <span class="n">embeddings</span><span class="p">,</span> <span class="s2">&quot;sliding_window_shapes&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">768</span><span class="p">),</span> <span class="s2">&quot;strides&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">768</span><span class="p">)},</span> <span class="n">targets</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output shape=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, mean=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, std=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">std</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, min=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, max=</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
   </div>
   
   <script>
@@ -1753,7 +1127,7 @@ simultaneously for computational efficiency.</p>
     
     <a data-slot="button"
         class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 shadow-none"
-        href="/torchxai/docs/explainers/gradient_shap/">
+        href="/torchxai/docs/explainers/examples/image_classification/">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
             class="tabler-icon tabler-icon-arrow-left ">
@@ -1761,14 +1135,14 @@ simultaneously for computational efficiency.</p>
             <path d="M5 12l6 6"></path>
             <path d="M5 12l6 -6"></path>
         </svg>
-        <span class="max-[500px]:hidden">Gradient shap</span>
+        <span class="max-[500px]:hidden">Image Classification</span>
     </a>
     
     
     <a data-slot="button"
         class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 ml-auto shadow-none"
-        href="/torchxai/docs/explainers/occlusion/">
-        <span class="max-[500px]:hidden">Occlusion</span>
+        href="/torchxai/docs/explainers/examples/token_classification/">
+        <span class="max-[500px]:hidden">Token Classification</span>
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
             class="tabler-icon tabler-icon-arrow-right ">
@@ -1800,19 +1174,19 @@ simultaneously for computational efficiency.</p>
                     
                     <div class="flex flex-col gap-3">
                         
-                        <a class="text-2xl font-medium" href="../..">
+                        <a class="text-2xl font-medium" href="../../..">
                             
                             Home
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../install/">
+                        <a class="text-2xl font-medium" href="../../../install/">
                             
                             Installation
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../usage/">
+                        <a class="text-2xl font-medium" href="../../../usage/">
                             
                             Usage
                             
@@ -1827,13 +1201,13 @@ simultaneously for computational efficiency.</p>
                     
                     <div class="flex flex-col gap-3">
                         
-                        <a class="text-2xl font-medium" href="../">
+                        <a class="text-2xl font-medium" href="../../">
                             
                             Overview
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../base_explainer/">
+                        <a class="text-2xl font-medium" href="../../base_explainer/">
                             
                             Base Explainer
                             
@@ -1869,75 +1243,51 @@ simultaneously for computational efficiency.</p>
         
         
         
-        <a href="#torchxai.explainers.FeatureAblationExplainer(model)"
+        <a href="#setup"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#torchxai.explainers.FeatureAblationExplainer(model)');">
-            <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;model
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#setup');">
+            Setup
         </a>
         
 
         
-        <a href="#torchxai.explainers.FeatureAblationExplainer(multi_target)"
+        <a href="#pattern-a-inputs-target"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#torchxai.explainers.FeatureAblationExplainer(multi_target)');">
-            <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;multi_target
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#pattern-a-inputs-target');">
+            Pattern A — inputs + target
         </a>
         
 
         
-        <a href="#torchxai.explainers.FeatureAblationExplainer(internal_batch_size)"
+        <a href="#pattern-b-inputs-baseline-target"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#torchxai.explainers.FeatureAblationExplainer(internal_batch_size)');">
-            <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;internal_batch_size
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#pattern-b-inputs-baseline-target');">
+            Pattern B — inputs + baseline + target
         </a>
         
 
         
-        <a href="#torchxai.explainers.FeatureAblationExplainer(weight_attributions)"
+        <a href="#pattern-c-inputs-baseline-distribution-target"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#torchxai.explainers.FeatureAblationExplainer(weight_attributions)');">
-            <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;weight_attributions
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#pattern-c-inputs-baseline-distribution-target');">
+            Pattern C — inputs + baseline distribution + target
         </a>
         
 
         
-        <a href="#torchxai.explainers.FeatureAblationExplainer.explain"
+        <a href="#pattern-d-inputs-feature_mask-target"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#torchxai.explainers.FeatureAblationExplainer.explain');">
-            <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;explain
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#pattern-d-inputs-feature_mask-target');">
+            Pattern D — inputs + feature_mask + target
         </a>
         
+
         
-        <a href="#torchxai.explainers.FeatureAblationExplainer.explain(inputs)"
+        <a href="#pattern-e-inputs-sliding_window_shapes-target"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#torchxai.explainers.FeatureAblationExplainer.explain(inputs)');">
-            <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;inputs
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#pattern-e-inputs-sliding_window_shapes-target');">
+            Pattern E — inputs + sliding_window_shapes + target
         </a>
-        
-        <a href="#torchxai.explainers.FeatureAblationExplainer.explain(target)"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#torchxai.explainers.FeatureAblationExplainer.explain(target)');">
-            <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;target
-        </a>
-        
-        <a href="#torchxai.explainers.FeatureAblationExplainer.explain(baselines)"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#torchxai.explainers.FeatureAblationExplainer.explain(baselines)');">
-            <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;baselines
-        </a>
-        
-        <a href="#torchxai.explainers.FeatureAblationExplainer.explain(feature_mask)"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#torchxai.explainers.FeatureAblationExplainer.explain(feature_mask)');">
-            <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;feature_mask
-        </a>
-        
-        <a href="#torchxai.explainers.FeatureAblationExplainer.explain(additional_forward_args)"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#torchxai.explainers.FeatureAblationExplainer.explain(additional_forward_args)');">
-            <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;additional_forward_args
-        </a>
-        
         
 
         
@@ -1972,24 +1322,24 @@ simultaneously for computational efficiency.</p>
     </div>
      
 
-<script src="../../search/main.js"></script>
+<script src="../../../search/main.js"></script>
 
 
     
 
-    <script integrity="sha384-JLNLRFGzvOp0up707XKgSnAjjt1w5BF/+lbeLQvlf6mNwf0m89IXFdpNAk4t6Hcs" src="../../js/copy-button.js"></script>
-<script integrity="sha384-JBx6cBEiyhK1KPwZgBHiI6GDaAmvlOxMQFyWAZTEpW5Ifo5XQ2LBcJ61GVOumwF1" src="../../js/sidebar.js"></script>
-<script integrity="sha384-fNURFMRt0p/HqXnQnV4+CT9dX1GiU5F0fC3pFbg7gfoANytoUMErSW7suWSBkSuF" src="../../js/slider.js"></script>
+    <script integrity="sha384-JLNLRFGzvOp0up707XKgSnAjjt1w5BF/+lbeLQvlf6mNwf0m89IXFdpNAk4t6Hcs" src="../../../js/copy-button.js"></script>
+<script integrity="sha384-JBx6cBEiyhK1KPwZgBHiI6GDaAmvlOxMQFyWAZTEpW5Ifo5XQ2LBcJ61GVOumwF1" src="../../../js/sidebar.js"></script>
+<script integrity="sha384-fNURFMRt0p/HqXnQnV4+CT9dX1GiU5F0fC3pFbg7gfoANytoUMErSW7suWSBkSuF" src="../../../js/slider.js"></script>
 <script>updatePygmentsStylesheet();</script>
     
     <script>fetchStargazers("https://github.com/saifullah3396/torchxai");</script>
     
     
-    <script integrity="sha384-Oi13RhLSSgEpSmRyDbfsfmU5N1KzT7IBoQqMenKZoi1Mu+0mCDcF1mKtSZw3cd80" src="../../js/mkdocstrings.js"></script>
+    <script integrity="sha384-Oi13RhLSSgEpSmRyDbfsfmU5N1KzT7IBoQqMenKZoi1Mu+0mCDcF1mKtSZw3cd80" src="../../../js/mkdocstrings.js"></script>
     
     
-    <script integrity="sha384-rPk5N1h70rv6ztd86UBQ14H17tD0d/MVi4mzOmieyoRHV5lbqGdg+O/IfTivzm/G" src="../../js/socket.io.min.js"></script>
-<script integrity="sha384-5H5Z+a/mJwVaYaE9Vg0r1v0Sp+AM09zccLz1lSolwEPwb43iQX7dJaYwd4uwCpVD" src="../../js/codexec.js"></script>
+    <script integrity="sha384-rPk5N1h70rv6ztd86UBQ14H17tD0d/MVi4mzOmieyoRHV5lbqGdg+O/IfTivzm/G" src="../../../js/socket.io.min.js"></script>
+<script integrity="sha384-5H5Z+a/mJwVaYaE9Vg0r1v0Sp+AM09zccLz1lSolwEPwb43iQX7dJaYwd4uwCpVD" src="../../../js/codexec.js"></script>
     
     <script type="speculationrules">
 {

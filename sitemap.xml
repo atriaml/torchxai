@@ -77,6 +77,18 @@
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
+         <loc>https://github.com/torchxai/docs/explainers/examples/image_classification/</loc>
+         <lastmod>2026-05-19</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/torchxai/docs/explainers/examples/sequence_classification/</loc>
+         <lastmod>2026-05-19</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/torchxai/docs/explainers/examples/token_classification/</loc>
+         <lastmod>2026-05-19</lastmod>
+    </url>
+    <url>
          <loc>https://github.com/torchxai/docs/metrics/completeness/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
