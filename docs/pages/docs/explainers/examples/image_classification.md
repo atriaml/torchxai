@@ -1,6 +1,5 @@
 ---
 title: Image Classification
-summary: Multi-target attribution examples on a simple CNN image classifier
 ---
 
 # Image Classification Examples

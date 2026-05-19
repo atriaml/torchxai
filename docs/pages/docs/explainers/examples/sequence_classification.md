@@ -1,6 +1,5 @@
 ---
 title: Sequence Classification
-summary: Multi-target attribution on BERT for sentence-level classification
 ---
 
 # Sequence Classification
@@ -9,10 +8,6 @@ summary: Multi-target attribution on BERT for sentence-level classification
     BERT token IDs are discrete integers — gradients cannot flow through them.
     For gradient-based explainers (`Saliency`, `IntegratedGradients`, etc.) we pass the continuous **embedding tensor** as input. For perturbation-based explainers (`FeatureAblation`, `LIME`, etc.) we operate on embeddings as well, using a word-level `feature_mask` to score whole words.
 
-!!! warning "Unsupported explainers for transformer architectures"
-    `DeepLiftExplainer`, `DeepLiftShapExplainer`, and `GuidedBackpropExplainer` are not compatible with transformers out of the box. DeepLift requires specific activation types not present in BERT; GuidedBackprop requires ReLU activations throughout the network. Use `IntegratedGradientsExplainer`, `GradientShapExplainer`, or `SaliencyExplainer` as alternatives.
-
----
 
 ## Setup
 
