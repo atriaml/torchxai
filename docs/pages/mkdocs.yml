@@ -1,0 +1,104 @@
+site_name: "TorchXAI Documentation"
+site_description: Explainable AI library for PyTorch
+site_url: "https://github.com/torchxai/docs"
+site_author: "Saifullah Saifullah"
+dev_addr: "127.0.0.1:8080"
+repo_url: https://github.com/saifullah3396/torchxai
+theme:
+  name: shadcn
+  icon: null
+  show_title: true
+  navigation_depth: 3
+  topbar_sections: true
+  pygments_style:
+    light: shadcn-light
+    dark: github-dark
+  katex_options:
+    macros:
+      "\\dx": "\\mathrm{d}x"
+  # show_datetime: true
+
+nav:
+  - Getting Started: 
+    - index.md
+    - install.md
+    - usage.md
+  - Explainers:
+    - Overview: explainers.md
+    - Base Explainer: explainers/base_explainer.md
+    - Gradient Methods:
+      - explainers/saliency.md
+      - explainers/input_x_gradient.md
+      - explainers/input_x_baseline_gradient.md
+      - explainers/guided_backprop.md
+      - explainers/deeplift.md
+      - explainers/deeplift_shap.md
+      - explainers/integrated_gradients.md
+      - explainers/gradient_shap.md
+    - Perturbation Methods:
+      - explainers/feature_ablation.md
+      - explainers/occlusion.md
+      - explainers/lime.md
+      - explainers/kernel_shap.md
+    - Baseline Methods:
+      - explainers/random.md
+  - Metrics:
+    - Axiomatic:
+      - metrics/completeness.md
+plugins:
+- search
+# - excalidraw
+- mkdocstrings:
+    enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
+    default_handler: python
+    locale: en
+    handlers:
+      python:
+        options:
+            docstring_options:
+            docstring_style: google
+            ignore_init_summary: true
+            docstring_section_style: list
+            relative_crossrefs: true
+            scoped_crossrefs: true
+            signature_crossrefs: true
+            unwrap_annotated: true
+            filters: public
+            inherited_members: true
+            summary: true
+            heading_level: 1
+            parameter_headings: true
+            type_parameter_headings: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            line_length: 88
+            merge_init_into_class: false
+            separate_signature: true
+            show_signature_annotations: true
+            show_signature_type_parameters: true
+            backlinks: tree
+            show_bases: false
+            show_inheritance_diagram: true
+            show_source: true
+
+markdown_extensions:
+  admonition:
+  codehilite:
+  fenced_code:
+  footnotes:
+  extra:
+  pymdownx.blocks.details:
+  pymdownx.tabbed:
+  pymdownx.blocks.tab:
+    combine_header_slug: true
+    separator: ___
+  pymdownx.progressbar:
+  pymdownx.snippets:
+  pymdownx.arithmatex:
+    generic: true
+  shadcn.extensions.echarts.alpha:
+  shadcn.extensions.codexec:
+  shadcn.extensions.iconify:
+  pymdownx.blocks.caption:

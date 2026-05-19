@@ -1,0 +1,56 @@
+[project]
+name = "mkdocs-shadcn"
+version = "0.9.8"
+description = "Documentation that also shines"
+authors = [
+    { name = "Alban Siffer", email = "31479857+asiffer@users.noreply.github.com" },
+]
+readme = "README.md"
+requires-python = "==3.11.5"
+dependencies = [
+    "mkdocs>=1.6.1",
+    "bottle>=0.13.2",
+    "pymdown-extensions>=10.14.3",
+    "gitpython>=3.1.45",
+    "torchxai",
+]
+
+[dependency-groups]
+dev = [
+    "accessible-pygments>=0.0.4",
+    "mkdocstrings[python]>=0.26.1",
+    "mypy>=1.12.0",
+    "pre-commit>=3.5.0",
+    "pygments>=2.19.1",
+    "pymdown-extensions>=10.14.2",
+    "ruff>=0.12.11",
+    "ty>=0.0.1a21",
+    "types-markdown>=3.7.0.20241204",
+    "types-pygments>=2.19.0.20250107",
+]
+
+[project.entry-points."mkdocs.themes"]
+shadcn = "shadcn"
+
+[project.entry-points."mkdocs.plugins"]
+"shadcn/search" = "shadcn.plugins.search:SearchPlugin"
+"shadcn/excalidraw" = "shadcn.plugins.excalidraw:ExcalidrawPlugin"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["shadcn"]
+
+[tool.ruff]
+target-version = "py38"
+line-length = 79
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 79
+
+[tool.uv.sources]
+torchxai = { git = "https://github.com/saifullah3396/torchxai.git", branch = "atria-bridge" }
+

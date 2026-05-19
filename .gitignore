@@ -87,3 +87,13 @@ pyrightconfig.json
 # Local scripts / config files
 *.env
 cache/
+
+**/**dev
+**/**_dev
+**/**.dev
+**/**yarn.lock
+**/**node_modules
+**/**dist
+**/**.venv
+**/**__pycache__
+**/**pages/site
