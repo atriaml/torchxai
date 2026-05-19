@@ -1,95 +1,95 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://github.com/torchxai/docs/</loc>
+         <loc>https://github.com/torchxai/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/</loc>
+         <loc>https://github.com/torchxai/explainers/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/install/</loc>
+         <loc>https://github.com/torchxai/install/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/pages/</loc>
+         <loc>https://github.com/torchxai/pages/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/usage/</loc>
+         <loc>https://github.com/torchxai/usage/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/base_explainer/</loc>
+         <loc>https://github.com/torchxai/explainers/base_explainer/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/deeplift/</loc>
+         <loc>https://github.com/torchxai/explainers/deeplift/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/deeplift_shap/</loc>
+         <loc>https://github.com/torchxai/explainers/deeplift_shap/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/feature_ablation/</loc>
+         <loc>https://github.com/torchxai/explainers/feature_ablation/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/gradient_shap/</loc>
+         <loc>https://github.com/torchxai/explainers/gradient_shap/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/guided_backprop/</loc>
+         <loc>https://github.com/torchxai/explainers/guided_backprop/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/input_x_baseline_gradient/</loc>
+         <loc>https://github.com/torchxai/explainers/input_x_baseline_gradient/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/input_x_gradient/</loc>
+         <loc>https://github.com/torchxai/explainers/input_x_gradient/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/integrated_gradients/</loc>
+         <loc>https://github.com/torchxai/explainers/integrated_gradients/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/kernel_shap/</loc>
+         <loc>https://github.com/torchxai/explainers/kernel_shap/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/lime/</loc>
+         <loc>https://github.com/torchxai/explainers/lime/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/occlusion/</loc>
+         <loc>https://github.com/torchxai/explainers/occlusion/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/random/</loc>
+         <loc>https://github.com/torchxai/explainers/random/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/saliency/</loc>
+         <loc>https://github.com/torchxai/explainers/saliency/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/examples/image_classification/</loc>
+         <loc>https://github.com/torchxai/explainers/examples/image_classification/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/examples/sequence_classification/</loc>
+         <loc>https://github.com/torchxai/explainers/examples/sequence_classification/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/explainers/examples/token_classification/</loc>
+         <loc>https://github.com/torchxai/explainers/examples/token_classification/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/docs/metrics/completeness/</loc>
+         <loc>https://github.com/torchxai/metrics/completeness/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
 </urlset>
