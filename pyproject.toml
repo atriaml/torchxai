@@ -135,6 +135,8 @@ dev = [
     "pytest>=9.0.1",
     "ruff>=0.14.6",
     "types-requests>=2.32.4.20250913",
+    "transformers==4.37.0",
+    "ipykernel>=6.25.0",
 ]
 
 [project.urls]
