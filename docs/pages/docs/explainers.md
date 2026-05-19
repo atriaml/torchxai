@@ -4,6 +4,10 @@ TorchXAI wraps [Captum](https://captum.ai/) attribution methods and adds first-c
 
 ## Available Explainers
 
+### Base Classes
+
+- **[Explainer / FeatureAttributionExplainer](explainers/base_explainer.md)** — abstract bases; inherit `FeatureAttributionExplainer` to build a custom explainer
+
 ### Gradient-Based Methods
 
 - **[Saliency](explainers/saliency.md)** — gradient magnitude per input dimension

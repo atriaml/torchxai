@@ -10,29 +10,14 @@ from torchxai.data_types._target import ExplanationTarget
 class Explainer(ABC):
     """Abstract base class for TorchXAI explainers.
 
-    This class provides a common interface for all explanation methods in TorchXAI.
-    It supports both single-target and multi-target explanations with automatic
-    function inspection and structured input handling via ExplanationInputs.
+    Provides a common interface for all explanation methods in TorchXAI,
+    supporting both single-target and multi-target attribution.
 
     Args:
         model: The PyTorch model for which explanations will be computed.
 
     Attributes:
         model: The model used for attribution computation.
-
-    Examples:
-        >>> import torch
-        >>> from collections import OrderedDict
-        >>> from torchxai.data_types import ExplanationInputs
-        >>>
-        >>> model = torch.nn.Linear(10, 2)
-        >>> explainer = MyExplainer(model, multi_target=False)
-        >>>
-        >>> inputs = torch.randn(2, 10)
-        >>> explanation_inputs = ExplanationInputs(
-        ...     inputs=OrderedDict({"features": inputs}), target=torch.tensor([0, 1])
-        ... )
-        >>> attributions = explainer.explain(explanation_inputs)
     """
 
     __repr_attrs__: list[str] = []
@@ -44,43 +29,18 @@ class Explainer(ABC):
     def explain(
         self, *args, **kwargs
     ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
-        """Compute attributions for the given structured inputs.
-
-        This is the main method for generating explanations. It automatically handles
-        both single-target and multi-target modes based on the explainer configuration.
-        Accepts either ExplanationInputs object or individual keyword arguments.
+        """Compute attributions for the given inputs.
 
         Args:
-            *args: Positional arguments (typically ExplanationInputs object).
-            **kwargs: Keyword arguments that can include:
-                - inputs: OrderedDict mapping feature names to tensors
-                - target: Target tensor (single-target) or list of tensors (multi-target)
-                - additional_forward_args: Optional additional arguments for model forward pass
-                - baselines: Optional baseline tensors for attribution methods
-                - feature_mask: Optional feature masks for attribution computation
+            *args: Positional arguments passed to the underlying attribution method.
+            **kwargs: Keyword arguments including `inputs`, `target`, and method-specific
+                parameters such as `baselines`, `feature_mask`, and `sliding_window_shapes`.
 
         Returns:
-            For single-target mode: OrderedDict mapping feature names to attribution tensors.
-            For multi-target mode: List of OrderedDicts, one per target.
-
-        Examples:
-            Using ExplanationInputs object:
-            >>> from torchxai.data_types import ExplanationInputs
-            >>> explanation_inputs = ExplanationInputs(
-            ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
-            ...     target=torch.tensor([0, 1]),
-            ... )
-            >>> attributions = explainer.explain(explanation_inputs)
-            >>> # Returns: OrderedDict({"input": torch.Tensor})
-
-            Using keyword arguments:
-            >>> attributions = explainer.explain(
-            ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
-            ...     target=torch.tensor([0, 1]),
-            ... )
+            Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.
 
         Raises:
-            AssertionError: If target format doesn't match the explainer mode or batch size requirements.
+            AssertionError: If target format doesn't match the explainer mode.
         """
 
     def __repr__(self) -> str:
@@ -91,17 +51,20 @@ class Explainer(ABC):
 
 
 class FeatureAttributionExplainer(Explainer):
-    """Abstract base class for TorchXAI explainers.
+    """Concrete base class for all TorchXAI feature-attribution explainers.
 
-    This class provides a common interface for all explanation methods in TorchXAI.
-    It supports both single-target and multi-target explanations with automatic
-    function inspection and structured input handling via ExplanationInputs.
+    Extends `Explainer` with `multi_target` support, configurable batch sizes, and
+    the plumbing that routes `explain()` calls to single-target or multi-target
+    Captum attribution functions.
+
+    All concrete explainers (`SaliencyExplainer`, `IntegratedGradientsExplainer`,
+    etc.) inherit from this class.
 
     Args:
         model: The PyTorch model for which explanations will be computed.
-        multi_target: Whether to use the multi-target version of the explainer.
-            When True, the explainer can compute attributions for multiple targets
-            simultaneously. Defaults to False.
+        multi_target: When ``True`` the explainer accepts a list of
+            `ExplanationTargetType` objects as ``target`` and returns a
+            ``list[Tensor]``. Defaults to ``False``.
         internal_batch_size: Batch size used internally for attribution computation.
             Defaults to 64.
         grad_batch_size: Batch size used for gradient computation operations.
@@ -109,23 +72,28 @@ class FeatureAttributionExplainer(Explainer):
 
     Attributes:
         model: The model used for attribution computation.
-        multi_target: Flag controlling which explainer version is loaded.
+        multi_target: Flag controlling single- vs. multi-target mode.
         internal_batch_size: Internal batch size for computations.
         grad_batch_size: Batch size for gradient operations.
 
     Examples:
         >>> import torch
-        >>> from collections import OrderedDict
-        >>> from torchxai.data_types import ExplanationInputs
+        >>> from torchxai.explainers import SaliencyExplainer
+        >>> from torchxai.data_types import SingleTargetAcrossBatch
         >>>
-        >>> model = torch.nn.Linear(10, 2)
-        >>> explainer = MyExplainer(model, multi_target=False)
+        >>> model = torch.nn.Linear(10, 3)
+        >>> inputs = torch.randn(1, 10)
         >>>
-        >>> inputs = torch.randn(2, 10)
-        >>> explanation_inputs = ExplanationInputs(
-        ...     inputs=OrderedDict({"features": inputs}), target=torch.tensor([0, 1])
-        ... )
-        >>> attributions = explainer.explain(explanation_inputs)
+        >>> # Single-target
+        >>> explainer = SaliencyExplainer(model, multi_target=False)
+        >>> attrs = explainer.explain(inputs=inputs, target=SingleTargetAcrossBatch(index=0))
+        >>> attrs.shape   # (1, 10)
+        >>>
+        >>> # Multi-target
+        >>> explainer_mt = SaliencyExplainer(model, multi_target=True)
+        >>> targets = [SingleTargetAcrossBatch(index=i) for i in range(3)]
+        >>> attrs_list = explainer_mt.explain(inputs=inputs, target=targets)
+        >>> len(attrs_list)   # 3
     """
 
     __repr_attrs__ = ["_multi_target", "_internal_batch_size", "_grad_batch_size"]
@@ -243,7 +211,7 @@ class FeatureAttributionExplainer(Explainer):
             explanation_inputs: Structured explanation inputs with list of targets.
 
         Returns:
-            List of dictionaries, one per target, mapping feature names to attributions.
+            List of Tensors, one per target.
 
         Raises:
             AssertionError: If targets are not properly formatted for multi-target mode.
@@ -286,43 +254,20 @@ class FeatureAttributionExplainer(Explainer):
     def explain(
         self, *args, **kwargs
     ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
-        """Compute attributions for the given structured inputs.
-
-        This is the main method for generating explanations. It automatically handles
-        both single-target and multi-target modes based on the explainer configuration.
-        Accepts either ExplanationInputs object or individual keyword arguments.
+        """Compute attributions for the given inputs.
 
         Args:
-            *args: Positional arguments (typically ExplanationInputs object).
-            **kwargs: Keyword arguments that can include:
-                - inputs: OrderedDict mapping feature names to tensors
-                - target: Target tensor (single-target) or list of tensors (multi-target)
-                - additional_forward_args: Optional additional arguments for model forward pass
-                - baselines: Optional baseline tensors for attribution methods
-                - feature_mask: Optional feature masks for attribution computation
+            inputs: Input tensor(s) for which attributions are computed.
+            target: An `ExplanationTargetType` (e.g. `SingleTargetAcrossBatch`) for
+                single-target mode, or a list of them for multi-target mode.
+            **kwargs: Additional method-specific arguments (`baselines`,
+                `feature_mask`, `sliding_window_shapes`, etc.).
 
         Returns:
-            For single-target mode: OrderedDict mapping feature names to attribution tensors.
-            For multi-target mode: List of OrderedDicts, one per target.
-
-        Examples:
-            Using ExplanationInputs object:
-            >>> from torchxai.data_types import ExplanationInputs
-            >>> explanation_inputs = ExplanationInputs(
-            ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
-            ...     target=torch.tensor([0, 1]),
-            ... )
-            >>> attributions = explainer.explain(explanation_inputs)
-            >>> # Returns: OrderedDict({"input": torch.Tensor})
-
-            Using keyword arguments:
-            >>> attributions = explainer.explain(
-            ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
-            ...     target=torch.tensor([0, 1]),
-            ... )
+            Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.
 
         Raises:
-            AssertionError: If target format doesn't match the explainer mode or batch size requirements.
+            AssertionError: If target format doesn't match the explainer mode.
         """
 
     def __repr__(self) -> str:
