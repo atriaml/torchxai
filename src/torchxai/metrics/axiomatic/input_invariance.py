@@ -71,7 +71,6 @@ def _input_invariance(
                 "The shifted explainer must be an instance of FeatureAttributionExplainer."
             )
             possible_args = inspect.signature(explainer.explain).parameters
-            print("possible_args", possible_args)
             kwargs_copy = {k: v for k, v in kwargs_copy.items() if k in possible_args}
             shifted_kwargs_copy = {
                 k: v for k, v in shifted_kwargs_copy.items() if k in possible_args

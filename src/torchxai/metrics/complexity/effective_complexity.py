@@ -647,7 +647,7 @@ def effective_complexity(
                 features in each example (`C * H * W`) exceeds
                 `max_features_processed_per_batch`, they will be sliced
                 into batches of `max_features_processed_per_batch` examples and processed
-                in a sequeeffective_complexityd as zero.
+                sequentially.
         percentage_feature_removal_per_step (int, optional): The number of steps to process the features in a single batch.
                 This is useful for reducing the computation time for large models. This allows 'percentage_feature_removal_per_step'
                 ascending features to be removed together in each step instead of removing all the features.

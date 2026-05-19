@@ -400,3 +400,71 @@ def sensitivity_max_and_avg(
             }
         else:
             return sensitivity_max, sensitivity_avg
+
+
+def sensitivity_max(
+    explainer: Explainer | Attribution,
+    inputs: TensorOrTupleOfTensorsGeneric,
+    perturb_func: Callable = default_perturb_func,
+    perturb_radius: float = 0.02,
+    n_perturb_samples: int = 10,
+    norm_ord: str = "fro",
+    max_examples_per_batch: int | None = None,
+    multi_target: bool = False,
+    **kwargs: Any,
+) -> Tensor | list[Tensor]:
+    """Maximum sensitivity — worst-case attribution distance under input perturbations. ↓ better.
+
+    Wraps `sensitivity_max_and_avg` and returns only the max component.
+    See `sensitivity_max_and_avg` for full argument documentation.
+    """
+    outputs = sensitivity_max_and_avg(
+        explainer,
+        inputs,
+        perturb_func=perturb_func,
+        perturb_radius=perturb_radius,
+        n_perturb_samples=n_perturb_samples,
+        norm_ord=norm_ord,
+        max_examples_per_batch=max_examples_per_batch,
+        multi_target=multi_target,
+        **kwargs,
+    )
+    assert isinstance(outputs, tuple), (
+        "Expected outputs to be a tuple of (sensitivity_max, sensitivity_avg)."
+    )
+    sensitivity_max, _ = outputs
+    return sensitivity_max
+
+
+def sensitivity_avg(
+    explainer: Explainer | Attribution,
+    inputs: TensorOrTupleOfTensorsGeneric,
+    perturb_func: Callable = default_perturb_func,
+    perturb_radius: float = 0.02,
+    n_perturb_samples: int = 10,
+    norm_ord: str = "fro",
+    max_examples_per_batch: int | None = None,
+    multi_target: bool = False,
+    **kwargs: Any,
+) -> Tensor | list[Tensor]:
+    """Average sensitivity — mean attribution distance under input perturbations. ↓ better.
+
+    Wraps `sensitivity_max_and_avg` and returns only the avg component.
+    See `sensitivity_max_and_avg` for full argument documentation.
+    """
+    outputs = sensitivity_max_and_avg(
+        explainer,
+        inputs,
+        perturb_func=perturb_func,
+        perturb_radius=perturb_radius,
+        n_perturb_samples=n_perturb_samples,
+        norm_ord=norm_ord,
+        max_examples_per_batch=max_examples_per_batch,
+        multi_target=multi_target,
+        **kwargs,
+    )
+    assert isinstance(outputs, tuple), (
+        "Expected outputs to be a tuple of (sensitivity_max, sensitivity_avg)."
+    )
+    _, sensitivity_avg = outputs
+    return sensitivity_avg

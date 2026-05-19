@@ -897,3 +897,51 @@ def aopc(
                 baselines_perturbed_aopc_asc_batch,
                 baselines_perturbed_aopc_rand_batch,
             )
+
+
+def abpc(
+    forward_func: Callable,
+    inputs: TensorOrTupleOfTensorsGeneric,
+    attributions: "list[TensorOrTupleOfTensorsGeneric] | TensorOrTupleOfTensorsGeneric",
+    baselines: "BaselineType",
+    feature_mask: "TensorOrTupleOfTensorsGeneric" = None,
+    additional_forward_args: Any = None,
+    target: "ExplanationTarget | list[ExplanationTarget]" = None,
+    frozen_features: "list[torch.Tensor] | None" = None,
+    max_features_processed_per_batch: "int | None" = None,
+    total_feature_bins: int = 100,
+    n_random_perms: int = 10,
+    seed: "int | None" = None,
+    multi_target: bool = False,
+    show_progress: bool = True,
+) -> "Tensor | list[Tensor]":
+    """Area Between Perturbation Curves (ABPC) — descending AOPC minus ascending AOPC. ↑ better.
+
+    A larger gap between the descending and ascending perturbation curves indicates that the
+    attribution method correctly ranks feature importance. Wraps `aopc` and returns
+    ``desc_aopc - asc_aopc``.
+
+    See `aopc` for full argument documentation.
+    """
+    _target = target if target is not None else NoTarget()
+    desc, asc, *_ = aopc(
+        forward_func=forward_func,
+        inputs=inputs,
+        attributions=attributions,
+        baselines=baselines,
+        feature_mask=feature_mask,
+        additional_forward_args=additional_forward_args,
+        target=_target,
+        frozen_features=frozen_features,
+        max_features_processed_per_batch=max_features_processed_per_batch,
+        total_feature_bins=total_feature_bins,
+        n_random_perms=n_random_perms,
+        seed=seed,
+        multi_target=multi_target,
+        show_progress=show_progress,
+        return_intermediate_results=False,
+        return_dict=False,
+    )
+    if multi_target:
+        return [d - a for d, a in zip(desc, asc, strict=False)]
+    return desc - asc
