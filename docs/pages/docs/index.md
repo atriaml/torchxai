@@ -4,11 +4,11 @@ sidebar_title: Home
 show_title: true
 order: 0
 external_links:
-  "github": https://github.com/saifullah3396/torchxai
+  "github": https://github.com/atriaml/torchxai
 ---
 
 TorchXAI is a lightweight PyTorch toolkit for evaluating machine learning models using explainability techniques. It offers efficient implementations of explainability metrics that integrate seamlessly with the Captum ecosystem, with a focus on batch computation and task/data-agnostic evaluation to make scalable XAI evaluation easy.
-<!-- 
+<!--
 !!! info "Migrating from mkdocs-material? "
     In the general case, I would advise **not migrating** from [mkdocs-material](https://squidfunk.github.io/mkdocs-material/) since this theme is well established, very mature, with a lot of features we love.
 

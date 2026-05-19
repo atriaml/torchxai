@@ -60,9 +60,9 @@ dev = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/saifullah3396/torchxai/"
-"Bug Reports" = "https://github.com/saifullah3396/torchxai/issues"
-"Source" = "https://github.com/saifullah3396/torchxai/"
+"Homepage" = "https://github.com/atriaml/torchxai/"
+"Bug Reports" = "https://github.com/atriaml/torchxai/issues"
+"Source" = "https://github.com/atriaml/torchxai/"
 "Documentation" = "https://saifullah3396.github.io/torchxai/"
 
 
