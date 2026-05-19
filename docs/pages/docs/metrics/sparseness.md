@@ -1,8 +1,10 @@
-# Completeness
+# Sparseness
 
-Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+Computes the Gini index of attribution magnitudes (Chalasani et al.). Higher score means attributions are more concentrated on a small number of features, making the explanation simpler. Does not require a model forward pass or a baseline. ↑ better.
 
-::: torchxai.metrics.axiomatic.completeness
+Includes `sparseness` (per-feature) and `sparseness_feature_grouped` (pooled over feature groups defined by a mask).
+
+::: torchxai.metrics.complexity.sparseness
     options:
         docstring_options:
         ignore_init_summary: true

@@ -1,8 +1,8 @@
-# Completeness
+# Faithfulness Estimate
 
-Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+Estimates explanation faithfulness by measuring how often the model output changes in the same direction as feature attribution sign when features are progressively masked. ↑ better.
 
-::: torchxai.metrics.axiomatic.completeness
+::: torchxai.metrics.faithfulness.faithfulness_estimate.faithfulness_estimate
     options:
         docstring_options:
         ignore_init_summary: true

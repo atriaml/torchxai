@@ -1,8 +1,8 @@
-# Completeness
+# Area Over the Perturbation Curve (AOPC)
 
-Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+Measures the average drop in model output as features are progressively removed in descending, ascending, and random importance order. Returns three scores (desc, asc, rand) plus optional baselines. ↑ desc, ↓ asc is preferred.
 
-::: torchxai.metrics.axiomatic.completeness
+::: torchxai.metrics.faithfulness.aopc.aopc
     options:
         docstring_options:
         ignore_init_summary: true

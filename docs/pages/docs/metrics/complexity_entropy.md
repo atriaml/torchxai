@@ -1,8 +1,10 @@
-# Completeness
+# Complexity — Entropy
 
-Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+Measures explanation complexity as the Shannon entropy of the attribution distribution (Bhatt et al., 2020). Lower entropy means a sparser, simpler explanation. ↓ better.
 
-::: torchxai.metrics.axiomatic.completeness
+Includes `complexity_entropy` (per-feature) and `complexity_entropy_feature_grouped` (pooled over feature groups defined by a mask).
+
+::: torchxai.metrics.complexity.complexity_entropy
     options:
         docstring_options:
         ignore_init_summary: true

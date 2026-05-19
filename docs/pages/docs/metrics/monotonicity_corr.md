@@ -1,8 +1,8 @@
-# Completeness
+# Monotonicity Correlation
 
-Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+Spearman rank correlation between feature attribution magnitudes and the change in model output when each feature is perturbed. High correlation indicates that more-important features (by attribution) actually have larger impact on the output. ↑ better.
 
-::: torchxai.metrics.axiomatic.completeness
+::: torchxai.metrics.faithfulness.monotonicity_corr.monotonicity_corr
     options:
         docstring_options:
         ignore_init_summary: true

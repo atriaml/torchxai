@@ -1,8 +1,8 @@
-# Completeness
+# Monotonicity Correlation & Non-Sensitivity
 
-Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+Returns two metrics in one call: **monotonicity correlation** (Spearman correlation between attribution magnitudes and output variance under unordered perturbations, ↑ better) and **non-sensitivity** (fraction of zero-attribution features that still affect the output, ↓ better).
 
-::: torchxai.metrics.axiomatic.completeness
+::: torchxai.metrics.axiomatic.monotonicity_corr_and_non_sens
     options:
         docstring_options:
         ignore_init_summary: true

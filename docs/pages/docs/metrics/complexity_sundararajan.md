@@ -1,8 +1,10 @@
-# Completeness
+# Complexity — Sundararajan
 
-Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+Counts the number of features (or feature groups) with non-zero attribution (Sundararajan & Najmi, 2020). Simpler explanations have fewer active features. ↓ better.
 
-::: torchxai.metrics.axiomatic.completeness
+Includes `complexity_sundararajan` (per-feature) and `complexity_sundararajan_feature_grouped` (pooled over feature groups defined by a mask).
+
+::: torchxai.metrics.complexity.complexity_sundararajan
     options:
         docstring_options:
         ignore_init_summary: true

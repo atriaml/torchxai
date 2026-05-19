@@ -1,8 +1,8 @@
-# Completeness
+# Effective Complexity
 
-Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+Counts the number of features whose attribution magnitude exceeds a threshold, representing the effective number of features the explanation relies on. ↓ better.
 
-::: torchxai.metrics.axiomatic.completeness
+::: torchxai.metrics.complexity.effective_complexity.effective_complexity
     options:
         docstring_options:
         ignore_init_summary: true

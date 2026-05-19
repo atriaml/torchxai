@@ -1,8 +1,8 @@
-# Completeness
+# Infidelity
 
-Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+Measures the mean squared error between attribution-based prediction changes and actual model output changes under perturbations. Low infidelity means the explanation closely approximates model behaviour. ↓ better.
 
-::: torchxai.metrics.axiomatic.completeness
+::: torchxai.metrics.faithfulness.infidelity.infidelity
     options:
         docstring_options:
         ignore_init_summary: true

@@ -1,8 +1,8 @@
-# Completeness
+# Input Invariance
 
-Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+Tests that attributions remain unchanged when a constant shift is added to inputs and the model bias is adjusted to compensate — a formal axiom from Kindermans et al.
 
-::: torchxai.metrics.axiomatic.completeness
+::: torchxai.metrics.axiomatic.input_invariance
     options:
         docstring_options:
         ignore_init_summary: true

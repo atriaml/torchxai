@@ -1,8 +1,8 @@
-# Completeness
+# Sensitivity-N
 
-Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+Wraps infidelity with a random n-feature perturbation function: it randomly zeroes out n features at a time and measures the Pearson correlation between attributions and the resulting output changes (Ancona et al.). Lower score indicates the attributions better predict which features matter. Supports feature masks and multi-target mode.
 
-::: torchxai.metrics.axiomatic.completeness
+::: torchxai.metrics.faithfulness.sensitivity_n
     options:
         docstring_options:
         ignore_init_summary: true

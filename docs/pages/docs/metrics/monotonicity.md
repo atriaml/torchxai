@@ -1,8 +1,8 @@
-# Completeness
+# Monotonicity
 
-Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+Checks whether adding more features to a baseline explanation monotonically increases the model output (Sundararajan & Najmi, 2020). Returns the fraction of features that satisfy this property. ↑ better.
 
-::: torchxai.metrics.axiomatic.completeness
+::: torchxai.metrics.faithfulness.monotonicity.monotonicity
     options:
         docstring_options:
         ignore_init_summary: true

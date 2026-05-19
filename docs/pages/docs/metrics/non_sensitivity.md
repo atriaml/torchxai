@@ -1,8 +1,8 @@
-# Completeness
+# Non-Sensitivity
 
-Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+Measures the fraction of features assigned zero attribution that nonetheless change the model output when perturbed (axiomatic property: zero-attribution features should not matter). ↓ better.
 
-::: torchxai.metrics.axiomatic.completeness
+::: torchxai.metrics.axiomatic.monotonicity_corr_and_non_sens.non_sensitivity
     options:
         docstring_options:
         ignore_init_summary: true

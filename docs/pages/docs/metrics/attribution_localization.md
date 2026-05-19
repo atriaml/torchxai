@@ -1,8 +1,8 @@
-# Completeness
+# Attribution Localization
 
-Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+Measures how well attributions concentrate on the ground-truth relevant region (e.g. segmentation mask). Computes the proportion of total attribution mass that falls inside the annotated region. ↑ better.
 
-::: torchxai.metrics.axiomatic.completeness
+::: torchxai.metrics.localization.attribution_localization.attribution_localization
     options:
         docstring_options:
         ignore_init_summary: true

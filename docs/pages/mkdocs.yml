@@ -111,5 +111,27 @@ nav:
       - explainers/examples/sequence_classification.md
       - explainers/examples/token_classification.md
   - Metrics:
+    - Overview: metrics.md
     - Axiomatic:
       - metrics/completeness.md
+      - metrics/input_invariance.md
+      - metrics/non_sensitivity.md
+    - Faithfulness:
+      - metrics/aopc.md
+      - metrics/abpc.md
+      - metrics/faithfulness_corr.md
+      - metrics/faithfulness_estimate.md
+      - metrics/infidelity.md
+      - metrics/monotonicity.md
+      - metrics/monotonicity_corr.md
+      - metrics/sensitivity_n.md
+    - Complexity:
+      - metrics/complexity_entropy.md
+      - metrics/complexity_sundararajan.md
+      - metrics/effective_complexity.md
+      - metrics/sparseness.md
+    - Robustness:
+      - metrics/sensitivity_max.md
+      - metrics/sensitivity_avg.md
+    - Localization:
+      - metrics/attribution_localization.md

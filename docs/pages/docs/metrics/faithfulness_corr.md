@@ -1,8 +1,8 @@
-# Completeness
+# Faithfulness Correlation
 
-Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+Pearson correlation between attribution magnitudes and the change in model output when each feature is masked out. Measures how well attributions reflect actual feature importance. ↑ better.
 
-::: torchxai.metrics.axiomatic.completeness
+::: torchxai.metrics.faithfulness.faithfulness_corr.faithfulness_corr
     options:
         docstring_options:
         ignore_init_summary: true

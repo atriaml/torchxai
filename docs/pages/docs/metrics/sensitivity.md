@@ -1,8 +1,8 @@
-# Completeness
+# Max & Average Sensitivity
 
-Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+Measures explanation stability under small input perturbations. Returns two values: **max sensitivity** (worst-case attribution distance across perturbations, ↓ better) and **avg sensitivity** (average distance, ↓ better). Does not require a baseline.
 
-::: torchxai.metrics.axiomatic.completeness
+::: torchxai.metrics.robustness.sensitivity.sensitivity_max_and_avg
     options:
         docstring_options:
         ignore_init_summary: true

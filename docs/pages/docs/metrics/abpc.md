@@ -1,8 +1,8 @@
-# Completeness
+# Area Between Perturbation Curves (ABPC)
 
-Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+Difference between the descending-order and ascending-order AOPC curves. A large positive gap means the attribution method successfully ranks features by importance. ↑ better.
 
-::: torchxai.metrics.axiomatic.completeness
+::: torchxai.metrics.faithfulness.aopc.abpc
     options:
         docstring_options:
         ignore_init_summary: true
