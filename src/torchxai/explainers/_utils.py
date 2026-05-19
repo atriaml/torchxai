@@ -186,7 +186,7 @@ def _compute_gradients_vmap_autograd(
     target: list[TargetType] | None = None,
     additional_forward_args: Any = None,
     grad_batch_size: int = 1,
-    show_progress: bool = True,
+    show_progress: bool = False,
 ) -> list[tuple[Tensor, ...]]:
     with torch.autograd.set_grad_enabled(True):  # type: ignore
         outputs = _run_forward_multi_target(

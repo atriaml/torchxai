@@ -29,6 +29,8 @@ def find_repo(abs_src_file: str) -> Union[Repo, None]:
 
 
 class GitTimestampsMixin(Mixin):
+    has_commits = False
+
     def on_config(self, config: MkDocsConfig):
         """Called when the config is loaded.
 
@@ -36,8 +38,14 @@ class GitTimestampsMixin(Mixin):
             config (dict): The MkDocs configuration dictionary.
 
         """
-        config[REPO_CONFIG_KEY] = find_repo(config.config_file_path)
+        repo = find_repo(config.config_file_path)
+        config[REPO_CONFIG_KEY] = repo
+        logger.info("Git mixin activated.")
         logger.debug(f"Git repository: {config[REPO_CONFIG_KEY]}")
+
+        self.has_commits = repo is not None and repo.head.is_valid()
+        if not self.has_commits:
+            logger.warning("No git commit found.")
         return super().on_config(config)
 
     def on_page_markdown(
@@ -49,15 +57,18 @@ class GitTimestampsMixin(Mixin):
         config: MkDocsConfig,
         files: Files,
     ):
-        repo = config.get(REPO_CONFIG_KEY, None)
-        if isinstance(repo, Repo) and page.file.abs_src_path:
-            dates = [
-                commit.committed_datetime
-                for commit in repo.iter_commits(paths=page.file.abs_src_path)
-            ]
-            if len(dates) > 0:
-                page.meta[CREATED_AT_META_KEY] = dates[-1]
-                page.meta[UPDATED_AT_META_KEY] = dates[0]
+        if self.has_commits:
+            repo = config.get(REPO_CONFIG_KEY, None)
+            if isinstance(repo, Repo) and page.file.abs_src_path:
+                dates = [
+                    commit.committed_datetime
+                    for commit in repo.iter_commits(
+                        paths=page.file.abs_src_path
+                    )
+                ]
+                if len(dates) > 0:
+                    page.meta[CREATED_AT_META_KEY] = dates[-1]
+                    page.meta[UPDATED_AT_META_KEY] = dates[0]
 
         return super().on_page_markdown(
             markdown, page=page, config=config, files=files

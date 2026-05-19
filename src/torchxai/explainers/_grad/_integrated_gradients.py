@@ -262,7 +262,7 @@ class IntegratedGradientsExplainer(FeatureAttributionExplainer):
     gradients along a straight path from a baseline input to the actual input.
     This method satisfies important axioms including sensitivity and implementation
     invariance, making it a robust attribution method. Supports both single-target
-    and multi-target modes with structured input/output.
+    and multi-target modes for both single-target and multi-target scenarios.
 
     The Integrated Gradients method provides theoretically grounded attributions
     by computing the integral of gradients along the path from baseline to input.
@@ -278,31 +278,27 @@ class IntegratedGradientsExplainer(FeatureAttributionExplainer):
     Examples:
         Single-target usage:
         >>> import torch
-        >>> from collections import OrderedDict
-        >>> from torchxai.data_types import ExplanationInputs
+        >>> from torchxai.data_types import SingleTargetAcrossBatch
         >>>
-        >>> model = torch.nn.Sequential(
-        ...     torch.nn.Linear(10, 5), torch.nn.ReLU(), torch.nn.Linear(5, 2)
+        >>> model = torch.nn.Linear(10, 2)
+        >>> explainer = IntegratedGradientsExplainer(model)
+        >>> inputs   = torch.randn(1, 10)
+        >>> baseline = torch.zeros(1, 10)
+        >>> attributions = explainer.explain(
+        ...     inputs=inputs,
+        ...     baselines=baseline,
+        ...     target=SingleTargetAcrossBatch(index=0),
         ... )
-        >>> explainer = IntegratedGradientsExplainer(model, n_steps=100)
-        >>>
-        >>> explanation_inputs = ExplanationInputs(
-        ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
-        ...     target=torch.tensor([0, 1]),
-        ...     baselines=OrderedDict({"input": torch.zeros(2, 10)}),
-        ... )
-        >>> attributions = explainer.explain(explanation_inputs)
-        >>> # Returns: OrderedDict({"input": torch.Tensor})
+        >>> attributions.shape   # (1, 10)
 
         Multi-target usage:
         >>> explainer_mt = IntegratedGradientsExplainer(model, multi_target=True)
-        >>> explanation_inputs_mt = ExplanationInputs(
-        ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
-        ...     target=[torch.tensor([0]), torch.tensor([1])],
-        ...     baselines=OrderedDict({"input": torch.zeros(2, 10)}),
+        >>> mt_attributions = explainer_mt.explain(
+        ...     inputs=inputs,
+        ...     baselines=baseline,
+        ...     target=[SingleTargetAcrossBatch(index=0), SingleTargetAcrossBatch(index=1)],
         ... )
-        >>> mt_attributions = explainer_mt.explain(explanation_inputs_mt)
-        >>> # Returns: [OrderedDict({"input": torch.Tensor}), OrderedDict({"input": torch.Tensor})]
+        >>> len(mt_attributions), mt_attributions[0].shape   # 2, (1, 10)
     """
 
     __repr_attrs__ = [
@@ -371,28 +367,22 @@ class IntegratedGradientsExplainer(FeatureAttributionExplainer):
     def explain(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        target: ExplanationTargetType,
+        target: ExplanationTargetType | list[ExplanationTargetType],
         baselines: TensorOrTupleOfTensorsGeneric | None = None,
         additional_forward_args: tuple[Any, ...] | None = None,
     ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute Integrated Gradients attributions for the given inputs.
 
-        This method provides a backward-compatible interface that accepts individual
-        parameters and constructs ExplanationInputs internally before calling the
-        parent class explain method.
-
         Args:
-            inputs: Input tensors for attribution computation. Should be an OrderedDict
-                mapping feature names to tensors when used with this explainer.
-            target: Target indices for attribution computation. Can be a tensor
-                (single-target) or list of tensors (multi-target).
+            inputs: Input tensor(s) for attribution computation.
+            target: An `ExplanationTargetType` (e.g. `SingleTargetAcrossBatch`) for single-target
+                mode, or a list of them for multi-target mode.
             baselines: Baseline tensors representing reference values. If None,
                 uses zero baselines. Should match the structure of inputs.
             additional_forward_args: Additional arguments for model forward pass.
 
         Returns:
-            For single-target mode: OrderedDict mapping feature names to attribution tensors.
-            For multi-target mode: List of OrderedDicts, one per target.
+            Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.
 
             If return_convergence_delta was set to True during initialization, the return
             format may include convergence delta information depending on the underlying

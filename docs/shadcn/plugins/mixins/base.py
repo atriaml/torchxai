@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 from jinja2 import Environment
@@ -13,6 +14,11 @@ mixin_logger = get_plugin_logger("mixins")
 
 class Mixin:
     """A base mixin class for MkDocs plugins."""
+
+    @property
+    def theme_root(self) -> Path:
+        """The root directory of the theme"""
+        return Path(__file__).parent.parent.parent
 
     def _super_method_or(
         self,
@@ -48,6 +54,14 @@ class Mixin:
             config=config,
             files=files,
             fallback=env,
+        )
+
+    def on_files(self, files: Files, config: MkDocsConfig) -> Files:
+        return self._super_method_or(
+            "on_files",
+            files,
+            config=config,
+            fallback=files,
         )
 
     def on_nav(
@@ -92,7 +106,7 @@ class Mixin:
         context: TemplateContext,
         page: Page,
         config: MkDocsConfig,
-        nav,
+        nav: Navigation,
     ):
         return self._super_method_or(
             "on_page_context",
@@ -103,9 +117,21 @@ class Mixin:
             fallback=context,
         )
 
-    def on_post_build(self, config):
+    def on_post_build(self, config: MkDocsConfig):
         return self._super_method_or(
             "on_post_build",
             config,
             fallback=None,
+        )
+
+    def on_page_content(
+        self, html: str, page: Page, config: MkDocsConfig, files: Files
+    ) -> str:
+        return self._super_method_or(
+            "on_page_content",
+            html,
+            page,
+            config=config,
+            files=files,
+            fallback=html,
         )

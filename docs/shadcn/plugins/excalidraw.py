@@ -90,8 +90,13 @@ class ExcalidrawPlugin(RouterMixin, BasePlugin[ExcalidrawPluginConfig]):
     is_dev_server = False
     """Internal flag to detect if we are in development mode."""
 
-    def on_startup(self, *, command, dirty: bool):
-        """Detect if the server is running in development mode."""
+    def on_startup(self, *, command: str, dirty: bool):
+        """Detect if the server is running in development mode.
+
+        Parameters:
+            command: the command being run (e.g., "serve" or "build")
+            dirty: whether the site is dirty (i.e., needs to be rebuilt)
+        """
         self.is_dev_server = command == "serve"
 
     def on_config(self, config: MkDocsConfig, **kwargs):
@@ -100,6 +105,9 @@ class ExcalidrawPlugin(RouterMixin, BasePlugin[ExcalidrawPluginConfig]):
         - detect and create the excalidraw directory
         - load the internal excalidraw markdown extension
         - inject the HTTP routes needed to handle excalidraw scenes and SVGs
+
+        Parameters:
+            config: MkDocs configuration object.
         """
         base = os.path.dirname(config["config_file_path"])
         excalidraw_path = os.path.join(base, self.config.directory)

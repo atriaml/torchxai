@@ -113,7 +113,7 @@ class SaliencyExplainer(FeatureAttributionExplainer):
 
     This explainer computes saliency maps using gradients of the model output
     with respect to inputs. Supports both single-target and multi-target modes
-    with structured input/output via ExplanationInputs.
+    for both single-target and multi-target scenarios.
 
     The saliency method computes the gradient of the output with respect to the input,
     providing a measure of how much each input feature contributes to the prediction.
@@ -129,34 +129,23 @@ class SaliencyExplainer(FeatureAttributionExplainer):
     Examples:
         Single-target usage:
         >>> import torch
-        >>> from collections import OrderedDict
-        >>> from torchxai.data_types import ExplanationInputs
+        >>> from torchxai.data_types import SingleTargetAcrossBatch
         >>>
         >>> model = torch.nn.Linear(10, 2)
         >>> explainer = SaliencyExplainer(model)
-        >>>
-        >>> # Using ExplanationInputs (recommended)
-        >>> explanation_inputs = ExplanationInputs(
-        ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
-        ...     target=torch.tensor([0, 1]),
-        ... )
-        >>> attributions = explainer.explain(explanation_inputs)
-        >>> # Returns: OrderedDict({"input": torch.Tensor})
-        >>>
-        >>> # Using keyword arguments (also supported)
         >>> attributions = explainer.explain(
-        ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
-        ...     target=torch.tensor([0, 1]),
+        ...     inputs=torch.randn(1, 10),
+        ...     target=SingleTargetAcrossBatch(index=0),
         ... )
+        >>> attributions.shape   # (1, 10)
 
         Multi-target usage:
         >>> explainer_mt = SaliencyExplainer(model, multi_target=True)
-        >>> explanation_inputs_mt = ExplanationInputs(
-        ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
-        ...     target=[torch.tensor([0]), torch.tensor([1])],
+        >>> mt_attributions = explainer_mt.explain(
+        ...     inputs=torch.randn(1, 10),
+        ...     target=[SingleTargetAcrossBatch(index=0), SingleTargetAcrossBatch(index=1)],
         ... )
-        >>> mt_attributions = explainer_mt.explain(explanation_inputs_mt)
-        >>> # Returns: [OrderedDict({"input": torch.Tensor}), OrderedDict({"input": torch.Tensor})]
+        >>> len(mt_attributions), mt_attributions[0].shape   # 2, (1, 10)
     """
 
     def _init_single_target_explanation_fn(self) -> Callable:
@@ -183,30 +172,19 @@ class SaliencyExplainer(FeatureAttributionExplainer):
     def explain(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        target: ExplanationTargetType,
+        target: ExplanationTargetType | list[ExplanationTargetType],
         additional_forward_args: tuple[Any, ...] | None = None,
     ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute saliency attributions for the given inputs.
 
-        This method provides a backward-compatible interface that accepts individual
-        parameters and constructs ExplanationInputs internally before calling the
-        parent class explain method.
-
         Args:
-            inputs: Input tensors for attribution computation. Should be an OrderedDict
-                mapping feature names to tensors when used with this explainer.
-            target: Target indices for attribution computation. Can be a tensor
-                (single-target) or list of tensors (multi-target).
+            inputs: Input tensor(s) for attribution computation.
+            target: An `ExplanationTargetType` (e.g. `SingleTargetAcrossBatch`) for single-target
+                mode, or a list of them for multi-target mode.
             additional_forward_args: Additional arguments for model forward pass.
 
         Returns:
-            For single-target mode: OrderedDict mapping feature names to attribution tensors.
-            For multi-target mode: List of OrderedDicts, one per target.
-
-        Note:
-            This method automatically wraps the inputs in an OrderedDict if they aren't already,
-            assuming a single feature named 'input'. For multiple features, pass inputs as
-            an OrderedDict directly.
+            Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.
 
         Examples:
             >>> # Single tensor input (wrapped automatically)

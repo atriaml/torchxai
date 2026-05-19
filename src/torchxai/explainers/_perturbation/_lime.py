@@ -588,7 +588,7 @@ class LimeExplainer(FeatureAttributionExplainer):
     Explanations), which explains individual predictions by learning locally faithful
     linear models around the input. LIME perturbs the input and trains a simple
     interpretable model on the perturbed samples to approximate the model's behavior
-    locally. Supports both single-target and multi-target modes with structured input/output.
+    locally. Supports both single-target and multi-target modes for both single-target and multi-target scenarios.
 
     LIME is particularly useful for understanding complex models by providing locally
     accurate explanations using interpretable linear models.
@@ -605,33 +605,34 @@ class LimeExplainer(FeatureAttributionExplainer):
             when using feature masks. Defaults to True.
 
     Examples:
-        Single-target usage for tabular data:
+        Single-target usage without mask (feature-level):
         >>> import torch
-        >>> from collections import OrderedDict
-        >>> from torchxai.data_types import ExplanationInputs
+        >>> from torchxai.data_types import SingleTargetAcrossBatch
         >>>
-        >>> model = torch.nn.Sequential(
-        ...     torch.nn.Linear(10, 5), torch.nn.ReLU(), torch.nn.Linear(5, 2)
+        >>> model = torch.nn.Linear(10, 2)
+        >>> explainer = LimeExplainer(model)
+        >>> attributions = explainer.explain(
+        ...     inputs=torch.randn(1, 10),
+        ...     target=SingleTargetAcrossBatch(index=0),
         ... )
-        >>> explainer = LimeExplainer(model, n_samples=200, alpha=0.01)
-        >>>
-        >>> explanation_inputs = ExplanationInputs(
-        ...     inputs=OrderedDict({"features": torch.randn(1, 10)}),
-        ...     target=torch.tensor([1]),
-        ...     baselines=OrderedDict({"features": torch.zeros(1, 10)}),
+        >>> attributions.shape   # (1, 10)
+
+        With a feature mask (group-level attribution):
+        >>> feature_mask = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 4]])
+        >>> attributions_grouped = explainer.explain(
+        ...     inputs=torch.randn(1, 10),
+        ...     feature_mask=feature_mask,
+        ...     target=SingleTargetAcrossBatch(index=0),
         ... )
-        >>> attributions = explainer.explain(explanation_inputs)
-        >>> # Returns: OrderedDict({"features": torch.Tensor})
+        >>> attributions_grouped.shape   # (1, 10)
 
         Multi-target usage:
-        >>> explainer_mt = LimeExplainer(model, multi_target=True, n_samples=200)
-        >>> explanation_inputs_mt = ExplanationInputs(
-        ...     inputs=OrderedDict({"features": torch.randn(1, 10)}),
-        ...     target=[torch.tensor([0]), torch.tensor([1])],
-        ...     baselines=OrderedDict({"features": torch.zeros(1, 10)}),
+        >>> explainer_mt = LimeExplainer(model, multi_target=True)
+        >>> mt_attributions = explainer_mt.explain(
+        ...     inputs=torch.randn(1, 10),
+        ...     target=[SingleTargetAcrossBatch(index=0), SingleTargetAcrossBatch(index=1)],
         ... )
-        >>> mt_attributions = explainer_mt.explain(explanation_inputs_mt)
-        >>> # Returns: [OrderedDict({"features": torch.Tensor}), OrderedDict({"features": torch.Tensor})]
+        >>> len(mt_attributions), mt_attributions[0].shape   # 2, (1, 10)
     """
 
     __repr_attrs__ = [
@@ -751,7 +752,7 @@ class LimeExplainer(FeatureAttributionExplainer):
     def explain(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        target: ExplanationTargetType,
+        target: ExplanationTargetType | list[ExplanationTargetType],
         baselines: TensorOrTupleOfTensorsGeneric | None = None,
         feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
         additional_forward_args: tuple[Any, ...] | None = None,
@@ -759,15 +760,10 @@ class LimeExplainer(FeatureAttributionExplainer):
     ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute LIME attributions for the given inputs.
 
-        This method provides a backward-compatible interface that accepts individual
-        parameters and constructs ExplanationInputs internally before calling the
-        parent class explain method.
-
         Args:
-            inputs: Input tensors for attribution computation. Should be an OrderedDict
-                mapping feature names to tensors when used with this explainer.
-            target: Target indices for attribution computation. Can be a tensor
-                (single-target) or list of tensors (multi-target).
+            inputs: Input tensor(s) for attribution computation.
+            target: An `ExplanationTargetType` (e.g. `SingleTargetAcrossBatch`) for single-target
+                mode, or a list of them for multi-target mode.
             baselines: Baseline tensors for perturbation (typically zeros). If None,
                 uses zero baselines matching input shape.
             feature_mask: Masks representing feature groups for aggregation. If provided,
@@ -777,8 +773,7 @@ class LimeExplainer(FeatureAttributionExplainer):
                 Useful for special tokens like CLS, SEP in NLP models.
 
         Returns:
-            For single-target mode: OrderedDict mapping feature names to attribution tensors.
-            For multi-target mode: List of OrderedDicts, one per target.
+            Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.
 
         Note:
             LIME trains a local linear model on perturbed samples. The number of samples

@@ -1,19 +1,20 @@
 {
   "name": "mkdocs-shadcn",
-  "version": "0.9.8",
+  "version": "0.10.6",
   "author": "Alban Siffer <31479857+asiffer@users.noreply.github.com>",
   "license": "MIT",
+  "packageManager": "bun@1.3.11",
   "scripts": {
     "build": "tailwindcss -i ./tailwind/main.css -o ./shadcn/css/base.css --minify",
     "dev": "tailwindcss -i ./tailwind/main.css -o ./shadcn/css/base.css --minify --watch"
   },
   "dependencies": {
-    "@tailwindcss/cli": "^4.1.13",
-    "@tailwindcss/typography": "^0.5.18",
-    "tailwindcss": "^4.1.13",
+    "@tailwindcss/cli": "^4.2.1",
+    "@tailwindcss/typography": "^0.5.19",
+    "tailwindcss": "^4.2.1",
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.2.4"
+    "@biomejs/biome": "^2.4.7"
   }
 }

@@ -155,7 +155,7 @@ class InputXBaselineGradientExplainer(FeatureAttributionExplainer):
     gradients, providing a measure that considers both the deviation from baseline
     and gradient sensitivity. This method is particularly useful when you have
     meaningful baseline references. Supports both single-target and multi-target
-    modes with structured input/output.
+    modes for both single-target and multi-target scenarios.
 
     The Input × Baseline Gradient method provides attributions that are grounded
     in both the input magnitude relative to a baseline and gradient information.
@@ -170,29 +170,27 @@ class InputXBaselineGradientExplainer(FeatureAttributionExplainer):
     Examples:
         Single-target usage:
         >>> import torch
-        >>> from collections import OrderedDict
-        >>> from torchxai.data_types import ExplanationInputs
+        >>> from torchxai.data_types import SingleTargetAcrossBatch
         >>>
         >>> model = torch.nn.Linear(10, 2)
         >>> explainer = InputXBaselineGradientExplainer(model)
-        >>>
-        >>> explanation_inputs = ExplanationInputs(
-        ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
-        ...     target=torch.tensor([0, 1]),
-        ...     baselines=OrderedDict({"input": torch.zeros(2, 10)}),
+        >>> inputs   = torch.randn(1, 10)
+        >>> baseline = torch.zeros(1, 10)
+        >>> attributions = explainer.explain(
+        ...     inputs=inputs,
+        ...     baselines=baseline,
+        ...     target=SingleTargetAcrossBatch(index=0),
         ... )
-        >>> attributions = explainer.explain(explanation_inputs)
-        >>> # Returns: OrderedDict({"input": torch.Tensor})
+        >>> attributions.shape   # (1, 10)
 
         Multi-target usage:
         >>> explainer_mt = InputXBaselineGradientExplainer(model, multi_target=True)
-        >>> explanation_inputs_mt = ExplanationInputs(
-        ...     inputs=OrderedDict({"input": torch.randn(2, 10)}),
-        ...     target=[torch.tensor([0]), torch.tensor([1])],
-        ...     baselines=OrderedDict({"input": torch.zeros(2, 10)}),
+        >>> mt_attributions = explainer_mt.explain(
+        ...     inputs=inputs,
+        ...     baselines=baseline,
+        ...     target=[SingleTargetAcrossBatch(index=0), SingleTargetAcrossBatch(index=1)],
         ... )
-        >>> mt_attributions = explainer_mt.explain(explanation_inputs_mt)
-        >>> # Returns: [OrderedDict({"input": torch.Tensor}), OrderedDict({"input": torch.Tensor})]
+        >>> len(mt_attributions), mt_attributions[0].shape   # 2, (1, 10)
     """
 
     def _init_single_target_explanation_fn(self) -> Callable:
@@ -216,28 +214,22 @@ class InputXBaselineGradientExplainer(FeatureAttributionExplainer):
     def explain(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        target: ExplanationTargetType,
+        target: ExplanationTargetType | list[ExplanationTargetType],
         baselines: TensorOrTupleOfTensorsGeneric | None = None,
         additional_forward_args: tuple[Any, ...] | None = None,
     ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute Input × Baseline Gradient attributions for the given inputs.
 
-        This method provides a backward-compatible interface that accepts individual
-        parameters and constructs ExplanationInputs internally before calling the
-        parent class explain method.
-
         Args:
-            inputs: Input tensors for attribution computation. Should be an OrderedDict
-                mapping feature names to tensors when used with this explainer.
-            target: Target indices for attribution computation. Can be a tensor
-                (single-target) or list of tensors (multi-target).
+            inputs: Input tensor(s) for attribution computation.
+            target: An `ExplanationTargetType` (e.g. `SingleTargetAcrossBatch`) for single-target
+                mode, or a list of them for multi-target mode.
             baselines: Baseline tensors representing reference values. Required for
                 this method as it computes (input - baseline) × gradient.
             additional_forward_args: Additional arguments for model forward pass.
 
         Returns:
-            For single-target mode: OrderedDict mapping feature names to attribution tensors.
-            For multi-target mode: List of OrderedDicts, one per target.
+            Tensor in single-target mode. List of Tensors, one per target, in multi-target mode.
 
         Examples:
             >>> # With explicit baselines

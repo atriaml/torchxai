@@ -4,7 +4,8 @@ from typing import Any
 import torch
 from captum._utils.common import _format_tensor_into_tuples
 
-from torchxai.data_types import TargetType, TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import TensorOrTupleOfTensorsGeneric
+from torchxai.data_types._target import ExplanationTargetType
 from torchxai.explainers._explainer import FeatureAttributionExplainer
 
 
@@ -16,7 +17,7 @@ class RandomExplainer(FeatureAttributionExplainer):
     helping to establish whether other methods provide meaningful signal above random
     noise. This is particularly useful for sanity checks and statistical significance
     testing of attribution methods. Supports both single-target and multi-target modes
-    with structured input/output.
+    for both single-target and multi-target scenarios.
 
     Random attributions help establish baseline performance and can be used to
     validate that other attribution methods provide meaningful explanations.
@@ -34,29 +35,23 @@ class RandomExplainer(FeatureAttributionExplainer):
     Examples:
         Single-target usage:
         >>> import torch
-        >>> from collections import OrderedDict
-        >>> from torchxai.data_types import ExplanationInputs
+        >>> from torchxai.data_types import SingleTargetAcrossBatch
         >>>
-        >>> model = torch.nn.Sequential(
-        ...     torch.nn.Linear(10, 5), torch.nn.ReLU(), torch.nn.Linear(5, 2)
+        >>> model = torch.nn.Linear(10, 2)
+        >>> explainer = RandomExplainer(model)
+        >>> attributions = explainer.explain(
+        ...     inputs=torch.randn(1, 10),
+        ...     target=SingleTargetAcrossBatch(index=0),
         ... )
-        >>> explainer = RandomExplainer(model, random_seed=42)
-        >>>
-        >>> explanation_inputs = ExplanationInputs(
-        ...     inputs=OrderedDict({"features": torch.randn(2, 10)}),
-        ...     target=torch.tensor([0, 1]),
-        ... )
-        >>> attributions = explainer.explain(explanation_inputs)
-        >>> # Returns: OrderedDict({"features": torch.Tensor}) with random values
+        >>> attributions.shape   # (1, 10)
 
         Multi-target usage:
-        >>> explainer_mt = RandomExplainer(model, multi_target=True, random_seed=42)
-        >>> explanation_inputs_mt = ExplanationInputs(
-        ...     inputs=OrderedDict({"features": torch.randn(2, 10)}),
-        ...     target=[torch.tensor([0, 1]), torch.tensor([1, 0])],
+        >>> explainer_mt = RandomExplainer(model, multi_target=True)
+        >>> mt_attributions = explainer_mt.explain(
+        ...     inputs=torch.randn(1, 10),
+        ...     target=[SingleTargetAcrossBatch(index=0), SingleTargetAcrossBatch(index=1)],
         ... )
-        >>> mt_attributions = explainer_mt.explain(explanation_inputs_mt)
-        >>> # Returns: [OrderedDict({"features": torch.Tensor}), OrderedDict({"features": torch.Tensor})]
+        >>> len(mt_attributions), mt_attributions[0].shape   # 2, (1, 10)
     """
 
     def __init__(
@@ -114,20 +109,15 @@ class RandomExplainer(FeatureAttributionExplainer):
     def explain(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        target: TargetType,
+        target: ExplanationTargetType | list[ExplanationTargetType],
         additional_forward_args: tuple[Any, ...] | None = None,
     ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Generate random attributions for the given inputs.
 
-        This method provides a backward-compatible interface that accepts individual
-        parameters and constructs ExplanationInputs internally before calling the
-        parent class explain method.
-
         Args:
-            inputs: Input tensors for attribution computation. Should be an OrderedDict
-                mapping feature names to tensors when used with this explainer.
-            target: Target indices for attribution computation. Can be a tensor
-                (single-target) or list of tensors (multi-target).
+            inputs: Input tensor(s) for attribution computation.
+            target: An `ExplanationTargetType` (e.g. `SingleTargetAcrossBatch`) for single-target
+                mode, or a list of them for multi-target mode.
             additional_forward_args: Additional arguments for model forward pass (ignored).
 
         Returns:
