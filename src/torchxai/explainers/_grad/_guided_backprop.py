@@ -221,7 +221,7 @@ class GuidedBackpropExplainer(FeatureAttributionExplainer):
     def explain(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        target: ExplanationTargetType,
+        target: ExplanationTargetType | list[ExplanationTargetType],
         additional_forward_args: tuple[Any, ...] | None = None,
     ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute Guided Backpropagation attributions for the given inputs.

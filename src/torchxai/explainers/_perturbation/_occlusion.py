@@ -454,7 +454,7 @@ class OcclusionExplainer(FeatureAttributionExplainer):
         model: Module,
         multi_target: bool = False,
         internal_batch_size: int = 1,
-        show_progress: bool = True,
+        show_progress: bool = False,
     ) -> None:
         """Initialize the OcclusionExplainer.
 
@@ -496,7 +496,7 @@ class OcclusionExplainer(FeatureAttributionExplainer):
     def explain(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        target: ExplanationTargetType,
+        target: ExplanationTargetType | list[ExplanationTargetType],
         sliding_window_shapes: tuple[int, ...] | tuple[tuple[int, ...], ...],
         strides: None
         | int

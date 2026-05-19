@@ -372,7 +372,7 @@ class KernelShapExplainer(FeatureAttributionExplainer):
     def explain(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        target: ExplanationTargetType,
+        target: ExplanationTargetType | list[ExplanationTargetType],
         baselines: TensorOrTupleOfTensorsGeneric | None = None,
         feature_mask: TensorOrTupleOfTensorsGeneric | None = None,
         additional_forward_args: tuple[Any, ...] | None = None,

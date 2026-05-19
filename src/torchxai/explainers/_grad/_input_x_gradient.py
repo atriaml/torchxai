@@ -170,7 +170,7 @@ class InputXGradientExplainer(FeatureAttributionExplainer):
     def explain(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        target: ExplanationTargetType,
+        target: ExplanationTargetType | list[ExplanationTargetType],
         additional_forward_args: tuple[Any, ...] | None = None,
     ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Compute Input × Gradient attributions for the given inputs.

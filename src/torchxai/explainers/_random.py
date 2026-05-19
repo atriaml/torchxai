@@ -4,7 +4,8 @@ from typing import Any
 import torch
 from captum._utils.common import _format_tensor_into_tuples
 
-from torchxai.data_types import TargetType, TensorOrTupleOfTensorsGeneric
+from torchxai.data_types import TensorOrTupleOfTensorsGeneric
+from torchxai.data_types._target import ExplanationTargetType
 from torchxai.explainers._explainer import FeatureAttributionExplainer
 
 
@@ -114,7 +115,7 @@ class RandomExplainer(FeatureAttributionExplainer):
     def explain(
         self,
         inputs: TensorOrTupleOfTensorsGeneric,
-        target: TargetType,
+        target: ExplanationTargetType | list[ExplanationTargetType],
         additional_forward_args: tuple[Any, ...] | None = None,
     ) -> TensorOrTupleOfTensorsGeneric | list[TensorOrTupleOfTensorsGeneric]:
         """Generate random attributions for the given inputs.
