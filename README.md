@@ -1,10 +1,6 @@
 # TorchXAI
 
-TorchXAI is a lightweight PyTorch toolkit for evaluating machine learning models using explainability techniques. It wraps [Captum](https://captum.ai/) attribution methods and adds **multi-target attribution** — explain multiple output classes in a single forward pass — plus ready-to-use metrics for quantifying explanation quality.
-
-- **Captum-compatible** — works alongside the Captum explainers you already use
-- **Multi-target** — compute attributions for all targets at once, not one at a time
-- **Batch & scalable** — built for dataset-scale evaluation across many inputs and explainers
+TorchXAI is a lightweight PyTorch toolkit for evaluating machine learning models using explainability techniques. It offers efficient implementations of explainability metrics that integrate seamlessly with the Captum ecosystem, with a focus on batch computation and task/data-agnostic evaluation to make scalable XAI evaluation easy.
 
 ## Installation
 
