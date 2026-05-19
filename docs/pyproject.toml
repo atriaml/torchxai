@@ -66,5 +66,5 @@ docstring-code-line-length = 79
 python-version = "3.8"
 
 [tool.uv.sources]
-torchxai-tools = { path = "../" }
+torchxai-tools = { path = "../", editable = true }
 

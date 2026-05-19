@@ -763,7 +763,7 @@ requires-dist = [
     { name = "mkdocs", specifier = ">=1.6.1" },
     { name = "properdocs", marker = "python_full_version >= '3.9' and extra == 'properdocs'", specifier = ">=1.6.7" },
     { name = "pymdown-extensions", specifier = ">=10.14.3" },
-    { name = "torchxai-tools", directory = "../" },
+    { name = "torchxai-tools", editable = "../" },
 ]
 provides-extras = ["properdocs"]
 
@@ -1666,7 +1666,7 @@ wheels = [
 
 [[package]]
 name = "torchxai-tools"
-source = { directory = "../" }
+source = { editable = "../" }
 dependencies = [
     { name = "captum" },
     { name = "numpy" },
