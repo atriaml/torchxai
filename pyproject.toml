@@ -137,6 +137,7 @@ dev = [
     "types-requests>=2.32.4.20250913",
     "transformers==4.37.0",
     "ipykernel>=6.25.0",
+    "nbqa>=1.9.1",
 ]
 
 [project.urls]
@@ -175,3 +176,6 @@ egg_base = "."
 
 [tool.mypy]
 disable_error_code = ["import-untyped", "import-not-found"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"  # Accepts: "google", "numpy", or "pep257".
