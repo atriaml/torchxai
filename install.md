@@ -53,16 +53,16 @@ To install the latest development version directly from GitHub:
 === "pip"
 
         :::bash
-        pip install git+https://github.com/saifullah3396/torchxai.git
+        pip install git+https://github.com/atriaml/torchxai.git
 
 === "uv"
 
         :::bash
-        uv add git+https://github.com/saifullah3396/torchxai.git
+        uv add git+https://github.com/atriaml/torchxai.git
 
 === "Clone & install"
 
         :::bash
-        git clone https://github.com/saifullah3396/torchxai.git
+        git clone https://github.com/atriaml/torchxai.git
         cd torchxai
         pip install -e .
