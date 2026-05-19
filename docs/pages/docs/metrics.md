@@ -16,25 +16,25 @@ Column key:
 - **Chunking** — whether computation can be split across feature chunks for memory efficiency.
 - **↑ / ↓** — direction in which a better attribution scores.
 
-| Type | Metric | Perturbation | Requires Model | Requires Baseline | FM | MT | Chunking |
-|------|--------|:------------:|:--------------:|:-----------------:|:--:|:--:|:--------:|
-| Axiomatic | [`completeness`](metrics/completeness.md) ↓ | — | ✓ | ✓ | — | ✓ | ✗ |
-| Axiomatic | [`non_sensitivity`](metrics/non_sensitivity.md) ↓ | Unordered | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Faithfulness | [`aopc`](metrics/aopc.md) ↑ desc / ↓ asc | Ordered | ✓ | ✓ | ✓ | ✗ | ✓ |
-| Faithfulness | [`abpc`](metrics/abpc.md) ↑ | Ordered | ✓ | ✓ | ✓ | ✗ | ✓ |
-| Faithfulness | [`faithfulness_corr`](metrics/faithfulness_corr.md) ↑ | Unordered | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Faithfulness | [`faithfulness_estimate`](metrics/faithfulness_estimate.md) ↑ | Ordered | ✓ | ✓ | ✓ | ✗ | ✓ |
-| Faithfulness | [`infidelity`](metrics/infidelity.md) ↓ | Unordered | ✓ | ✗ | — | ✓ | — |
-| Faithfulness | [`monotonicity`](metrics/monotonicity.md) ↑ | Ordered | ✓ | ✓ | ✓ | ✗ | ✓ |
-| Faithfulness | [`monotonicity_corr`](metrics/monotonicity_corr.md) ↑ | Unordered | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Faithfulness | [`sensitivity_n`](metrics/sensitivity_n.md) ↓ | Unordered | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Complexity | [`complexity_entropy` / `_feature_grouped`](metrics/complexity_entropy.md) ↓ | — | ✗ | ✗ | ✓ | — | — |
-| Complexity | [`complexity_sundararajan` / `_feature_grouped`](metrics/complexity_sundararajan.md) ↓ | — | ✗ | ✗ | ✓ | — | — |
-| Complexity | [`effective_complexity`](metrics/effective_complexity.md) ↓ | — | ✗ | ✗ | ✓ | — | — |
-| Complexity | [`sparseness` / `_feature_grouped`](metrics/sparseness.md) ↑ | — | ✗ | ✗ | ✓ | — | — |
-| Robustness | [`sensitivity_max`](metrics/sensitivity_max.md) ↓ | Unordered | ✓ | ✗ | — | ✓ | — |
-| Robustness | [`sensitivity_avg`](metrics/sensitivity_avg.md) ↓ | Unordered | ✓ | ✗ | — | ✓ | — |
-| Localization | [`attribution_localization`](metrics/attribution_localization.md) ↑ | — | ✗ | ✗ | ✓ | — | — |
+| Type | Metric | API | Perturbation | Requires Model | Requires Baseline | FM | MT | Chunking |
+|------|--------|-----|:------------:|:--------------:|:-----------------:|:--:|:--:|:--------:|
+| Axiomatic | [Completeness](metrics/completeness.md) ↓ | `completeness` | — | ✓ | ✓ | — | ✓ | ✗ |
+| Axiomatic | [Non-Sensitivity](metrics/non_sensitivity.md) ↓ | `non_sensitivity` | Unordered | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Faithfulness | [Area Over Perturbation Curve](metrics/aopc.md) ↑ desc / ↓ asc | `aopc` | Ordered | ✓ | ✓ | ✓ | ✗ | ✓ |
+| Faithfulness | [Area Between Perturbation Curves](metrics/abpc.md) ↑ | `abpc` | Ordered | ✓ | ✓ | ✓ | ✗ | ✓ |
+| Faithfulness | [Faithfulness Correlation](metrics/faithfulness_corr.md) ↑ | `faithfulness_corr` | Unordered | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Faithfulness | [Faithfulness Estimation](metrics/faithfulness_estimate.md) ↑ | `faithfulness_estimate` | Ordered | ✓ | ✓ | ✓ | ✗ | ✓ |
+| Faithfulness | [Infidelity](metrics/infidelity.md) ↓ | `infidelity` | Unordered | ✓ | ✗ | — | ✓ | — |
+| Faithfulness | [Monotonicity](metrics/monotonicity.md) ↑ | `monotonicity` | Ordered | ✓ | ✓ | ✓ | ✗ | ✓ |
+| Faithfulness | [Monotonicity Correlation](metrics/monotonicity_corr.md) ↑ | `monotonicity_corr` | Unordered | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Faithfulness | [Sensitivity-N](metrics/sensitivity_n.md) ↓ | `sensitivity_n` | Unordered | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Complexity | [Entropy-based Complexity](metrics/complexity_entropy.md) ↓ | `complexity_entropy` | — | ✗ | ✗ | ✓ | — | — |
+| Complexity | [Sundararajan Complexity](metrics/complexity_sundararajan.md) ↓ | `complexity_sundararajan` | — | ✗ | ✗ | ✓ | — | — |
+| Complexity | [Effective Complexity](metrics/effective_complexity.md) ↓ | `effective_complexity` | — | ✗ | ✗ | ✓ | — | — |
+| Complexity | [Sparseness](metrics/sparseness.md) ↑ | `sparseness` | — | ✗ | ✗ | ✓ | — | — |
+| Robustness | [Max Sensitivity](metrics/sensitivity_max.md) ↓ | `sensitivity_max` | Unordered | ✓ | ✗ | — | ✓ | — |
+| Robustness | [Avg Sensitivity](metrics/sensitivity_avg.md) ↓ | `sensitivity_avg` | Unordered | ✓ | ✗ | — | ✓ | — |
+| Localization | [Attribution Localization](metrics/attribution_localization.md) ↑ | `attribution_localization` | — | ✗ | ✗ | ✓ | — | — |
 
 ---
 
@@ -44,27 +44,27 @@ Column key:
 
 Axiomatic metrics verify formal properties an attribution *should* satisfy by construction.
 
-- **[Completeness](metrics/completeness.md)** (`completeness`) — attributions must sum to the output difference between input and baseline (conservation / summation-to-delta property).
+- **[Completeness](metrics/completeness.md)** (`completeness`) — attributions must sum to the output difference between input and baseline (summation-to-delta / conservation property).
 - **[Non-Sensitivity](metrics/non_sensitivity.md)** (`non_sensitivity`) — fraction of features with zero attribution that nonetheless cause a model output change when perturbed; lower is better.
 
 ### Faithfulness
 
 Faithfulness metrics measure whether high-attribution features actually drive model predictions.
 
-- **[AOPC](metrics/aopc.md)** (`aopc`) — area over the perturbation curve: average model output drop as features are removed in descending, ascending, and random attribution order.
-- **[ABPC](metrics/abpc.md)** (`abpc`) — area *between* the descending and ascending perturbation curves; a larger gap indicates a more faithful ranking of features.
+- **[Area Over Perturbation Curve](metrics/aopc.md)** (`aopc`) — average model output drop as features are removed in descending, ascending, and random attribution order.
+- **[Area Between Perturbation Curves](metrics/abpc.md)** (`abpc`) — gap between the descending and ascending AOPC curves; a larger gap indicates a more faithful ranking of features.
 - **[Faithfulness Correlation](metrics/faithfulness_corr.md)** (`faithfulness_corr`) — Pearson correlation between attribution magnitudes and the change in model output when each feature is masked out.
-- **[Faithfulness Estimate](metrics/faithfulness_estimate.md)** (`faithfulness_estimate`) — output change when progressively removing features in ascending attribution order; measures necessity of attributed features.
+- **[Faithfulness Estimation](metrics/faithfulness_estimate.md)** (`faithfulness_estimate`) — output change when progressively removing features in ascending attribution order; measures necessity of attributed features.
 - **[Infidelity](metrics/infidelity.md)** (`infidelity`) — mean-squared error between attribution-weighted perturbation magnitudes and actual model output changes.
 - **[Monotonicity](metrics/monotonicity.md)** (`monotonicity`) — fraction of features for which model output decreases monotonically as features are added back from a baseline.
 - **[Monotonicity Correlation](metrics/monotonicity_corr.md)** (`monotonicity_corr`) — Spearman correlation between attribution magnitudes and output variance under unordered random perturbations.
-- **[Sensitivity-N](metrics/sensitivity_n.md)** (`sensitivity_n`) — Pearson correlation between attributions and output change across random n-feature perturbations (Ancona et al.).
+- **[Sensitivity-N](metrics/sensitivity_n.md)** (`sensitivity_n`) — Pearson correlation between attributions and output change across random n-feature perturbations.
 
 ### Complexity
 
 Complexity metrics quantify how many features an explanation relies on; simpler explanations are easier to interpret.
 
-- **[Entropy Complexity](metrics/complexity_entropy.md)** (`complexity_entropy`, `complexity_entropy_feature_grouped`) — Shannon entropy of fractional attribution contributions; lower = more concentrated / simpler explanation. The feature-grouped variant pools attributions within groups defined by a feature mask.
+- **[Entropy-based Complexity](metrics/complexity_entropy.md)** (`complexity_entropy`, `complexity_entropy_feature_grouped`) — Shannon entropy of fractional attribution contributions; lower = more concentrated / simpler explanation. The feature-grouped variant pools attributions within groups defined by a feature mask.
 - **[Sundararajan Complexity](metrics/complexity_sundararajan.md)** (`complexity_sundararajan`, `complexity_sundararajan_feature_grouped`) — count of features (or feature groups) with non-zero attribution magnitude.
 - **[Effective Complexity](metrics/effective_complexity.md)** (`effective_complexity`) — number of features whose attribution magnitude exceeds a threshold, i.e., the effective support of the explanation.
 - **[Sparseness](metrics/sparseness.md)** (`sparseness`, `sparseness_feature_grouped`) — Gini index of attribution magnitudes; higher = more sparse / concentrated on fewer features. Feature-grouped variant available.
@@ -74,7 +74,7 @@ Complexity metrics quantify how many features an explanation relies on; simpler 
 Robustness metrics test how stable explanations are under small input perturbations.
 
 - **[Max Sensitivity](metrics/sensitivity_max.md)** (`sensitivity_max`) — worst-case attribution distance when the input is randomly perturbed within a small radius.
-- **[Average Sensitivity](metrics/sensitivity_avg.md)** (`sensitivity_avg`) — mean attribution distance over random input perturbations.
+- **[Avg Sensitivity](metrics/sensitivity_avg.md)** (`sensitivity_avg`) — mean attribution distance over random input perturbations.
 
 ### Localization
 

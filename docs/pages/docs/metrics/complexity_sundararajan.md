@@ -1,4 +1,4 @@
-# Complexity — Sundararajan
+# Sundararajan Complexity
 
 Counts the number of features (or feature groups) with non-zero attribution (Sundararajan & Najmi, 2020). Simpler explanations have fewer active features. ↓ better.
 

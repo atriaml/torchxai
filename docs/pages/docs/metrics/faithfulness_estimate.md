@@ -1,4 +1,4 @@
-# Faithfulness Estimate
+# Faithfulness Estimation (FAITH-EST)
 
 Estimates explanation faithfulness by measuring how often the model output changes in the same direction as feature attribution sign when features are progressively masked. ↑ better.
 

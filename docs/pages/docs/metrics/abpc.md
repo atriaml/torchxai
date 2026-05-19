@@ -1,4 +1,4 @@
-# Area Between Perturbation Curves (ABPC)
+# Area Between Perturbation Curves
 
 Difference between the descending-order and ascending-order AOPC curves. A large positive gap means the attribution method successfully ranks features by importance. ↑ better.
 

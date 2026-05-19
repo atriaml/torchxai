@@ -1,4 +1,4 @@
-# Average Sensitivity
+# Avg Sensitivity
 
 Mean attribution distance over random input perturbations within a small radius. Summarises explanation stability on average rather than worst-case. ↓ better.
 
