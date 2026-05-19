@@ -122,6 +122,20 @@ xfail_strict = true
 managed = true
 package = true
 
+# Use the CPU-only PyTorch index for development and CI.
+# This keeps `uv sync` fast (~180 MB instead of ~2 GB CUDA wheel).
+# The published package metadata still declares `torch>=2.1.0` so end-users
+# get whatever torch variant suits their system.
+# GPU developers: override locally with `uv sync --index https://download.pytorch.org/whl/cu121`
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = {index = "pytorch-cpu"}
+torchvision = {index = "pytorch-cpu"}
+
 [tool.distutils.egg_info]
 egg_base = "."
 
