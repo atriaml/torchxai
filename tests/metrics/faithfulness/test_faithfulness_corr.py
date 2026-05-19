@@ -349,26 +349,26 @@ test_configurations = [
                 *(
                     [
                         [
-                            0.7939,
-                            0.8840,
-                            0.9196,
-                            0.7278,
-                            0.8301,
-                            0.8442,
-                            0.9171,
-                            0.7802,
-                            0.7938,
-                            0.5919,
-                            0.9441,
-                            0.8128,
-                            0.7909,
-                            0.7823,
-                            0.8444,
-                            0.6592,
-                            0.8319,
-                            0.7791,
-                            0.8630,
-                            0.8800,
+                            0.8266,
+                            0.8920,
+                            0.9163,
+                            0.7209,
+                            0.8395,
+                            0.8374,
+                            0.9166,
+                            0.7590,
+                            0.8270,
+                            0.6523,
+                            0.9556,
+                            0.8189,
+                            0.8035,
+                            0.8080,
+                            0.8438,
+                            0.6720,
+                            0.7857,
+                            0.7872,
+                            0.8810,
+                            0.8959,
                         ]
                     ]
                     * 3
@@ -384,7 +384,6 @@ test_configurations = [
         assert_across_runs=False,
         perturb_func=default_fixed_baseline_perturb_func(),  # here we use random function but use the underlying fixed baseline
         set_fixed_baseline_of_type="random",
-        delta=0.2,
     ),
     MetricTestRuntimeConfig_(
         test_name="random_baseline_fn",
@@ -435,7 +434,7 @@ test_configurations = [
     MetricTestRuntimeConfig_(
         test_name="fixed_random_baseline",
         target_fixture="classification_multilayer_model_with_tuple_targets_config",
-        expected=torch.tensor([0.9960, 0.9991, 0.9922, 0.9987]),
+        expected=torch.tensor([0.9930, 0.9696, 0.9964, 0.9849]),
         n_perturb_samples=[
             10,  # 10 perturbations per example, run 1
             10,  # 10 perturbations per example, run 2
@@ -445,7 +444,6 @@ test_configurations = [
         assert_across_runs=False,
         perturb_func=default_fixed_baseline_perturb_func(),  # here we use random function but use the underlying fixed baseline
         set_fixed_baseline_of_type="random",
-        delta=0.2,
     ),
     # results can be different across runs due to randomness in perturbation
     MetricTestRuntimeConfig_(
@@ -497,7 +495,7 @@ test_configurations = [
     MetricTestRuntimeConfig_(
         test_name="fixed_random_baseline",
         target_fixture="classification_multilayer_model_with_baseline_and_tuple_targets_config",
-        expected=torch.tensor([0.9960, 0.9991, 0.9922, 0.9987]),
+        expected=torch.tensor([0.9930, 0.9696, 0.9964, 0.9849]),
         n_perturb_samples=[
             10,  # 10 perturbations per example, run 1
             10,  # 10 perturbations per example, run 2
@@ -507,7 +505,6 @@ test_configurations = [
         assert_across_runs=False,
         perturb_func=default_fixed_baseline_perturb_func(),  # here we use random function but use the underlying fixed baseline
         set_fixed_baseline_of_type="random",
-        delta=0.2,
     ),
 ]
 
@@ -530,6 +527,7 @@ def test_faithfulness_corr(metrics_runtime_test_configuration):
     assert len(n_perturb_samples) == len(max_examples_per_batch)
     assert len(n_perturb_samples) == len(expected) or len(expected) == 1
 
+    _set_all_random_seeds(1234)
     perturbation_baseline = None
     if runtime_config.set_fixed_baseline_of_type is not None:
         if runtime_config.set_fixed_baseline_of_type == "zero":

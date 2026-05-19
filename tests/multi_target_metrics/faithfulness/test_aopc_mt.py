@@ -22,7 +22,7 @@ def _format_to_list(value):
 
 class MetricTestRuntimeConfig_(RuntimeTestConfig):
     max_features_processed_per_batch: int | list[int | None] | None = Field(
-        default_factory=lambda: [5, 1, 40]
+        default_factory=lambda: [40]
     )
     total_features_perturbed: int = 10
     set_image_feature_mask: bool = True

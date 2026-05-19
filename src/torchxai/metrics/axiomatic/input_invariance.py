@@ -149,6 +149,7 @@ def input_invariance(
     target: ExplanationTarget | list[ExplanationTarget] = NoTarget(),
     sliding_window_shapes: Any | None = None,
     strides: Any | None = None,
+    **kwargs,
 ) -> dict | tuple | torch.Tensor | list[torch.Tensor]:
     """
     Implementation of Input Invariance test by Kindermans et al., 2017. This implementation

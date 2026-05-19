@@ -381,27 +381,26 @@ def _eval_mutli_target_monotonicity_corr_and_non_sens_single_sample(
                 return non_sens / n_features
             return non_sens
 
-        perturbed_fwd_diffs_relative_vars_list = np.array(agg_tensors)
-        chunk_reduced_attributions_list = [
-            x.cpu().numpy() for x in chunk_reduced_attributions_list
-        ]
+        perturbed_fwd_diffs_relative_vars_list = torch.tensor(agg_tensors)
         monotonicity_corr_list = [
             compute_monotonocity_corr(
-                perturbed_fwd_diffs_relative_vars, feature_group_attribution_scores
+                perturbed_fwd_diffs_relative_vars.cpu().numpy(),
+                feature_group_attribution_scores,
             )
             for perturbed_fwd_diffs_relative_vars, feature_group_attribution_scores in zip(
                 perturbed_fwd_diffs_relative_vars_list,
-                chunk_reduced_attributions_list,
+                [x.cpu().numpy() for x in chunk_reduced_attributions_list],
                 strict=True,
             )
         ]
         non_sens_list = [
             compute_non_sens(
-                perturbed_fwd_diffs_relative_vars, feature_group_attribution_scores
+                perturbed_fwd_diffs_relative_vars.cpu().numpy(),
+                feature_group_attribution_scores,
             )
             for perturbed_fwd_diffs_relative_vars, feature_group_attribution_scores in zip(
                 perturbed_fwd_diffs_relative_vars_list,
-                chunk_reduced_attributions_list,
+                [x.cpu().numpy() for x in chunk_reduced_attributions_list],
                 strict=True,
             )
         ]
@@ -480,17 +479,6 @@ def _multi_target_monotonicity_corr_and_non_sens(
         perturbed_fwd_diffs_relative_vars_list_batch = []
         feature_group_attribution_scores_list_batch = []
         for sample_idx in tqdm.tqdm(range(bsz), disable=not show_progress):
-            sample_targets_list = None
-            if isinstance(targets_list, (list, torch.Tensor)) and not isinstance(
-                targets_list[0][0], tuple
-            ):
-                sample_targets_list = [
-                    torch.tensor(t[sample_idx], device=inputs[0].device)
-                    for t in targets_list
-                ]
-            else:
-                sample_targets_list = [t[sample_idx] for t in targets_list]
-
             (
                 monotonicity_corr_list,
                 non_sens_list,
@@ -526,7 +514,7 @@ def _multi_target_monotonicity_corr_and_non_sens(
                     if additional_forward_args is not None
                     else None
                 ),
-                targets_list=sample_targets_list,
+                targets_list=targets_list,
                 frozen_features=(
                     frozen_features[sample_idx]
                     if frozen_features is not None

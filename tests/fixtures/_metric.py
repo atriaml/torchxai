@@ -117,11 +117,12 @@ def _run_metric_test_simple_mt(
     **other_kwargs,
 ):
     kwargs = _get_metric_inputs(base_config, runtime_config, explanation_step_outputs)
-    kwargs = {
-        k: v
-        for k, v in kwargs.items()
-        if k in inspect.signature(metric_func).parameters
-    }
+    if explainer is None:
+        kwargs = {
+            k: v
+            for k, v in kwargs.items()
+            if k in inspect.signature(metric_func).parameters
+        }
     if explainer is not None:
         kwargs["explainer"] = explainer
     kwargs.update(other_kwargs)
@@ -134,6 +135,7 @@ def _run_metric_test_simple_mt(
     # multi target metric output
     if explainer is not None:
         explainer.multi_target = True
+    _set_all_random_seeds(1234)
     multi_target_score = metric_func(**kwargs, multi_target=True)
     if not isinstance(multi_target_score, tuple):
         multi_target_score = (multi_target_score,)
@@ -143,6 +145,7 @@ def _run_metric_test_simple_mt(
         per_target_scores = []
         explainer.multi_target = False
         for tgt in kwargs.pop("target"):
+            _set_all_random_seeds(1234)
             output = metric_func(target=tgt, **kwargs)
             per_target_scores.append(output)
 

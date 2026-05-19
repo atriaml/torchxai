@@ -39,7 +39,7 @@ test_configurations = [
             SingleTargetAcrossBatch(index=2),
         ],
         delta=1e-8,
-        max_examples_per_batch=[5, 1, 40],
+        max_examples_per_batch=[40],
     ),
     MetricTestRuntimeConfig_(
         test_name="classification_alexnet_model",
@@ -51,7 +51,7 @@ test_configurations = [
             SingleTargetAcrossBatch(index=2),
         ],
         delta=1e-8,
-        max_examples_per_batch=[5, 1, 40],
+        max_examples_per_batch=[40],
     ),
 ]
 

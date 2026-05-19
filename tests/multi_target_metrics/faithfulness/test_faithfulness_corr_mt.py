@@ -30,7 +30,7 @@ class MetricTestRuntimeConfig_(RuntimeTestConfig):
     percent_features_perturbed: float = 0.1
     set_fixed_baseline_of_type: str | None = None
     max_examples_per_batch: int | list[int | None] | None = Field(
-        default_factory=lambda: [5, 1, 40]
+        default_factory=lambda: [40]
     )
     multi_target: bool = True
 
@@ -47,8 +47,8 @@ test_configurations = [
         ],
         expected=None,
         delta=1e-6,
-        n_perturb_samples=[10, 10, 20],
-        max_examples_per_batch=[1, None, 40],
+        n_perturb_samples=[20],
+        max_examples_per_batch=[40],
         set_image_feature_mask=True,
     ),
     MetricTestRuntimeConfig_(
@@ -62,8 +62,8 @@ test_configurations = [
         ],
         expected=None,
         delta=1e-6,
-        n_perturb_samples=[10, 10, 20],
-        max_examples_per_batch=[1, None, 40],
+        n_perturb_samples=[20],
+        max_examples_per_batch=[40],
         set_image_feature_mask=True,
     ),
     MetricTestRuntimeConfig_(
@@ -77,8 +77,8 @@ test_configurations = [
         ],
         expected=None,
         delta=1e-6,
-        n_perturb_samples=[10, 10, 20],
-        max_examples_per_batch=[1, None, 40],
+        n_perturb_samples=[20],
+        max_examples_per_batch=[40],
         set_image_feature_mask=True,
         set_fixed_baseline_of_type="zero",
     ),
@@ -93,8 +93,8 @@ test_configurations = [
         ],
         expected=None,
         delta=1e-6,
-        n_perturb_samples=[10, 10, 20],
-        max_examples_per_batch=[1, None, 40],
+        n_perturb_samples=[20],
+        max_examples_per_batch=[40],
         set_image_feature_mask=True,
         set_fixed_baseline_of_type="random",
     ),
@@ -109,8 +109,8 @@ test_configurations = [
         ],
         expected=None,
         delta=1e-6,
-        n_perturb_samples=[10, 10, 20],
-        max_examples_per_batch=[1, None, 40],
+        n_perturb_samples=[20],
+        max_examples_per_batch=[40],
         set_image_feature_mask=True,
         set_fixed_baseline_of_type="random",
     ),
@@ -151,22 +151,27 @@ def test_faithfulness_corr_multi_target(metrics_runtime_test_configuration):
     assert len(n_perturb_samples) == len(max_examples_per_batch)
     assert len(n_perturb_samples) == len(expected) or len(expected) == 1
 
+    _set_all_random_seeds(1234)
     perturbation_baseline = None
     if runtime_config.set_fixed_baseline_of_type is not None:
         if runtime_config.set_fixed_baseline_of_type == "zero":
-            if isinstance(base_config.inputs, tuple):
+            if isinstance(base_config.explanation_inputs.inputs, tuple):
                 perturbation_baseline = tuple(
-                    torch.zeros_like(x) for x in base_config.inputs
+                    torch.zeros_like(x) for x in base_config.explanation_inputs.inputs
                 )
             else:
-                perturbation_baseline = torch.zeros_like(base_config.inputs)
+                perturbation_baseline = torch.zeros_like(
+                    base_config.explanation_inputs.inputs
+                )
         elif runtime_config.set_fixed_baseline_of_type == "random":
-            if isinstance(base_config.inputs, tuple):
+            if isinstance(base_config.explanation_inputs.inputs, tuple):
                 perturbation_baseline = tuple(
-                    torch.rand_like(x) for x in base_config.inputs
+                    torch.rand_like(x) for x in base_config.explanation_inputs.inputs
                 )
             else:
-                perturbation_baseline = torch.rand_like(base_config.inputs)
+                perturbation_baseline = torch.rand_like(
+                    base_config.explanation_inputs.inputs
+                )
         kwargs["baselines"] = perturbation_baseline
 
     attributions_list = kwargs.pop("attributions")

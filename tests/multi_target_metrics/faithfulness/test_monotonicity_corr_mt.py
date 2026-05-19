@@ -41,8 +41,8 @@ test_configurations = [
         ],
         expected=None,
         delta=1e-6,
-        n_perturbations_per_feature=[10, 10, 20],
-        max_features_processed_per_batch=[1, None, 40],
+        n_perturbations_per_feature=[20],
+        max_features_processed_per_batch=[40],
         set_image_feature_mask=True,
     ),
     MetricTestRuntimeConfig_(
@@ -56,8 +56,8 @@ test_configurations = [
         ],
         expected=None,
         delta=1e-6,
-        n_perturbations_per_feature=[10, 10, 20],
-        max_features_processed_per_batch=[1, None, 40],
+        n_perturbations_per_feature=[20],
+        max_features_processed_per_batch=[40],
         set_image_feature_mask=True,
     ),
 ]

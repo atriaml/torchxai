@@ -368,13 +368,15 @@ def eval_monotonicity_corr_and_non_sens_single_sample(
                 return non_sens / n_features
             return non_sens
 
-        perturbed_fwd_diffs_relative_vars = np.array(agg_tensors)
-        chunk_reduced_attributions = chunk_reduced_attributions.cpu().numpy()
+        perturbed_fwd_diffs_relative_vars = torch.tensor(agg_tensors)
+        chunk_reduced_attributions = chunk_reduced_attributions
         monotonicity_corr = compute_monotonocity_corr(
-            perturbed_fwd_diffs_relative_vars, chunk_reduced_attributions
+            perturbed_fwd_diffs_relative_vars.cpu().numpy(),
+            chunk_reduced_attributions.cpu().numpy(),
         )
         non_sens = compute_non_sens(
-            perturbed_fwd_diffs_relative_vars, chunk_reduced_attributions
+            perturbed_fwd_diffs_relative_vars.cpu().numpy(),
+            chunk_reduced_attributions.cpu().numpy(),
         )
     return (
         monotonicity_corr,

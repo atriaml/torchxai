@@ -94,6 +94,10 @@ def test_non_sensitivity_multi_target(metrics_runtime_test_configuration):
 
         perturbed_fwd_diffs_relative_vars_batch_list_1 = output[3]
         perturbed_fwd_diffs_relative_vars_batch_list_2 = expected[3]
+        print(
+            perturbed_fwd_diffs_relative_vars_batch_list_1,
+            perturbed_fwd_diffs_relative_vars_batch_list_2,
+        )
         for x, y in zip(
             perturbed_fwd_diffs_relative_vars_batch_list_1,
             perturbed_fwd_diffs_relative_vars_batch_list_2,

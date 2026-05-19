@@ -16,12 +16,12 @@ from torch import Tensor
 
 from torchxai.data_types import TensorOrTupleOfTensorsGeneric
 from torchxai.data_types._target import ExplanationTarget
-from torchxai.explainers._explainer import Explainer, FeatureAttributionExplainer
+from torchxai.explainers._explainer import FeatureAttributionExplainer
 from torchxai.metrics.robustness.utilities import default_perturb_func
 
 
 def _multi_target_sensitivity_scores(
-    explanation_func: Explainer,
+    explainer: FeatureAttributionExplainer,
     inputs: TensorOrTupleOfTensorsGeneric,
     perturb_func: Callable = default_perturb_func,
     perturb_radius: float = 0.02,
@@ -142,9 +142,7 @@ def _multi_target_sensitivity_scores(
             return sensitivities_norm.view(bsz, -1)
 
         # this computes the explanation for the original input for all targets in a single call
-        expl_perturbed_inputs_list = explanation_func.explain(
-            inputs_perturbed, **kwargs_copy
-        )
+        expl_perturbed_inputs_list = explainer.explain(inputs_perturbed, **kwargs_copy)
 
         return [
             compute_sensitivity_per_target(expl_inputs, expl_perturbed)
@@ -153,16 +151,16 @@ def _multi_target_sensitivity_scores(
             )
         ]
 
-    assert isinstance(explanation_func, Explainer), (
+    assert isinstance(explainer, FeatureAttributionExplainer), (
         "Explanation function must be an instance of "
-        f"`torchxai.explainers.Explainer`. Found = {explanation_func}"
+        f"`torchxai.explainers.FeatureAttributionExplainer`. Found = {FeatureAttributionExplainer}"
     )
-    if isinstance(explanation_func, FeatureAttributionExplainer):
-        assert explanation_func._multi_target, (
+    if isinstance(explainer, FeatureAttributionExplainer):
+        assert explainer._multi_target, (
             "Explanation function must be a multi-target explainer."
         )
     target = kwargs.get("target", None)
-    assert isinstance(target, list), "targets must be a list of targets"
+    assert isinstance(target, list), f"targets must be a list of targets, got {target}"
     assert all(isinstance(x, ExplanationTarget) for x in target), (
         "targets must be a list of ints"
     )
@@ -181,9 +179,9 @@ def _multi_target_sensitivity_scores(
         kwargs = {
             k: v
             for k, v in kwargs.items()
-            if k in signature(explanation_func.explain).parameters
+            if k in signature(explainer.explain).parameters
         }
-        expl_inputs_list = explanation_func.explain(inputs, **kwargs)
+        expl_inputs_list = explainer.explain(inputs, **kwargs)
         metric_scores_list = _divide_and_aggregate_metrics(
             cast(tuple[Tensor, ...], inputs),
             n_perturb_samples,
