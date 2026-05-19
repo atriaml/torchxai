@@ -72,21 +72,52 @@ print("Completeness:", score)
 
 ## Supported explainers
 
-| Explainer | Requires baseline | Notes |
-|---|:---:|---|
-| `SaliencyExplainer` | ✗ | |
-| `InputXGradientExplainer` | ✗ | |
-| `GuidedBackpropExplainer` | ✗ | Not compatible with transformers |
-| `RandomExplainer` | ✗ | Baseline for sanity-checking |
-| `IntegratedGradientsExplainer` | ✓ | |
-| `DeepLiftExplainer` | ✓ | Not compatible with transformers |
-| `InputXBaselineGradientExplainer` | ✓ | |
-| `DeepLiftShapExplainer` | ✓ distribution | Not compatible with transformers |
-| `GradientShapExplainer` | ✓ distribution | |
-| `FeatureAblationExplainer` | ✗ | Optional `feature_mask` |
-| `LimeExplainer` | ✗ | Optional `feature_mask` |
-| `KernelShapExplainer` | ✗ | Optional `feature_mask` |
-| `OcclusionExplainer` | ✗ | Requires `sliding_window_shapes` |
+| Explainer | Type | `baselines` | Baseline distribution | `feature_mask` | `sliding_window_shapes` |
+|-----------|------|:-----------:|:---------------------:|:--------------:|:-----------------------:|
+| `SaliencyExplainer` | Gradient | ✗ | ✗ | ✗ | ✗ |
+| `InputXGradientExplainer` | Gradient | ✗ | ✗ | ✗ | ✗ |
+| `GuidedBackpropExplainer` | Gradient | ✗ | ✗ | ✗ | ✗ |
+| `RandomExplainer` | Baseline | ✗ | ✗ | ✗ | ✗ |
+| `IntegratedGradientsExplainer` | Gradient | ✓ | ✗ | ✗ | ✗ |
+| `DeepLiftExplainer` | Gradient | ✓ | ✗ | ✗ | ✗ |
+| `InputXBaselineGradientExplainer` | Gradient | ✓ | ✗ | ✗ | ✗ |
+| `DeepLiftShapExplainer` | Gradient | ✓ | ✓ | ✗ | ✗ |
+| `GradientShapExplainer` | Gradient | ✓ | ✓ | ✗ | ✗ |
+| `FeatureAblationExplainer` | Perturbation | ✓ | ✗ | optional | ✗ |
+| `LimeExplainer` | Perturbation | ✓ | ✗ | optional | ✗ |
+| `KernelShapExplainer` | Perturbation | ✓ | ✗ | optional | ✗ |
+| `OcclusionExplainer` | Perturbation | ✓ | ✗ | ✗ | ✓ |
+
+## Supported metrics
+- **Perturbation Type** — *Ordered*: features removed in attribution-ranked order. *Unordered*: random subset removal. *—*: no perturbation needed.
+- **Requires Model** — whether the model's forward function is called during evaluation.
+- **Requires Baseline** — whether a reference input is needed.
+- **FM** — feature mask support (group features into segments before evaluation).
+- **MT** — efficient multi-target computation (✓) vs. must be run once per target (✗).
+- **Chunking** — whether computation can be split across feature chunks for memory efficiency.
+- **↑ / ↓** — direction in which a better attribution scores.
+
+| Type | Metric | API | Perturbation | Requires Model | Requires Baseline | FM | MT | Chunking |
+|------|--------|-----|:------------:|:--------------:|:-----------------:|:--:|:--:|:--------:|
+| Axiomatic | [Completeness](metrics/completeness.md) ↓ | `completeness` | — | ✓ | ✓ | — | ✓ | ✗ |
+| Axiomatic | [Non-Sensitivity](metrics/non_sensitivity.md) ↓ | `non_sensitivity` | Unordered | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Faithfulness | [Area Over Perturbation Curve](metrics/aopc.md) ↑ desc / ↓ asc | `aopc` | Ordered | ✓ | ✓ | ✓ | ✗ | ✓ |
+| Faithfulness | [Area Between Perturbation Curves](metrics/abpc.md) ↑ | `abpc` | Ordered | ✓ | ✓ | ✓ | ✗ | ✓ |
+| Faithfulness | [Faithfulness Correlation](metrics/faithfulness_corr.md) ↑ | `faithfulness_corr` | Unordered | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Faithfulness | [Faithfulness Estimation](metrics/faithfulness_estimate.md) ↑ | `faithfulness_estimate` | Ordered | ✓ | ✓ | ✓ | ✗ | ✓ |
+| Faithfulness | [Infidelity](metrics/infidelity.md) ↓ | `infidelity` | Unordered | ✓ | ✗ | — | ✓ | — |
+| Faithfulness | [Monotonicity](metrics/monotonicity.md) ↑ | `monotonicity` | Ordered | ✓ | ✓ | ✓ | ✗ | ✓ |
+| Faithfulness | [Monotonicity Correlation](metrics/monotonicity_corr.md) ↑ | `monotonicity_corr` | Unordered | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Faithfulness | [Sensitivity-N](metrics/sensitivity_n.md) ↓ | `sensitivity_n` | Unordered | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Complexity | [Entropy-based Complexity](metrics/complexity_entropy.md) ↓ | `complexity_entropy` | — | ✗ | ✗ | ✓ | — | — |
+| Complexity | [Sundararajan Complexity](metrics/complexity_sundararajan.md) ↓ | `complexity_sundararajan` | — | ✗ | ✗ | ✓ | — | — |
+| Complexity | [Effective Complexity](metrics/effective_complexity.md) ↓ | `effective_complexity` | — | ✗ | ✗ | ✓ | — | — |
+| Complexity | [Sparseness](metrics/sparseness.md) ↑ | `sparseness` | — | ✗ | ✗ | ✓ | — | — |
+| Robustness | [Max Sensitivity](metrics/sensitivity_max.md) ↓ | `sensitivity_max` | Unordered | ✓ | ✗ | — | ✓ | — |
+| Robustness | [Avg Sensitivity](metrics/sensitivity_avg.md) ↓ | `sensitivity_avg` | Unordered | ✓ | ✗ | — | ✓ | — |
+| Localization | [Attribution Localization](metrics/attribution_localization.md) ↑ | `attribution_localization` | — | ✗ | ✗ | ✓ | — | — |
+
+---
 
 ## Documentation
 
