@@ -1,83 +1,83 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://github.com/atriaml/torchxai/</loc>
+         <loc>https://github.com/torchxai/docs/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/explainers/</loc>
+         <loc>https://github.com/torchxai/docs/explainers/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/install/</loc>
+         <loc>https://github.com/torchxai/docs/install/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/pages/</loc>
+         <loc>https://github.com/torchxai/docs/pages/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/usage/</loc>
+         <loc>https://github.com/torchxai/docs/usage/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/explainers/base_explainer/</loc>
+         <loc>https://github.com/torchxai/docs/explainers/base_explainer/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/explainers/deeplift/</loc>
+         <loc>https://github.com/torchxai/docs/explainers/deeplift/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/explainers/deeplift_shap/</loc>
+         <loc>https://github.com/torchxai/docs/explainers/deeplift_shap/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/explainers/feature_ablation/</loc>
+         <loc>https://github.com/torchxai/docs/explainers/feature_ablation/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/explainers/gradient_shap/</loc>
+         <loc>https://github.com/torchxai/docs/explainers/gradient_shap/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/explainers/guided_backprop/</loc>
+         <loc>https://github.com/torchxai/docs/explainers/guided_backprop/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/explainers/input_x_baseline_gradient/</loc>
+         <loc>https://github.com/torchxai/docs/explainers/input_x_baseline_gradient/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/explainers/input_x_gradient/</loc>
+         <loc>https://github.com/torchxai/docs/explainers/input_x_gradient/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/explainers/integrated_gradients/</loc>
+         <loc>https://github.com/torchxai/docs/explainers/integrated_gradients/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/explainers/kernel_shap/</loc>
+         <loc>https://github.com/torchxai/docs/explainers/kernel_shap/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/explainers/lime/</loc>
+         <loc>https://github.com/torchxai/docs/explainers/lime/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/explainers/occlusion/</loc>
+         <loc>https://github.com/torchxai/docs/explainers/occlusion/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/explainers/random/</loc>
+         <loc>https://github.com/torchxai/docs/explainers/random/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/explainers/saliency/</loc>
+         <loc>https://github.com/torchxai/docs/explainers/saliency/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
     <url>
-         <loc>https://github.com/atriaml/torchxai/metrics/completeness/</loc>
+         <loc>https://github.com/torchxai/docs/metrics/completeness/</loc>
          <lastmod>2026-05-19</lastmod>
     </url>
 </urlset>
