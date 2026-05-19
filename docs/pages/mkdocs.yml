@@ -1,4 +1,4 @@
-site_name: "TorchXAI Documentation"
+site_name: "TorchXAI"
 site_description: Explainable AI library for PyTorch
 site_url: "https://github.com/torchxai/docs"
 site_author: "Saifullah Saifullah"
@@ -19,7 +19,7 @@ theme:
   # show_datetime: true
 
 nav:
-  - Getting Started: 
+  - Getting Started:
     - index.md
     - install.md
     - usage.md
@@ -42,6 +42,9 @@ nav:
       - explainers/kernel_shap.md
     - Baseline Methods:
       - explainers/random.md
+    - Examples:
+      - explainers/examples/image_classification.md
+      - explainers/examples/bert.md
   - Metrics:
     - Axiomatic:
       - metrics/completeness.md
