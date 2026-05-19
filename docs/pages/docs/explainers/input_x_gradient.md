@@ -1,3 +1,7 @@
+---
+title: Input × Gradient Explainer
+---
+
 # Input × Gradient Explainer
 
 ::: torchxai.explainers.InputXGradientExplainer

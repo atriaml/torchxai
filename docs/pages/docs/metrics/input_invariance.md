@@ -1,3 +1,7 @@
+---
+title: Input Invariance
+---
+
 # Input Invariance
 
 Tests that attributions remain unchanged when a constant shift is added to inputs and the model bias is adjusted to compensate — a formal axiom from Kindermans et al.

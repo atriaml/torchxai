@@ -1,3 +1,7 @@
+---
+title: DeepLIFT Explainer
+---
+
 # DeepLIFT Explainer
 
 ::: torchxai.explainers.DeepLiftExplainer

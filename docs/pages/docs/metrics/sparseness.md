@@ -1,3 +1,7 @@
+---
+title: Sparseness
+---
+
 # Sparseness
 
 Computes the Gini index of attribution magnitudes (Chalasani et al.). Higher score means attributions are more concentrated on a small number of features, making the explanation simpler. Does not require a model forward pass or a baseline. ↑ better.

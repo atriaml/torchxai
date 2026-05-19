@@ -1,3 +1,7 @@
+---
+title: Infidelity
+---
+
 # Infidelity
 
 Measures the mean squared error between attribution-based prediction changes and actual model output changes under perturbations. Low infidelity means the explanation closely approximates model behaviour. ↓ better.

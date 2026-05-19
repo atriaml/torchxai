@@ -1,3 +1,7 @@
+---
+title: LIME Explainer
+---
+
 # LIME Explainer
 
 ::: torchxai.explainers.LimeExplainer

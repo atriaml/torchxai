@@ -1,3 +1,7 @@
+---
+title: Attribution Localization
+---
+
 # Attribution Localization
 
 Measures how well attributions concentrate on the ground-truth relevant region (e.g. segmentation mask). Computes the proportion of total attribution mass that falls inside the annotated region. ↑ better.

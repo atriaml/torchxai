@@ -1,3 +1,7 @@
+---
+title: Effective Complexity
+---
+
 # Effective Complexity
 
 Counts the number of features whose attribution magnitude exceeds a threshold, representing the effective number of features the explanation relies on. ↓ better.

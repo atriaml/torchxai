@@ -1,3 +1,7 @@
+---
+title: Max Sensitivity
+---
+
 # Max Sensitivity
 
 Worst-case attribution distance when the input is randomly perturbed within a small radius. High values indicate brittle explanations sensitive to adversarial perturbations. ↓ better.

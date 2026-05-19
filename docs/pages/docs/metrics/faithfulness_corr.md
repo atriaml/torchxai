@@ -1,3 +1,7 @@
+---
+title: Faithfulness Correlation
+---
+
 # Faithfulness Correlation
 
 Pearson correlation between attribution magnitudes and the change in model output when each feature is masked out. Measures how well attributions reflect actual feature importance. ↑ better.

@@ -1,3 +1,7 @@
+---
+title: Base Explainer
+---
+
 # Base Explainer
 
 TorchXAI provides two abstract base classes that all concrete explainers inherit from.

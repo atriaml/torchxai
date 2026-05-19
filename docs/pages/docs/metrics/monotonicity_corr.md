@@ -1,3 +1,7 @@
+---
+title: Monotonicity Correlation
+---
+
 # Monotonicity Correlation
 
 Spearman rank correlation between feature attribution magnitudes and the change in model output when each feature is perturbed. High correlation indicates that more-important features (by attribution) actually have larger impact on the output. ↑ better.

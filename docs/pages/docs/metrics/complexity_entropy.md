@@ -1,3 +1,7 @@
+---
+title: Entropy-based Complexity
+---
+
 # Entropy-based Complexity
 
 Measures explanation complexity as the Shannon entropy of the attribution distribution (Bhatt et al., 2020). Lower entropy means a sparser, simpler explanation. ↓ better.

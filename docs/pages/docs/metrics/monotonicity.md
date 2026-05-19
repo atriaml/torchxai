@@ -1,3 +1,7 @@
+---
+title: Monotonicity
+---
+
 # Monotonicity
 
 Checks whether adding more features to a baseline explanation monotonically increases the model output (Sundararajan & Najmi, 2020). Returns the fraction of features that satisfy this property. ↑ better.

@@ -1,3 +1,7 @@
+---
+title: Sensitivity-N
+---
+
 # Sensitivity-N
 
 Wraps infidelity with a random n-feature perturbation function: it randomly zeroes out n features at a time and measures the Pearson correlation between attributions and the resulting output changes (Ancona et al.). Lower score indicates the attributions better predict which features matter. Supports feature masks and multi-target mode.

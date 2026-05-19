@@ -1,3 +1,7 @@
+---
+title: Area Over Perturbation Curve
+---
+
 # Area Over Perturbation Curve
 
 Measures the average drop in model output as features are progressively removed in descending, ascending, and random importance order. Returns three scores (desc, asc, rand) plus optional baselines. ↑ desc, ↓ asc is preferred.

@@ -1,3 +1,7 @@
+---
+title: Non-Sensitivity
+---
+
 # Non-Sensitivity
 
 Measures the fraction of features assigned zero attribution that nonetheless change the model output when perturbed (axiomatic property: zero-attribution features should not matter). ↓ better.

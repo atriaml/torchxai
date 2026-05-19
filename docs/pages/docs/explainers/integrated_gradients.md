@@ -1,3 +1,7 @@
+---
+title: Integrated Gradients Explainer
+---
+
 # Integrated Gradients Explainer
 
 ::: torchxai.explainers.IntegratedGradientsExplainer
