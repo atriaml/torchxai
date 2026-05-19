@@ -1,44 +1,103 @@
 # TorchXAI
-TorchXAI is a PyTorch-based toolkit designed for evaluating machine learning models using explainability techniques.
 
-# Description
-TorchXAI provides efficient implementations of several XAI (Explainable AI) metrics that seamlessly integrate with the Captum library. The primary goal of this toolkit is to offer batch computation and task/data-agnostic implementations of various explainability metrics, enabling scalable evaluation while maintaining compatibility with the established Captum framework.
+TorchXAI is a lightweight PyTorch toolkit for evaluating machine learning models using explainability techniques. It wraps [Captum](https://captum.ai/) attribution methods and adds **multi-target attribution** — explain multiple output classes in a single forward pass — plus ready-to-use metrics for quantifying explanation quality.
 
-# Installation with Pip
-The project can be installed directly with pip:
-```
-pip install git+https://github.com/saifullah3396/torchxai.git
-```
+- **Captum-compatible** — works alongside the Captum explainers you already use
+- **Multi-target** — compute attributions for all targets at once, not one at a time
+- **Batch & scalable** — built for dataset-scale evaluation across many inputs and explainers
 
-# Installation from Source
-Clone the repository:
-```
-git clone https://github.com/saifullah3396/torchxai.git
+## Installation
+
+```bash
+pip install torchxai-tools
 ```
 
-Install the project with pip on source directory
-```
-pip install -e .
+The PyPI distribution is named `torchxai-tools`; the import name is `torchxai`.
+
+```python
+from torchxai.explainers import SaliencyExplainer   # import name is torchxai
 ```
 
-# Usage
-Import the required metric, such as completeness
+## Quick start
+
+### Generating explanations
+
+```python
+import torch
+import torch.nn as nn
+from torchxai.explainers import SaliencyExplainer, IntegratedGradientsExplainer
+from torchxai.data_types import SingleTargetAcrossBatch
+
+model = nn.Sequential(nn.Linear(10, 5), nn.ReLU(), nn.Linear(5, 3))
+model.eval()
+inputs = torch.randn(1, 10)
+
+# Single target
+explainer = SaliencyExplainer(model)
+attrs = explainer.explain(inputs=inputs, target=SingleTargetAcrossBatch(index=0))
+print(attrs.shape)   # (1, 10)
+
+# All three classes in one call
+explainer_mt = SaliencyExplainer(model, multi_target=True)
+targets = [SingleTargetAcrossBatch(index=i) for i in range(3)]
+attrs_list = explainer_mt.explain(inputs=inputs, target=targets)
+print(len(attrs_list), attrs_list[0].shape)   # 3, (1, 10)
 ```
+
+### With a baseline (IntegratedGradients, DeepLift, …)
+
+```python
+from torchxai.explainers import IntegratedGradientsExplainer
+
+baseline = torch.zeros_like(inputs)
+explainer = IntegratedGradientsExplainer(model)
+attrs = explainer.explain(
+    inputs=inputs,
+    baselines=baseline,
+    target=SingleTargetAcrossBatch(index=0),
+)
+```
+
+### Evaluating explanation quality
+
+```python
 from torchxai.metrics.axiomatic import completeness
 from captum.attr import Saliency
 
-# ImageClassifier takes a single input tensor of images Nx3x32x32,
-# and returns an Nx10 tensor of class probabilities.
-net = ImageClassifier()
-
+net = ...   # your model
 saliency = Saliency(net)
 input = torch.randn(2, 3, 32, 32, requires_grad=True)
 baselines = torch.zeros(2, 3, 32, 32)
 
-# Computes saliency maps for class 3.
 attribution = saliency.attribute(input, target=3)
-
-# define a perturbation function for the input
-# Computes completeness score for saliency maps
-completeness_score = completeness(net, input, attribution, baselines)
+score = completeness(net, input, attribution, baselines)
+print("Completeness:", score)
 ```
+
+## Supported explainers
+
+| Explainer | Requires baseline | Notes |
+|---|:---:|---|
+| `SaliencyExplainer` | ✗ | |
+| `InputXGradientExplainer` | ✗ | |
+| `GuidedBackpropExplainer` | ✗ | Not compatible with transformers |
+| `RandomExplainer` | ✗ | Baseline for sanity-checking |
+| `IntegratedGradientsExplainer` | ✓ | |
+| `DeepLiftExplainer` | ✓ | Not compatible with transformers |
+| `InputXBaselineGradientExplainer` | ✓ | |
+| `DeepLiftShapExplainer` | ✓ distribution | Not compatible with transformers |
+| `GradientShapExplainer` | ✓ distribution | |
+| `FeatureAblationExplainer` | ✗ | Optional `feature_mask` |
+| `LimeExplainer` | ✗ | Optional `feature_mask` |
+| `KernelShapExplainer` | ✗ | Optional `feature_mask` |
+| `OcclusionExplainer` | ✗ | Requires `sliding_window_shapes` |
+
+## Documentation
+
+Full documentation including per-explainer API reference and end-to-end examples (image classification, BERT sequence classification, NER):
+
+**[saifullah3396.github.io/torchxai](https://saifullah3396.github.io/torchxai/)**
+
+## License
+
+MIT — see [LICENSE.txt](LICENSE.txt).
