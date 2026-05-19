@@ -12,7 +12,7 @@ dependencies = [
     "bottle>=0.13.2",
     "pymdown-extensions>=10.14.3",
     "gitpython>=3.1.45",
-    "torchxai",
+    "torchxai-tools",
 ]
 
 [dependency-groups]
@@ -66,4 +66,5 @@ docstring-code-line-length = 79
 python-version = "3.8"
 
 [tool.uv.sources]
-torchxai = { path = "../" }
+torchxai-tools = { path = "../" }
+
