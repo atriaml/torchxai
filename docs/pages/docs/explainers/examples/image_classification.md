@@ -5,14 +5,16 @@ summary: Multi-target attribution examples on a simple CNN image classifier
 
 # Image Classification Examples
 
-These examples show how to use torchxai explainers on a minimal image classification model. Each section covers one **input pattern** — the minimal set of arguments that pattern of explainer requires. Within each pattern the examples show single-target attribution, multi-target attribution, and a verification that both give identical results for the same target.
+These examples show how to use torchxai explainers on a minimal image classification model.
+Each section covers one **input pattern** — the minimal set of arguments that pattern of explainer requires.
+Each pattern uses the shared `compare()` helper to run single-target sequentially, then multi-target in one call, verify they match, and report timing.
 
 ## Setup
 
 ```python
 import torch
 import torch.nn as nn
-
+import time
 from torchxai.data_types import SingleTargetAcrossBatch
 
 
@@ -33,25 +35,55 @@ class TinyCNN(nn.Module):
 
 torch.manual_seed(0)
 model    = TinyCNN().eval()
-inputs   = torch.randn(1, 3, 32, 32)   # single 3-channel 32x32 image
+inputs   = torch.randn(1, 3, 32, 32)   # single 3-channel 32×32 image
 baseline = torch.zeros_like(inputs)    # zero baseline (used where required)
+
+# Targets for all 10 output classes
+targets = [SingleTargetAcrossBatch(index=i) for i in range(10)]
+
+
+def compare(explainer_cls, model, explain_kwargs, targets, atol=1e-5, **init_kwargs):
+    """Compare sequential single-target calls vs one multi-target call.
+
+    Verifies results match and reports timing and attribution shape.
+    Pass atol>1e-5 for stochastic methods (e.g. GradientShap).
+    """
+    explainer = explainer_cls(model, multi_target=False, **init_kwargs)
+    t0 = time.perf_counter()
+    attrs = [explainer.explain(**explain_kwargs, target=t) for t in targets]
+    elapsed_single = time.perf_counter() - t0
+    attrs_tensor = torch.stack(attrs)
+
+    explainer_mt = explainer_cls(model, multi_target=True, **init_kwargs)
+    t0 = time.perf_counter()
+    attrs_mt = explainer_mt.explain(**explain_kwargs, target=targets)
+    elapsed_mt = time.perf_counter() - t0
+    attrs_mt_tensor = torch.stack(attrs_mt)
+
+    assert torch.allclose(attrs_tensor, attrs_mt_tensor, atol=atol), \
+        "Results differ between single-target and multi-target"
+    speedup = elapsed_single / elapsed_mt if elapsed_mt > 0 else float("inf")
+    print(f"shape  : {attrs_mt_tensor.shape}")
+    print(f"single : {elapsed_single:.3f}s  |  multi : {elapsed_mt:.3f}s  |  speedup : {speedup:.1f}x")
+    return attrs_mt_tensor
 ```
 
 ## Explainer Input Requirements
 
 | Explainer | `baselines` | `feature_mask` | `sliding_window_shapes` |
 |---|:---:|:---:|:---:|
-| `SaliencyExplainer` | ✗ | ✗ | ✗ |
-| `InputXGradientExplainer` | ✗ | ✗ | ✗ |
-| `GuidedBackpropExplainer` | ✗ | ✗ | ✗ |
-| `RandomExplainer` | ✗ | ✗ | ✗ |
+| `SaliencyExplainer` | ✗ | optional | ✗ |
+| `InputXGradientExplainer` | ✗ | optional | ✗ |
+| `GuidedBackpropExplainer` | ✗ | optional | ✗ |
+| `RandomExplainer` | ✗ | optional | ✗ |
 | `FeatureAblationExplainer` | ✗ | optional | ✗ |
 | `LimeExplainer` | ✗ | optional | ✗ |
 | `KernelShapExplainer` | ✗ | optional | ✗ |
-| `IntegratedGradientsExplainer` | ✓ | ✗ | ✗ |
-| `DeepLiftExplainer` | ✓ | ✗ | ✗ |
-| `DeepLiftShapExplainer` | ✓ distribution | ✗ | ✗ |
-| `GradientShapExplainer` | ✓ distribution | ✗ | ✗ |
+| `IntegratedGradientsExplainer` | ✓ | optional | ✗ |
+| `DeepLiftExplainer` | ✓ | optional | ✗ |
+| `InputXBaselineGradientExplainer` | ✓ | optional | ✗ |
+| `DeepLiftShapExplainer` | ✓ distribution | optional | ✗ |
+| `GradientShapExplainer` | ✓ distribution | optional | ✗ |
 | `OcclusionExplainer` | ✗ | ✗ | ✓ |
 
 ---
@@ -62,27 +94,9 @@ No baseline or mask required. Applies to: `SaliencyExplainer`, `InputXGradientEx
 
 ```python
 from torchxai.explainers import SaliencyExplainer
+# Replace SaliencyExplainer with any Pattern-A explainer
 
-# Replace SaliencyExplainer with any Pattern-A explainer above
-
-# Single target: attributions for all 10 classes in 10 sequential calls
-explainer = SaliencyExplainer(model, multi_target=False)
-attrs = [
-    explainer.explain(inputs=inputs, target=SingleTargetAcrossBatch(index=i))
-    for i in range(10)
-]
-attrs_tensor = torch.stack(attrs)   # (10, 1, 3, 32, 32)
-print("Single target collected attributions shape:", attrs_tensor.shape)
-
-# Multi-target: same attributions in one call
-explainer_mt = SaliencyExplainer(model, multi_target=True)
-attrs_mt = explainer_mt.explain(
-    inputs=inputs,
-    target=[SingleTargetAcrossBatch(index=i) for i in range(10)],
-)
-attrs_mt_tensor = torch.stack(attrs_mt)   # (10, 1, 3, 32, 32)
-assert torch.allclose(attrs_tensor, attrs_mt_tensor), f"Multi-target attributions do not match single-target attributions:\n{attrs_tensor}\n{attrs_mt_tensor}"
-print("Multi-target attributions shape:", attrs_mt_tensor.shape)
+compare(SaliencyExplainer, model, dict(inputs=inputs), targets)
 ```
 
 ---
@@ -93,24 +107,9 @@ A single reference tensor (same shape as `inputs`) is required. Applies to: `Int
 
 ```python
 from torchxai.explainers import IntegratedGradientsExplainer
-
 # Replace with DeepLiftExplainer or InputXBaselineGradientExplainer as needed
 
-explainer = IntegratedGradientsExplainer(model, multi_target=False)
-attrs = explainer.explain(
-    inputs=inputs, baselines=baseline, target=SingleTargetAcrossBatch(index=0)
-)
-print("Single target attributions shape:", attrs.shape)
-
-explainer_mt = IntegratedGradientsExplainer(model, multi_target=True)
-attrs_mt = explainer_mt.explain(
-    inputs=inputs,
-    baselines=baseline,
-    target=[SingleTargetAcrossBatch(index=0), SingleTargetAcrossBatch(index=1)],
-)
-assert torch.allclose(attrs, attrs_mt[0]), (
-    "Multi-target attributions do not match single-target attributions for class 0"
-)
+compare(IntegratedGradientsExplainer, model, dict(inputs=inputs, baselines=baseline), targets)
 ```
 
 ---
@@ -119,32 +118,17 @@ assert torch.allclose(attrs, attrs_mt[0]), (
 
 `baselines` is a **stacked set of reference samples** rather than a single tensor. Applies to: `DeepLiftShapExplainer`, `GradientShapExplainer`.
 
+!!! note
+    GradientShap randomly samples a baseline from the distribution on each call, so results may vary slightly between single-target runs and the multi-target call. Use `atol=1e-3`.
+
 ```python
 from torchxai.explainers import GradientShapExplainer
 # Replace with DeepLiftShapExplainer as needed
 
 baselines_dist = baseline.expand(5, -1, -1, -1)   # (5, 3, 32, 32) reference distribution
 
-explainer = GradientShapExplainer(model, multi_target=False, n_samples=100)
-attrs = explainer.explain(
-    inputs=inputs,
-    baselines=baselines_dist,
-    target=SingleTargetAcrossBatch(index=0),
-)
-print(attrs.shape)   # (1, 3, 32, 32)
-
-explainer_mt = GradientShapExplainer(model, multi_target=True, n_samples=100)
-attrs_mt = explainer_mt.explain(
-    inputs=inputs,
-    baselines=baselines_dist,
-    target=[SingleTargetAcrossBatch(index=idx) for idx in range(10)],
-)
-
-# for GradientShap, we use a higher tolerance due to the randomness in sampling from the baseline distribution
-assert torch.allclose(attrs, attrs_mt[0], atol=1e-3), (
-    "Multi-target attributions do not match single-target attributions for class 0",
-    (attrs - attrs_mt[0]).abs().max().item()
-)
+compare(GradientShapExplainer, model,
+        dict(inputs=inputs, baselines=baselines_dist), targets, atol=1e-3)
 ```
 
 ---
@@ -157,10 +141,9 @@ The same explainer class works with or without a mask; the mask is optional. Pix
 
 ```python
 from torchxai.explainers import FeatureAblationExplainer
-
 # Replace with LimeExplainer or KernelShapExplainer as needed
 
-# Build an 8x8 super-pixel grid — 64 segments over a 32x32 image
+# 8×8 super-pixel grid — 64 segments over a 32×32 image
 grid = 8
 cell_size = 32 // grid
 feature_mask = torch.zeros(1, 1, 32, 32, dtype=torch.long)
@@ -168,34 +151,11 @@ for i in range(grid):
     for j in range(grid):
         feature_mask[0, 0, i*cell_size:(i+1)*cell_size, j*cell_size:(j+1)*cell_size] = i * grid + j
 
-print("Feature mask shape:", feature_mask.shape)  # (1, 1, 32, 32)
-print("Total unique segments in feature mask:", feature_mask.unique().numel())  # Should be 64
+print("Without feature mask (pixel-level):")
+compare(FeatureAblationExplainer, model, dict(inputs=inputs), targets)
 
-explainer = FeatureAblationExplainer(model, multi_target=False)
-
-# Without mask — pixel-level attribution
-attrs_pixel = explainer.explain(
-    inputs=inputs,
-    target=SingleTargetAcrossBatch(index=0),
-)
-print(attrs_pixel.shape)   # (1, 3, 32, 32)
-
-# With mask — segment-level attribution
-attrs_seg = explainer.explain(
-    inputs=inputs,
-    feature_mask=feature_mask,
-    target=SingleTargetAcrossBatch(index=0),
-)
-print(attrs_seg.shape)   # (1, 3, 32, 32) — one score per segment, broadcast back
-
-# Multi-target with mask
-explainer_mt = FeatureAblationExplainer(model, multi_target=True)
-attrs_seg_mt = explainer_mt.explain(
-    inputs=inputs,
-    feature_mask=feature_mask,
-    target=[SingleTargetAcrossBatch(index=idx) for idx in range(10)],
-)
-assert torch.allclose(attrs_seg, attrs_seg_mt[0]), "Multi-target attributions do not match single-target attributions for class 0"
+print("\nWith feature mask (segment-level):")
+compare(FeatureAblationExplainer, model, dict(inputs=inputs, feature_mask=feature_mask), targets)
 ```
 
 ---
@@ -207,19 +167,5 @@ assert torch.allclose(attrs_seg, attrs_seg_mt[0]), "Multi-target attributions do
 ```python
 from torchxai.explainers import OcclusionExplainer
 
-explainer = OcclusionExplainer(model, multi_target=False)
-attrs = explainer.explain(
-    inputs=inputs,
-    sliding_window_shapes=(1, 8, 8),   # occlude one 8x8 patch per channel
-    target=SingleTargetAcrossBatch(index=0),
-)
-print(attrs.shape)   # (1, 3, 32, 32)
-
-explainer_mt = OcclusionExplainer(model, multi_target=True)
-attrs_mt = explainer_mt.explain(
-    inputs=inputs,
-    sliding_window_shapes=(1, 8, 8),
-    target=[SingleTargetAcrossBatch(index=idx) for idx in range(10)],
-)
-assert torch.allclose(attrs, attrs_mt[0])
+compare(OcclusionExplainer, model, dict(inputs=inputs, sliding_window_shapes=(1, 8, 8)), targets)
 ```

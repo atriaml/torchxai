@@ -7,16 +7,80 @@ repo_url: https://github.com/saifullah3396/torchxai
 theme:
   name: shadcn
   icon: null
-  show_title: true
-  navigation_depth: 3
-  topbar_sections: true
+  topbar_sections: false
   pygments_style:
     light: shadcn-light
     dark: github-dark
   katex_options:
+    trust: true
     macros:
       "\\dx": "\\mathrm{d}x"
+      "\\NN": "\\mathbb{N}"
   # show_datetime: true
+  accent: "oklch(63% 0.24 25)"
+
+plugins:
+  - search
+  - excalidraw
+  - mkdocstrings:
+      enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
+      default_handler: python
+      locale: en
+      handlers:
+        python:
+          options:
+              docstring_options:
+              docstring_style: google
+              ignore_init_summary: true
+              docstring_section_style: list
+              relative_crossrefs: true
+              scoped_crossrefs: true
+              signature_crossrefs: true
+              unwrap_annotated: true
+              filters: public
+              inherited_members: true
+              summary: true
+              heading_level: 1
+              parameter_headings: true
+              type_parameter_headings: true
+              show_root_heading: true
+              show_root_full_path: false
+              show_symbol_type_heading: true
+              show_symbol_type_toc: true
+              line_length: 88
+              merge_init_into_class: false
+              separate_signature: true
+              show_signature_annotations: true
+              show_signature_type_parameters: true
+              backlinks: tree
+              show_bases: false
+              show_inheritance_diagram: false
+              show_source: true
+  - autonumber:
+      prefixes:
+        th: Theorem
+
+markdown_extensions:
+  admonition:
+  codehilite:
+  fenced_code:
+  footnotes:
+  extra:
+  pymdownx.blocks.details:
+  pymdownx.tabbed:
+  pymdownx.blocks.tab:
+    combine_header_slug: true
+    separator: ___
+  pymdownx.progressbar:
+  pymdownx.snippets:
+  pymdownx.arithmatex:
+    generic: true
+  shadcn.extensions.echarts.alpha:
+  shadcn.extensions.codexec:
+  shadcn.extensions.iconify:
+  pymdownx.blocks.caption:
+  shadcn.extensions.hover_card:
+
 
 nav:
   - Getting Started:
@@ -44,64 +108,8 @@ nav:
       - explainers/random.md
     - Examples:
       - explainers/examples/image_classification.md
-      - explainers/examples/bert.md
+      - explainers/examples/sequence_classification.md
+      - explainers/examples/token_classification.md
   - Metrics:
     - Axiomatic:
       - metrics/completeness.md
-plugins:
-- search
-# - excalidraw
-- mkdocstrings:
-    enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
-    default_handler: python
-    locale: en
-    handlers:
-      python:
-        options:
-            docstring_options:
-            docstring_style: google
-            ignore_init_summary: true
-            docstring_section_style: list
-            relative_crossrefs: true
-            scoped_crossrefs: true
-            signature_crossrefs: true
-            unwrap_annotated: true
-            filters: public
-            inherited_members: true
-            summary: true
-            heading_level: 1
-            parameter_headings: true
-            type_parameter_headings: true
-            show_root_heading: true
-            show_root_full_path: false
-            show_symbol_type_heading: true
-            show_symbol_type_toc: true
-            line_length: 88
-            merge_init_into_class: false
-            separate_signature: true
-            show_signature_annotations: true
-            show_signature_type_parameters: true
-            backlinks: tree
-            show_bases: false
-            show_inheritance_diagram: true
-            show_source: true
-
-markdown_extensions:
-  admonition:
-  codehilite:
-  fenced_code:
-  footnotes:
-  extra:
-  pymdownx.blocks.details:
-  pymdownx.tabbed:
-  pymdownx.blocks.tab:
-    combine_header_slug: true
-    separator: ___
-  pymdownx.progressbar:
-  pymdownx.snippets:
-  pymdownx.arithmatex:
-    generic: true
-  shadcn.extensions.echarts.alpha:
-  shadcn.extensions.codexec:
-  shadcn.extensions.iconify:
-  pymdownx.blocks.caption:

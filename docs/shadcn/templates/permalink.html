@@ -1,0 +1,16 @@
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll("a.{{ config.mdx_configs.get('toc', {}).get('permalink_class', 'headerlink') }}").forEach(function (link) {
+            link.addEventListener("click", function (e) {
+                e.preventDefault();
+
+                // Build the full URL with the anchor fragment
+                const url = window.location.origin + window.location.pathname + this.getAttribute("href");
+
+                navigator.clipboard.writeText(url).then(function () {
+                    // Optional: brief visual feedback
+                });
+            });
+        });
+    });
+</script>

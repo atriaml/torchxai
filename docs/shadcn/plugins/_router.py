@@ -1,7 +1,7 @@
 from functools import wraps
 from typing import Callable, List, Union
 
-from bottle import Bottle  # type: ignore
+from bottle import Bottle
 from mkdocs.livereload import LiveReloadServer
 
 
@@ -9,10 +9,11 @@ class RouterMixin:
     """Mixin to add custom routes to the mkdocs dev server."""
 
     def __init__(self):
-        # we use bottle to handle our routes
-        # its .wsgi() method is very convenient with regards to
-        # the _serve_request method of the mkdocs dev server
         self.bottle = Bottle()
+        """We use `bottle` to handle plugin routes since
+        its `wsgi()` method is very convenient with regards to
+        the `_serve_request()` method of the mkdocs dev server
+        """
 
     def add_route(
         self,
@@ -21,7 +22,7 @@ class RouterMixin:
         method: Union[str, List[str]] = "GET",
     ):
         """Add a route to the router."""
-        self.bottle.route(path, method=method)(handler)  # type: ignore
+        self.bottle.route(path, method=method)(handler)
 
     def extend_server(self, server: LiveReloadServer):
         """Extend the mkdocs dev server to add custom behavior."""

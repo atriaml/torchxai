@@ -1,12 +1,12 @@
 [project]
 name = "mkdocs-shadcn"
-version = "0.9.8"
+version = "0.10.6"
 description = "Documentation that also shines"
 authors = [
     { name = "Alban Siffer", email = "31479857+asiffer@users.noreply.github.com" },
 ]
 readme = "README.md"
-requires-python = "==3.11.5"
+requires-python = "==3.11.*"
 dependencies = [
     "mkdocs>=1.6.1",
     "bottle>=0.13.2",
@@ -18,16 +18,25 @@ dependencies = [
 [dependency-groups]
 dev = [
     "accessible-pygments>=0.0.4",
+    "babel>=2.18.0",
+    "beautifulsoup4>=4.14.3",
     "mkdocstrings[python]>=0.26.1",
     "mypy>=1.12.0",
     "pre-commit>=3.5.0",
+    "pygithub>=2.8.1",
     "pygments>=2.19.1",
     "pymdown-extensions>=10.14.2",
+    "pytest-playwright>=0.5.2",
+    "rich>=14.3.4",
     "ruff>=0.12.11",
     "ty>=0.0.1a21",
+    "typer>=0.20.1",
     "types-markdown>=3.7.0.20241204",
     "types-pygments>=2.19.0.20250107",
 ]
+
+[project.optional-dependencies]
+properdocs = ["properdocs >= 1.6.7; python_version >= '3.9'"]
 
 [project.entry-points."mkdocs.themes"]
 shadcn = "shadcn"
@@ -35,6 +44,7 @@ shadcn = "shadcn"
 [project.entry-points."mkdocs.plugins"]
 "shadcn/search" = "shadcn.plugins.search:SearchPlugin"
 "shadcn/excalidraw" = "shadcn.plugins.excalidraw:ExcalidrawPlugin"
+"shadcn/autonumber" = "shadcn.plugins.autonumber:AutoNumberPlugin"
 
 [build-system]
 requires = ["hatchling"]
@@ -51,6 +61,8 @@ line-length = 79
 docstring-code-format = true
 docstring-code-line-length = 79
 
-[tool.uv.sources]
-torchxai = { git = "https://github.com/saifullah3396/torchxai.git", branch = "atria-bridge" }
+[tool.ty.environment]
+python-version = "3.8"
 
+[tool.uv.sources]
+torchxai = { path = "../" }
