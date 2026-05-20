@@ -1,179 +1,179 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://github.com/torchxai/</loc>
+         <loc>https://atriaml.github.io/torchxai/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/install/</loc>
+         <loc>https://atriaml.github.io/torchxai/install/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/usage/</loc>
+         <loc>https://atriaml.github.io/torchxai/usage/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/base_explainer/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/base_explainer/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/deeplift/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/deeplift/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/deeplift_shap/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/deeplift_shap/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/feature_ablation/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/feature_ablation/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/gradient_shap/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/gradient_shap/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/guided_backprop/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/guided_backprop/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/input_x_baseline_gradient/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/input_x_baseline_gradient/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/input_x_gradient/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/input_x_gradient/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/integrated_gradients/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/integrated_gradients/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/kernel_shap/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/kernel_shap/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/lime/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/lime/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/occlusion/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/occlusion/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/random/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/random/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/saliency/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/saliency/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/examples/image_classification/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/examples/image_classification/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/examples/sequence_classification/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/examples/sequence_classification/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/explainers/examples/token_classification/</loc>
+         <loc>https://atriaml.github.io/torchxai/explainers/examples/token_classification/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/abpc/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/abpc/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/aopc/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/aopc/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/attribution_locality/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/attribution_locality/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/attribution_localization/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/attribution_localization/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/attribution_text_analysis/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/attribution_text_analysis/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/completeness/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/completeness/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/complexity_entropy/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/complexity_entropy/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/complexity_sundararajan/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/complexity_sundararajan/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/effective_complexity/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/effective_complexity/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/faithfulness_corr/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/faithfulness_corr/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/faithfulness_estimate/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/faithfulness_estimate/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/infidelity/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/infidelity/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/input_invariance/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/input_invariance/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/modality_topk_fraction/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/modality_topk_fraction/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/monotonicity/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/monotonicity/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/monotonicity_corr/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/monotonicity_corr/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/non_sensitivity/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/non_sensitivity/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/sensitivity/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/sensitivity/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/sensitivity_avg/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/sensitivity_avg/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/sensitivity_max/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/sensitivity_max/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/sensitivity_n/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/sensitivity_n/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
     <url>
-         <loc>https://github.com/torchxai/metrics/sparseness/</loc>
+         <loc>https://atriaml.github.io/torchxai/metrics/sparseness/</loc>
          <lastmod>2026-05-20</lastmod>
     </url>
 </urlset>
