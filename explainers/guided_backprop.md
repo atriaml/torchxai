@@ -1,3 +1,7 @@
+---
+title: Guided Backpropagation Explainer
+---
+
 # Guided Backpropagation Explainer
 
 ::: torchxai.explainers.GuidedBackpropExplainer

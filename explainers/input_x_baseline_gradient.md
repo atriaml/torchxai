@@ -1,3 +1,7 @@
+---
+title: Input × Baseline Gradient Explainer
+---
+
 # Input × Baseline Gradient Explainer
 
 ::: torchxai.explainers.InputXBaselineGradientExplainer

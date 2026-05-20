@@ -1,3 +1,7 @@
+---
+title: GradientShap Explainer
+---
+
 # GradientShap Explainer
 
 ::: torchxai.explainers.GradientShapExplainer

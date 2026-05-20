@@ -1,6 +1,12 @@
-# Completeness Metric
+---
+title: Completeness
+---
 
-::: torchxai.metrics.completeness
+# Completeness
+
+Verifies the summation-to-delta (conservation) axiom: attributions must sum exactly to the difference between the model output on the input and on the baseline. A score of zero means perfect completeness. ↓ better.
+
+::: torchxai.metrics.axiomatic.completeness
     options:
         docstring_options:
         ignore_init_summary: true

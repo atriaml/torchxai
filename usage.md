@@ -96,5 +96,5 @@ print("Completeness:", score)
 
 ## API Reference
 
-- [Explainers overview](explainers.md) — all 13 explainer classes, input patterns, comparison table
+- [Explainers overview](explainers.md) — all explainer classes, input patterns, comparison table
 - [Explainer examples](explainers/examples/image_classification.md) — end-to-end worked examples

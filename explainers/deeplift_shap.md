@@ -1,3 +1,7 @@
+---
+title: DeepLIFT SHAP Explainer
+---
+
 # DeepLIFT SHAP Explainer
 
 ::: torchxai.explainers.DeepLiftShapExplainer

@@ -1,6 +1,5 @@
 ---
 title: Token Classification
-summary: Multi-target attribution on BERT-NER explaining all token predictions in a single call
 ---
 
 # Token Classification
@@ -14,11 +13,6 @@ This keeps targets simple: `SingleTargetAcrossBatch(index=token_position)` selec
 !!! note "Gradient-based methods require embedding-level inputs"
     BERT token IDs are discrete integers — gradients cannot flow through them.
     We pass the continuous **embedding tensor** as input and wrap the model to accept embeddings via `inputs_embeds`.
-
-!!! warning "Unsupported explainers for transformer architectures"
-    `DeepLiftExplainer`, `DeepLiftShapExplainer`, and `GuidedBackpropExplainer` are not compatible with transformers out of the box. Use `IntegratedGradientsExplainer`, `GradientShapExplainer`, or `SaliencyExplainer` as alternatives.
-
----
 
 ## Setup
 

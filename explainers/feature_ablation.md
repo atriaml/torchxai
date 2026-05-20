@@ -1,3 +1,7 @@
+---
+title: Feature Ablation Explainer
+---
+
 # Feature Ablation Explainer
 
 ::: torchxai.explainers.FeatureAblationExplainer

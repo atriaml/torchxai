@@ -57,10 +57,10 @@ Each explainer belongs to one of five input patterns. Choose the pattern for you
 | `InputXBaselineGradientExplainer` | Gradient | ✓ | ✗ | ✗ | ✗ |
 | `DeepLiftShapExplainer` | Gradient | ✓ | ✓ | ✗ | ✗ |
 | `GradientShapExplainer` | Gradient | ✓ | ✓ | ✗ | ✗ |
-| `FeatureAblationExplainer` | Perturbation | ✗ | ✗ | optional | ✗ |
-| `LimeExplainer` | Perturbation | ✗ | ✗ | optional | ✗ |
-| `KernelShapExplainer` | Perturbation | ✗ | ✗ | optional | ✗ |
-| `OcclusionExplainer` | Perturbation | ✗ | ✗ | ✗ | ✓ |
+| `FeatureAblationExplainer` | Perturbation | ✓ | ✗ | optional | ✗ |
+| `LimeExplainer` | Perturbation | ✓ | ✗ | optional | ✗ |
+| `KernelShapExplainer` | Perturbation | ✓ | ✗ | optional | ✗ |
+| `OcclusionExplainer` | Perturbation | ✓ | ✗ | ✗ | ✓ |
 
 ---
 

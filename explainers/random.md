@@ -1,3 +1,7 @@
+---
+title: Random Explainer
+---
+
 # Random Explainer
 
 ::: torchxai.explainers.RandomExplainer

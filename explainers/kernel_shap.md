@@ -1,3 +1,7 @@
+---
+title: Kernel SHAP Explainer
+---
+
 # Kernel SHAP Explainer
 
 ::: torchxai.explainers.KernelShapExplainer

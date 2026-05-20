@@ -1,3 +1,7 @@
+---
+title: Occlusion Explainer
+---
+
 # Occlusion Explainer
 
 ::: torchxai.explainers.OcclusionExplainer
