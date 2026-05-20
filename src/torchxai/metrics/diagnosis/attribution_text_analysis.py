@@ -258,24 +258,62 @@ def attribution_text_analysis(
     target_indices: list[int] | None = None,
     token_labels: list[list[str]] | None = None,
     feature_mask: tuple[Tensor, ...] | None = None,
-    k: int | float = 0.1,  # int for top-k, float (0.0–1.0) for top-%
+    k: int | float = 0.1,
     use_weighted_sum: bool = False,
 ) -> list[list[dict[Any, Any]]] | list[dict[Any, Any]]:
-    """
-    Parameters
-    ----------
-    tokens : list[str]
-        Word-level tokens, length G (must match attribution feature groups).
-    target_indices : list[int]
-        Index of the target token per sample.
-    k : float
-        Fraction of top tokens to extract.
+    """Analyses token-level attributions and extracts interpretability diagnostics for text inputs.
 
-    Returns
-    -------
-    Per-sample dict (or list of dicts) with keys:
-        topk_words, topk_scores, topk_indices,
-        stopword_ratio, span_mean_gap, span_n_runs
+    For each sample, extracts the top-k most-attributed words, computes the content-to-stopword
+    attribution ratio, measures the mean and max distance of top-k tokens from the target token,
+    and optionally correlates attributions with NER labels or token embeddings.
+
+    Args:
+        attributions (tuple[Tensor, ...] or list[tuple[Tensor, ...]]): Attribution tensors, one
+            per modality, each of shape ``(batch_size, n_features)``. For multi-target mode, pass
+            a list of such tuples.
+        tokens (list[list[str]]): Word-level token strings per sample, length matching the number
+            of attribution feature groups ``G``.
+        token_embeddings (list[Tensor] or None): Precomputed word embeddings per sample, each of
+            shape ``(G, hidden_size)``. When provided, a Spearman correlation between attribution
+            and semantic similarity to the target token is computed. Default: ``None``.
+        target_indices (list[int] or None): Index of the target token per sample. Used to exclude
+            the target from top-k and to compute distance metrics. Default: ``None``.
+        token_labels (list[list[str]] or None): NER or other string label per token per sample.
+            When provided, per-label attribution sums and a label-match correlation are computed.
+            Default: ``None``.
+        feature_mask (tuple[Tensor, ...] or None): Feature group masks of the same shape as
+            ``attributions``, used to pool sub-word tokens into word-level groups before scoring.
+            If ``None``, each feature is its own group.
+        k (int or float): Number of top tokens to extract. An ``int`` selects exactly ``k`` tokens;
+            a ``float`` in ``(0.0, 1.0]`` selects that fraction of all tokens. Default: ``0.1``.
+        use_weighted_sum (bool): If ``True``, use weighted-sum pooling when reducing features to
+            groups via ``feature_mask``. Default: ``False``.
+
+    Returns:
+        list[dict] or list[list[dict]]: Per-sample result dicts (or a list thereof for multi-target
+        input). Each dict contains:
+
+        - ``topk_words`` – list of top-k token strings.
+        - ``topk_scores`` – normalised attribution scores for each top-k token.
+        - ``topk_indices`` – token indices of the top-k tokens.
+        - ``topk_is_stopword`` – boolean list indicating whether each top-k token is a stopword.
+        - ``content_stop_ratio`` – ratio of mean content-word attribution to mean stopword attribution.
+        - ``topk_mean_dist`` – mean absolute distance of top-k tokens from the target token.
+        - ``topk_max_dist`` – maximum absolute distance of top-k tokens from the target token.
+        - ``ner`` – per-label attribution sums (only when ``token_labels`` is provided).
+        - ``ner_corr`` – Spearman correlation between label match and attribution (only when
+          ``token_labels`` and ``target_indices`` are provided).
+        - ``semantic_corr`` – Spearman correlation between cosine similarity to the target
+          embedding and attribution (only when ``token_embeddings`` and ``target_indices``
+          are provided).
+
+    Example:
+        >>> import torch
+        >>> attr = (torch.tensor([[0.05, 0.4, 0.1, 0.3, 0.15]]),)
+        >>> tokens_batch = [["The", "cat", "sat", "on", "mat"]]
+        >>> results = attribution_text_analysis(attr, tokens=tokens_batch, k=0.4)
+        >>> results[0]["topk_words"]
+        ['cat', 'on']
     """
     with torch.no_grad():
         is_list = isinstance(attributions, list)

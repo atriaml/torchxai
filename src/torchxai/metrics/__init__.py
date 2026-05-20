@@ -21,10 +21,10 @@ from torchxai.metrics.faithfulness.monotonicity import monotonicity
 from torchxai.metrics.faithfulness.monotonicity_corr import monotonicity_corr
 from torchxai.metrics.faithfulness.sensitivity_n import sensitivity_n
 
-# localization
-from torchxai.metrics.localization.attribution_localization import (
-    attribution_localization,
-)
+# diagnosis
+from torchxai.metrics.diagnosis.attribution_localization import attribution_localization
+from torchxai.metrics.diagnosis.attribution_locality import attribution_locality
+from torchxai.metrics.diagnosis.modality_topk_fraction import modality_topk_fraction
 
 # robustness
 from torchxai.metrics.robustness.sensitivity import (
@@ -57,6 +57,8 @@ __all__ = [
     "sensitivity_max_and_avg",
     "sensitivity_max",
     "sensitivity_avg",
-    # localization
+    # diagnosis
     "attribution_localization",
+    "attribution_locality",
+    "modality_topk_fraction",
 ]

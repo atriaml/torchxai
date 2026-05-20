@@ -1,26 +1,3 @@
-"""
-Modality Top-K Fraction metric.
-
-Given attributions as a tuple of tensors (one per modality / feature group),
-measures which modality contributes the most important features by counting
-membership in the global top-k.
-
-Input:
-    attributions: tuple[Tensor, ...] — each [batch_size, n_features_i].
-    feature_mask: optional tuple[Tensor, ...] — groups raw features into
-                  semantic units (e.g. tokens → words). Same shape as attributions.
-    k_fraction: float — fraction of total (reduced) features to select.
-    reduce_mode: "sum" or "weighted_sum"
-        - "sum": simple sum per feature group
-        - "weighted_sum": mean per group × min_group_size across all modalities
-                          (penalizes groups larger than the minimum)
-
-Output:
-    Tensor of shape [batch_size, n_modalities] — fraction of top-k from each modality.
-
-Category: characterization
-"""
-
 from collections.abc import Sequence
 
 import torch
@@ -157,25 +134,47 @@ def modality_topk_fraction(
     multi_target: bool = False,
     return_dict: bool = True,
 ) -> dict | Tensor | list[Tensor]:
-    """
-    Returns
-    -------
-    Tensor of shape [batch_size, n_k_fractions, n_modalities], or list thereof.
-    If return_dict=True, returns dict with one key per (k_fraction, modality):
-        {"score_k0.05_text": ..., "score_k0.05_image": ..., "score_k0.10_text": ..., ...}
-    each value of shape [batch_size].
+    """Fraction of the global top-k attribution mass contributed by each modality.
 
-    Examples
-    --------
-    >>> text_attr = torch.randn(2, 50)
-    >>> img_attr = torch.randn(2, 100)
-    >>> result = modality_topk_fraction(
-    ...     (text_attr, img_attr),
-    ...     modality_names=["text", "image"],
-    ...     k_fractions=[0.05, 0.10, 0.20],
-    ... )
-    >>> result.keys()
-    dict_keys(['score_k0.05_text', 'score_k0.05_image', 'score_k0.10_text', ...])
+    Given attributions for multiple modalities (e.g. text and image), measures which modality
+    owns the most important features at various top-k thresholds. Useful for diagnosing modality
+    dominance in multimodal models.
+
+    Args:
+        attributions (tuple[Tensor, ...] or list[tuple[Tensor, ...]]): Attribution tensors, one
+            per modality, each of shape ``(batch_size, n_features_i)``. For multi-target mode,
+            pass a list of such tuples.
+        feature_mask (tuple[Tensor, ...] or None): Optional feature group masks of the same shape
+            as ``attributions``, used to pool raw features into semantic units (e.g. tokens into
+            words). If ``None``, each feature is its own group.
+        modality_names (list[str] or None): Human-readable names for each modality, used as dict
+            key suffixes when ``return_dict=True``. Defaults to ``["modality_0", "modality_1", ...]``.
+        k_fractions (Sequence[float]): Top-k thresholds expressed as fractions of total feature
+            groups. Default: ``(0.05, 0.10, 0.20)``.
+        reduce_mode (str): Pooling mode for feature groups. ``"sum"`` sums attributions within
+            each group; ``"weighted_sum"`` weights by ``min_group_size / group_size``, penalising
+            larger groups. Default: ``"sum"``.
+        multi_target (bool): If ``True``, ``attributions`` must be a list of tuples, one per
+            target. Default: ``False``.
+        return_dict (bool): If ``True``, return a flat dict keyed by
+            ``"score_k{frac}_{name}"`` per (k_fraction, modality) pair, each value of shape
+            ``(batch_size,)``. If ``False``, return a tensor of shape
+            ``(batch_size, n_k_fractions, n_modalities)``. Default: ``True``.
+
+    Returns:
+        dict or Tensor or list[Tensor]: Attribution mass fractions per modality at each k threshold.
+
+    Example:
+        >>> import torch
+        >>> text_attr = torch.randn(2, 50)
+        >>> img_attr  = torch.randn(2, 100)
+        >>> result = modality_topk_fraction(
+        ...     (text_attr, img_attr),
+        ...     modality_names=["text", "image"],
+        ...     k_fractions=[0.05, 0.10, 0.20],
+        ... )
+        >>> list(result.keys())
+        ['score_text', 'score_image']
     """
     is_list = isinstance(attributions, list)
     if multi_target:

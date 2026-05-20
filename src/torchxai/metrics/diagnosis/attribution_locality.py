@@ -101,26 +101,48 @@ def attribution_locality(
     feature_mask: tuple[Tensor, ...] | None,
     target_indices: list[int],
     bboxes: tuple[Tensor, ...],
-    x_threshold: float = 0.025,  # normalized
-    y_threshold: float = 0.025,  # normalized
+    x_threshold: float = 0.025,
+    y_threshold: float = 0.025,
     use_weighted_sum: bool = False,
     return_dict: bool = False,
 ) -> dict | Tensor | list[Tensor]:
-    """Compute attribution locality scores.
+    """Measures how spatially concentrated attributions are around a target bounding box. ↑ better.
 
-    Parameters
-    ----------
-    x_threshold : float
-        Maximum x-distance from target center to count as local (in pixels/units).
-    y_threshold : float
-        Maximum y-distance from target center to count as local (in pixels/units).
+    For each modality, computes the fraction of (normalised) attribution mass within an x/y
+    threshold of the target feature's centre, plus a weighted-RMSE spread score. Useful for
+    diagnosing whether multimodal explanations focus near the correct object.
 
-    Returns
-    -------
-    Tensor of shape [batch_size, n_modalities, 3] where dim -1 is
-    [x_locality, y_locality, spread], or list thereof (multi_target).
-    If return_dict=True:
-        {"x_locality": [batch, n_mod], "y_locality": [batch, n_mod], "spread": [batch, n_mod]}
+    Args:
+        attributions (tuple[Tensor, ...] or list[tuple[Tensor, ...]]): Attribution tensors, one
+            per modality, each of shape ``(batch_size, *input_shape)``. Pass a list of such tuples
+            for multi-target mode.
+        feature_mask (tuple[Tensor, ...] or None): Feature group masks of the same shape as
+            ``attributions``, used to pool raw features into semantic groups before scoring.
+            If ``None``, each feature is its own group.
+        target_indices (list[int]): Index of the target feature group per element in
+            ``attributions`` (or per target when passing a list).
+        bboxes (tuple[Tensor, ...]): Bounding boxes per modality, each of shape
+            ``(batch_size, n_groups, 4)`` in ``[x1, y1, x2, y2]`` format (normalised 0–1).
+        x_threshold (float): Maximum normalised x-distance from the target centre to count as
+            local. Default: ``0.025``.
+        y_threshold (float): Maximum normalised y-distance from the target centre to count as
+            local. Default: ``0.025``.
+        use_weighted_sum (bool): If ``True``, use weighted-sum pooling across feature groups
+            instead of plain sum. Default: ``False``.
+        return_dict (bool): If ``True``, return a dict with keys ``"x_locality"``,
+            ``"y_locality"``, and ``"spread"`` instead of a stacked tensor.
+            Default: ``False``.
+
+    Returns:
+        Tensor or list[Tensor] or dict: Shape ``(batch_size, n_modalities, 3)`` where the last
+        dimension is ``[x_locality, y_locality, spread]``. Returns a list for multi-target input
+        and a dict when ``return_dict=True``.
+
+    Example:
+        >>> import torch
+        >>> attr = (torch.rand(2, 16),)          # one modality, batch of 2
+        >>> boxes = (torch.rand(2, 16, 4),)      # bbox per feature group
+        >>> score = attribution_locality(attr, feature_mask=None, target_indices=[3, 5], bboxes=boxes)
     """
     with torch.no_grad():
         is_list = isinstance(attributions, list)

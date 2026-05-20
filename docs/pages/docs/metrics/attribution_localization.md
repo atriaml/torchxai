@@ -6,7 +6,7 @@ title: Attribution Localization
 
 Measures how well attributions concentrate on the ground-truth relevant region (e.g. segmentation mask). Computes the proportion of total attribution mass that falls inside the annotated region. ↑ better.
 
-::: torchxai.metrics.localization.attribution_localization.attribution_localization
+::: torchxai.metrics.diagnosis.attribution_localization.attribution_localization
     options:
         docstring_options:
         ignore_init_summary: true

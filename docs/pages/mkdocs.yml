@@ -133,9 +133,8 @@ nav:
     - Robustness:
       - metrics/sensitivity_max.md
       - metrics/sensitivity_avg.md
-    - Localization:
-      - metrics/attribution_localization.md
     - Diagnosis:
+      - metrics/attribution_localization.md
       - metrics/attribution_locality.md
       - metrics/modality_topk_fraction.md
       - metrics/attribution_text_analysis.md
